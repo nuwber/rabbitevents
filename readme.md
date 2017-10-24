@@ -1,7 +1,6 @@
-# Nuwber broadcasting events
+# Broadcasting events
 
-[![pipeline status](https://gitlab.enchee.com/nuwber/libevents/badges/master/pipeline.svg)](https://gitlab.enchee.com/nuwber/libevents/commits/master)
-[![coverage report](https://gitlab.enchee.com/nuwber/libevents/badges/master/coverage.svg)](https://gitlab.enchee.com/nuwber/libevents/commits/master)
+[![Build Status](https://travis-ci.org/nuwber/rabbitevents.svg?branch=master)](https://travis-ci.org/nuwber/rabbitevents)
 
 Nuwber's broadcasting events provides a simple observer implementation, allowing you to listen for various events that occur in your current and another applications. For example if you need to react to some event fired from another microservice. 
 
