@@ -1,12 +1,15 @@
-# Broadcasting events
+# Broadcasting events by using RabbitMQ
 
 [![Build Status](https://travis-ci.org/nuwber/rabbitevents.svg?branch=master)](https://travis-ci.org/nuwber/rabbitevents)
 
 Nuwber's broadcasting events provides a simple observer implementation, allowing you to listen for various events that occur in your current and another applications. For example if you need to react to some event fired from another microservice. 
 
+Generally, this is compilation of LAravel's [events](https://laravel.com/docs/events) and [queues](https://laravel.com/docs/queues).
+
 Listener classes are typically stored in the `app/Listeners` folder. You may use Laravel's artisan command to generate them as it described in the [official documentation](https://laravel.com/docs/events).
 
-Generally, we're tried to create this library as similar as possible to the original one
+
+All RabbitMQ calls are done by using [Laravel queue package](https://github.com/php-enqueue/laravel-queue). So for better understanding read their documentation first.
 
 ## Installation
 Add this library to your composer.json
@@ -123,7 +126,7 @@ Sometimes, you may wish to stop the propagation of an event to other listeners. 
 There is the command which is registers events in RabbitMQ:
 
 ```
-php artian events:listen
+php artsian events:listen
 ```
 
 After this command start all registered in project events will be registered in RabbitMQ.
