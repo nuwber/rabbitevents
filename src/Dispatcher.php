@@ -2,6 +2,7 @@
 
 namespace Nuwber\Events;
 
+use Illuminate\Support\Str;
 use Illuminate\Events\Dispatcher as BaseDispatcher;
 
 class Dispatcher extends BaseDispatcher
