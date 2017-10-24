@@ -1,5 +1,5 @@
 {
-  "name": "nuwber/libevents",
+  "name": "nuwber/rabbitevents",
   "description": "Nuwber broadcasting events",
   "type": "library",
   "authors": [
