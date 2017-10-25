@@ -261,8 +261,6 @@ class ListenCommand extends Command
      */
     protected function stopIfNecessary(ProcessingOptions $options)
     {
-        pcntl_signal_dispatch();
-
         if ($this->shouldQuit) {
             $this->kill();
         }
