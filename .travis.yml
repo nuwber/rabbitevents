@@ -1,0 +1,22 @@
+sudo: true
+language: php
+php:
+  - '7.0'
+  - '7.1'
+
+before_script:
+  - sudo add-apt-repository ppa:ondrej/php -y
+  - sudo apt-get update -yy
+  - sudo apt-get install -y php-bcmath
+  - composer install -o -q
+
+jobs:
+  include:
+    - stage: build
+      install:
+        - composer require edgedesign/phpqa --update-no-dev --no-progress -q
+      script:
+        - ./vendor/bin/phpqa --analyzedDirs src --report --buildDir ./docs --tools phpcs:0,phpmd,phpcpd:0,phpmetrics:0,phploc,pdepend
+    - stage: test
+      script:
+        - phpunit

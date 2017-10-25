@@ -1,0 +1,41 @@
+{
+  "name": "nuwber/rabbitevents",
+  "description": "Nuwber broadcasting events",
+  "type": "library",
+  "authors": [
+    {
+      "name": "Eugene Kirdzei",
+      "email": "e.ki@nuwber.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.0",
+    "illuminate/support": "5.5.*",
+    "illuminate/console": "5.5.*",
+    "illuminate/events": "^5.5",
+    "illuminate/queue": "5.5.*",
+    "enqueue/laravel-queue": "^0.7.1",
+    "enqueue/amqp-lib": "^0.7.15",
+    "ext-bcmath": "*"
+  },
+  "require-dev": {
+    "phpspec/phpspec": "^4.0",
+    "mockery/mockery": "0.9.*",
+    "phpunit/phpunit": "^6.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "Nuwber\\Events\\": "src/"
+    },
+    "files": [
+      "src/helpers.php"
+    ]
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Enqueue\\LaravelQueue\\EnqueueServiceProvider"
+      ]
+    }
+  }
+}
