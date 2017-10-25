@@ -175,7 +175,7 @@ class ListenCommand extends Command
      */
     protected function logFailedJob(JobFailed $event)
     {
-        logger($event->job->getRawBody(), $event->exception->getTrace());
+        $this->laravel['log']->debug($event->job->getRawBody(), $event->exception->getTrace());
     }
 
     /**
@@ -227,7 +227,7 @@ class ListenCommand extends Command
      */
     public function memoryExceeded($memoryLimit)
     {
-        return (memory_get_usage() / 1024 / 1024) >= $memoryLimit;
+        return (memory_get_usage(true) / 1024 / 1024) >= $memoryLimit;
     }
 
     /**
@@ -242,19 +242,6 @@ class ListenCommand extends Command
     }
 
     /**
-     * Kill the process.
-     *
-     * @param  int $status
-     * @return void
-     */
-    public function kill($status = 0)
-    {
-        posix_kill(getmypid(), SIGKILL);
-
-        exit($status);
-    }
-
-    /**
      * Stop the process if necessary.
      *
      * @param  ProcessingOptions $options
@@ -262,7 +249,7 @@ class ListenCommand extends Command
     protected function stopIfNecessary(ProcessingOptions $options)
     {
         if ($this->shouldQuit) {
-            $this->kill();
+            $this->stop();
         }
 
         if ($this->memoryExceeded($options->memory)) {
