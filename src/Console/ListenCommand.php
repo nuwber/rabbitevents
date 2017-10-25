@@ -4,6 +4,7 @@ namespace Nuwber\Events\Console;
 
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
@@ -13,6 +14,7 @@ use Nuwber\Events\ConsumerFactory;
 use Nuwber\Events\Job;
 use Nuwber\Events\MessageProcessor;
 use Nuwber\Events\ProcessingOptions;
+use PhpAmqpLib\Exception\AMQPRuntimeException;
 
 class ListenCommand extends Command
 {
@@ -22,6 +24,7 @@ class ListenCommand extends Command
      * @var string
      */
     protected $signature = 'events:listen
+                            {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a child process can run}
                             {--tries=0 : Number of times to attempt a job before logging it failed}';
 
@@ -33,6 +36,13 @@ class ListenCommand extends Command
     protected $description = 'Listen for system events thrown from other services';
 
     /**
+     * Indicates if the listener should exit.
+     *
+     * @var bool
+     */
+    private $shouldQuit;
+
+    /**
      * Execute the console command.
      *
      * @throws \Exception
@@ -42,21 +52,58 @@ class ListenCommand extends Command
     {
         $this->listenForEvents();
 
+        $this->listenForSignals();
+
         $consumer = $this->makeConsumer();
 
         $options = $this->gatherProcessingOptions();
 
-        $processor = $this->makeMessageProcessor($options);
+        $processor = $this->createProcessor($options);
 
         while (true) {
-            if ($payload = $consumer->receive($options->timeout)) {
-                try {
-                    $processor->process($consumer, $payload);
-                } catch (\Exception $e) {
-                    // Do nothing because we've already fired all necessary events
-                }
+            if ($payload = $this->getNextJob($consumer, $options)) {
+                $processor->process($consumer, $payload);
             }
+            $this->stopIfNecessary($options);
         }
+    }
+
+    /**
+     * Receive next message from queuer
+     *
+     * @param PsrConsumer $consumer
+     * @param $options
+     * @return \Interop\Queue\PsrMessage|null
+     */
+    protected function getNextJob(PsrConsumer $consumer, $options)
+    {
+        try {
+            return $consumer->receive($options->timeout);
+        } catch (\Exception $e) {
+            $this->laravel->make(ExceptionHandler::class)->report($e);
+
+            $this->stopListeningIfLostConnection($e);
+        } catch (\Throwable $e) {
+            $this->laravel->make(ExceptionHandler::class)->report($e);
+
+            $this->stopListeningIfLostConnection($e);
+        }
+    }
+
+    /**
+     * @param ProcessingOptions $options
+     * @return MessageProcessor
+     */
+    protected function createProcessor(ProcessingOptions $options)
+    {
+        return new MessageProcessor(
+            $this->laravel,
+            $this->laravel->make(PsrContext::class),
+            $this->laravel->make('events'),
+            $this->laravel->make('broadcast.events'),
+            $options,
+            $this->laravel->make('queue')->getConnectionName()
+        );
     }
 
     /**
@@ -128,7 +175,7 @@ class ListenCommand extends Command
      */
     protected function logFailedJob(JobFailed $event)
     {
-        logger($event->job->getRawBody(), $event->exception->getTrace());
+        $this->laravel['log']->debug($event->job->getRawBody(), $event->exception->getTrace());
     }
 
     /**
@@ -138,8 +185,7 @@ class ListenCommand extends Command
     {
         return $this->laravel->make(ConsumerFactory::class)
             ->make(
-                $this->laravel->make('broadcast.events')
-                    ->getEvents()
+                $this->laravel->make('broadcast.events')->getEvents()
             );
     }
 
@@ -151,20 +197,70 @@ class ListenCommand extends Command
     protected function gatherProcessingOptions()
     {
         return new ProcessingOptions(
+            $this->option('memory'),
             $this->option('timeout'),
             $this->option('tries')
         );
     }
 
-    private function makeMessageProcessor(ProcessingOptions $options)
+    /**
+     * Enable async signals for the process.
+     *
+     * @return void
+     */
+    protected function listenForSignals()
     {
-        return new MessageProcessor(
-            $this->laravel,
-            $this->laravel->make(PsrContext::class),
-            $this->laravel->make('events'),
-            $this->laravel->make('broadcast.events'),
-            $options,
-            $this->laravel->make('queue')->getConnectionName()
-        );
+        pcntl_async_signals(true);
+
+        foreach ([SIGINT, SIGTERM, SIGALRM] as $signal) {
+            pcntl_signal($signal, function () {
+                $this->shouldQuit = true;
+            });
+        }
+    }
+
+    /**
+     * Determine if the memory limit has been exceeded.
+     *
+     * @param  int $memoryLimit
+     * @return bool
+     */
+    public function memoryExceeded($memoryLimit)
+    {
+        return (memory_get_usage(true) / 1024 / 1024) >= $memoryLimit;
+    }
+
+    /**
+     * Stop listening and bail out of the script.
+     *
+     * @param  int $status
+     * @return void
+     */
+    public function stop($status = 0)
+    {
+        exit($status);
+    }
+
+    /**
+     * Stop the process if necessary.
+     *
+     * @param  ProcessingOptions $options
+     */
+    protected function stopIfNecessary(ProcessingOptions $options)
+    {
+        if ($this->shouldQuit) {
+            $this->stop();
+        }
+
+        if ($this->memoryExceeded($options->memory)) {
+            $this->stop(12);
+        }
+    }
+
+    protected function stopListeningIfLostConnection($exception)
+    {
+        if ($exception instanceof AMQPRuntimeException) {
+            $this->shouldQuit = true;
+        }
     }
 }
