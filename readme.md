@@ -17,7 +17,7 @@ All RabbitMQ calls are done by using [Laravel queue package](https://github.com/
 Add this library to your composer.json
 
 ```
-composer require nuwber/libevents
+composer require nuwber/rabbitevents
 ```
 
 ### Register service providers
