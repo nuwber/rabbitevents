@@ -1,14 +1,13 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Nuwber\Events\Tests;
 
 use Illuminate\Container\Container;
 use Interop\Queue\PsrConsumer;
 use Interop\Queue\PsrContext;
 use Interop\Queue\PsrMessage;
 use Mockery as m;
-use PHPUnit\Framework\Assert;
-use PHPUnit\Framework\TestCase;
+use Nuwber\Events\Job;
 
 class JobTest extends TestCase
 {
@@ -24,7 +23,8 @@ class JobTest extends TestCase
         };
 
         $message = m::mock(PsrMessage::class);
-        $message->shouldReceive('getBody')->andReturn('{"id": 1}');
+        $message->shouldReceive('getBody')
+            ->andReturn('{"id": 1}');
 
         $this->job = new Job(
             m::mock(Container::class),
@@ -38,21 +38,16 @@ class JobTest extends TestCase
         );
     }
 
-    public function tearDown()
-    {
-        m::close();
-    }
-
     public function testFire()
     {
-        Assert::assertEquals("Event: $this->event. Item id: 1", $this->job->fire());
+        self::assertEquals("Event: $this->event. Item id: 1", $this->job->fire());
     }
 
     public function testGetName()
     {
         $expectedMessage =  "$this->connectionName: $this->event:$this->listenerClass";
 
-        Assert::assertEquals($expectedMessage, $this->job->getName());
+        self::assertEquals($expectedMessage, $this->job->getName());
     }
 
 }
