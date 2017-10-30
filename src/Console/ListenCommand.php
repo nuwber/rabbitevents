@@ -225,7 +225,7 @@ class ListenCommand extends Command
      * @param  int $memoryLimit
      * @return bool
      */
-    public function memoryExceeded($memoryLimit)
+    protected function memoryExceeded($memoryLimit)
     {
         return (memory_get_usage(true) / 1024 / 1024) >= $memoryLimit;
     }
@@ -236,7 +236,7 @@ class ListenCommand extends Command
      * @param  int $status
      * @return void
      */
-    public function stop($status = 0)
+    protected function stop($status = 0)
     {
         exit($status);
     }
