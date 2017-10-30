@@ -3,6 +3,7 @@
   "description": "Laravel back-to-back broadcasting events. It uses RabbitMQ as the transport.",
   "keywords": ["queue", "laravel", "rabbitmq", "events"],
   "type": "library",
+  "license": "MIT",
   "authors": [
     {
       "name": "Eugene Kirdzei",
