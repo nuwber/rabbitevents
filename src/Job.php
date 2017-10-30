@@ -3,6 +3,7 @@
 namespace Nuwber\Events;
 
 use Illuminate\Container\Container;
+use Illuminate\Support\Arr;
 use Interop\Queue\PsrConsumer;
 use Interop\Queue\PsrContext;
 use Interop\Queue\PsrMessage;
@@ -44,7 +45,7 @@ class Job extends \Enqueue\LaravelQueue\Job
     {
         $callback = $this->listener();
 
-        return $callback($this->event, $this->payload());
+        return $callback($this->event, Arr::wrap($this->payload()));
     }
 
     public function listener()
