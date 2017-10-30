@@ -128,7 +128,7 @@ Sometimes, you may wish to stop the propagation of an event to other listeners. 
 There is the command which is registers events in RabbitMQ:
 
 ```
-php artsian events:listen
+php artisan events:listen
 ```
 
 After this command start all registered in project events will be registered in RabbitMQ.
@@ -158,21 +158,30 @@ The library uses internal Laravel's queue system. To configure connection you ne
         'pass' => env('RABBITMQ_PASSWORD', 'guest'),
         'vhost' => 'events',
     ],
-], 
+],
 ```
 - specify your credentials in `.env` file
 - set `interop` connection as default
 
 ## Event firing
 
-To fire event to RabbitMQ you can use the helper function `fire`:
+To fire event to RabbitMQ you can use the helper function `fire`. You can pass array as second argument. Elements of this array will be used as arguments in event listener handler.
 
 ```php
 <?php
 // your activity
-$payload = [
-    'id' => 1,
+$args = [
+    // First argument
+    [
+        'title' => 'Example',
+    ],
+
+    // Second argument
+    [
+        'title' => 'Example',
+    ],
+    //...
 ];
 
-fire('item.created', $payload);
+fire('item.created', $args);
 ```
