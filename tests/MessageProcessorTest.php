@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Nuwber\Events\Tests;
 
 use Enqueue\AmqpLib\AmqpConsumer;
 use Enqueue\AmqpLib\AmqpProducer;
@@ -11,10 +11,12 @@ use Interop\Amqp\Impl\AmqpMessage;
 use Interop\Queue\PsrConsumer;
 use Interop\Queue\PsrContext;
 use Mockery as m;
+use Nuwber\Events\Dispatcher;
 use Nuwber\Events\Exceptions\FailedException;
+use Nuwber\Events\MessageProcessor;
+use Nuwber\Events\ProcessingOptions;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PHPUnit\Framework\Assert;
-use PHPUnit\Framework\TestCase;
 
 class MessageProcessorTest extends TestCase
 {
@@ -66,9 +68,9 @@ class MessageProcessorTest extends TestCase
     public function testProcessJobFailException()
     {
         $this->listeners = [
-            'ListenerClass' => function () {
+            'ListenerClass' => [function () {
                 throw new FailedException();
-            }
+            }]
         ];
 
         $broadcastEvents = m::spy(Dispatcher::class)->makePartial();
@@ -119,10 +121,5 @@ class MessageProcessorTest extends TestCase
         $channel->shouldReceive('basic_ack');
 
         return new AmqpConsumer($channel, $queue, new Buffer(), 'basic_get');
-    }
-
-    public function tearDown()
-    {
-        m::close();
     }
 }

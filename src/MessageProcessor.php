@@ -98,17 +98,19 @@ class MessageProcessor
     {
         $event = $payload->getRoutingKey();
 
-        foreach ($this->broadcastEvents->getListeners($event) as $name => $listener) {
-            yield new Job(
-                $this->container,
-                $this->context,
-                $consumer,
-                $payload,
-                $this->connectionName,
-                $event,
-                $name,
-                $listener
-            );
+        foreach ($this->broadcastEvents->getListeners($event) as $name => $listeners) {
+            foreach ($listeners as $listener) {
+                yield new Job(
+                    $this->container,
+                    $this->context,
+                    $consumer,
+                    $payload,
+                    $this->connectionName,
+                    $event,
+                    $name,
+                    $listener
+                );
+            }
         }
     }
 
