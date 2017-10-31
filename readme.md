@@ -170,18 +170,22 @@ To fire event to RabbitMQ you can use the helper function `fire`. You can pass a
 ```php
 <?php
 // your activity
-$args = [
+$payload = [
     // First argument
     [
-        'title' => 'Example',
+        'user_id' => 1,
+        'first_name' => 'John',
+        'last_name' = 'Doe'
     ],
 
     // Second argument
     [
-        'title' => 'Example',
+        'product_id' => 72,
+        'description' => 'Product Description',
+        'amount' => 9.99
     ],
     //...
 ];
 
-fire('item.created', $args);
+fire('item.created', $payload);
 ```
