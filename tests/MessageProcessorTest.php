@@ -6,6 +6,7 @@ use Enqueue\AmqpLib\AmqpConsumer;
 use Enqueue\AmqpLib\AmqpProducer;
 use Enqueue\AmqpLib\Buffer;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Interop\Amqp\Impl\AmqpMessage;
 use Interop\Queue\PsrConsumer;
@@ -67,9 +68,10 @@ class MessageProcessorTest extends TestCase
 
     public function testProcessJobFailException()
     {
+        $exception = new FailedException();
         $this->listeners = [
-            'ListenerClass' => [function () {
-                throw new FailedException();
+            'ListenerClass' => [function () use ($exception) {
+                throw $exception;
             }]
         ];
 
@@ -77,18 +79,23 @@ class MessageProcessorTest extends TestCase
         $broadcastEvents->shouldReceive('getListeners')
             ->andReturn($this->listeners);
 
-        $this->expectException(FailedException::class);
-
         $events = m::mock(\Illuminate\Events\Dispatcher::class)->makePartial();
         $events->shouldReceive('dispatch')
             ->with(JobExceptionOccurred::class)
             ->once();
 
-        $this->getProcessor($broadcastEvents, $events)
+        $exceptionHandler = m::mock(ExceptionHandler::class);
+        $exceptionHandler->shouldReceive('report')
+            ->with($exception)
+            ->once();
+
+        $result = $this->getProcessor($broadcastEvents, $events, $exceptionHandler)
             ->process($this->createConsumer(), $this->payload);
+
+        $this->assertNull($result);
     }
 
-    private function getProcessor($broadcastEvents = null, $events = null)
+    private function getProcessor($broadcastEvents = null, $events = null, $exceptionHandler = null)
     {
         $broadcastEvents = $broadcastEvents ?: $this->broadcastEvents;
 
@@ -101,13 +108,19 @@ class MessageProcessorTest extends TestCase
 
         Container::setInstance($container);
 
+        if (!$exceptionHandler) {
+            $exceptionHandler = m::mock(ExceptionHandler::class);
+            $exceptionHandler->shouldNotReceive();
+        }
+
         return new MessageProcessor(
             $container,
             $this->context,
             $events,
             $broadcastEvents,
             $this->options,
-            'interop'
+            'interop',
+            $exceptionHandler
         );
     }
 

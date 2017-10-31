@@ -13,8 +13,9 @@
   "require": {
     "php": ">=7.0",
     "illuminate/support": "5.5.*",
+    "illuminate/contracts": "5.5.*",
     "illuminate/console": "5.5.*",
-    "illuminate/events": "^5.5",
+    "illuminate/events": "5.5.*",
     "illuminate/queue": "5.5.*",
     "enqueue/laravel-queue": "^0.7.1",
     "enqueue/amqp-lib": "^0.7.15",
