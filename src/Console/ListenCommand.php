@@ -102,7 +102,8 @@ class ListenCommand extends Command
             $this->laravel->make('events'),
             $this->laravel->make('broadcast.events'),
             $options,
-            $this->laravel->make('queue')->getConnectionName()
+            $this->laravel->make('queue')->getConnectionName(),
+            $this->laravel->make(ExceptionHandler::class)
         );
     }
 

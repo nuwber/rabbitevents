@@ -4,6 +4,7 @@ namespace Nuwber\Events;
 
 use Exception;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
@@ -45,6 +46,10 @@ class MessageProcessor
      * @var \Nuwber\Events\Dispatcher
      */
     private $broadcastEvents;
+    /**
+     * @var ExceptionHandler
+     */
+    private $exceptions;
 
     public function __construct(
         Container $container,
@@ -52,7 +57,8 @@ class MessageProcessor
         Dispatcher $events,
         BroadcastEvents $broadcastEvents,
         ProcessingOptions $options,
-        string $connectionName
+        string $connectionName,
+        ExceptionHandler $exceptions
     ) {
         $this->container = $container;
         $this->context = $context;
@@ -60,6 +66,7 @@ class MessageProcessor
         $this->options = $options;
         $this->broadcastEvents = $broadcastEvents;
         $this->connectionName = $connectionName;
+        $this->exceptions = $exceptions;
     }
 
     /**
@@ -67,24 +74,28 @@ class MessageProcessor
      *
      * @param PsrConsumer $consumer
      * @param PsrMessage $payload
-     *
-     * @throws Exception
      */
     public function process(PsrConsumer $consumer, PsrMessage $payload)
     {
         $jobs = $this->makeJobs($consumer, $payload);
-        foreach ($jobs as $job) {
-            $response = $this->processJob($job);
+        try {
+            foreach ($jobs as $job) {
+                $response = $this->processJob($job);
 
-            // If a boolean false is returned from a listener, we will stop propagating
-            // the event to any further listeners down in the chain, else we keep on
-            // looping through the listeners and firing every one in our sequence.
-            if ($response === false) {
-                break;
+                // If a boolean false is returned from a listener, we will stop propagating
+                // the event to any further listeners down in the chain, else we keep on
+                // looping through the listeners and firing every one in our sequence.
+                if ($response === false) {
+                    break;
+                }
             }
-        }
 
-        $consumer->acknowledge($payload);
+            $consumer->acknowledge($payload);
+        } catch (Exception $e) {
+            $this->exceptions->report($e);
+        } catch (Throwable $e) {
+            $this->exceptions->report($e = new FatalThrowableError($e));
+        }
     }
 
     /**
