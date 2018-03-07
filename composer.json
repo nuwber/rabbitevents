@@ -1,5 +1,5 @@
 {
-  "name": "dmhaiduchonak/rabbitevents",
+  "name": "nuwber/rabbitevents",
   "description": "Laravel back-to-back broadcasting events. It uses RabbitMQ as the transport.",
   "keywords": ["queue", "laravel", "rabbitmq", "events"],
   "type": "library",
