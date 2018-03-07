@@ -54,15 +54,17 @@ class ListenCommand extends Command
 
         $this->listenForSignals();
 
-        $consumer = $this->makeConsumer();
+        $consumers = $this->makeConsumer();
 
         $options = $this->gatherProcessingOptions();
 
         $processor = $this->createProcessor($options);
 
         while (true) {
-            if ($payload = $this->getNextJob($consumer, $options)) {
-                $processor->process($consumer, $payload);
+            foreach ($consumers as $consumer) {
+                if ($payload = $this->getNextJob($consumer, $options)) {
+                    $processor->process($consumer, $payload);
+                }
             }
             $this->stopIfNecessary($options);
         }

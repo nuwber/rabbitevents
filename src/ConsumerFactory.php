@@ -33,13 +33,16 @@ class ConsumerFactory
      */
     public function make(array $events)
     {
-        $queue = $this->context->createTemporaryQueue();
-
+        $consumers = [];
         foreach ($events as $event) {
-            $this->bind($event, $queue);
-        }
+            $queueName = $this->convertEventNameToQueueName($event);
+            $queue = $this->context->createQueue($queueName);
+            $this->context->declareQueue($queue);
+            $this->bind($queueName, $queue);
 
-        return $this->context->createConsumer($queue);
+            $consumers[] = $this->context->createConsumer($queue);
+        }
+        return $consumers;
     }
 
     /**
@@ -53,5 +56,10 @@ class ConsumerFactory
         $this->context->bind(new AmqpBind($this->topic, $queue, $event));
 
         return $this;
+    }
+
+    protected function convertEventNameToQueueName(string $event)
+    {
+        return str_replace('.*', '.all', $event);
     }
 }
