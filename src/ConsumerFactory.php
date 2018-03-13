@@ -60,8 +60,8 @@ class ConsumerFactory
     }
 
     /**
-     * Conver event name to queue name
-     * 
+     * Convert event name to queue name
+     *
      * @param string $event
      * @return null|string
      */
