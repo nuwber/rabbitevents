@@ -13,7 +13,8 @@ class ConsumerFactoryTest extends TestCase
 
     public function testMake()
     {
-        $queue = new AmqpQueue('');
+        $event = 'item.created';
+        $queue = new AmqpQueue($event);
 
         $consumer = \Mockery::mock(AmqpConsumer::class)->makePartial();
 
@@ -22,15 +23,17 @@ class ConsumerFactoryTest extends TestCase
             ->once()
             ->andReturn($consumer);
 
-        $context->shouldReceive('createTemporaryQueue')
+        $context->shouldReceive('declareQueue')
+            ->once();
+
+        $context->shouldReceive('createQueue')
             ->once()
             ->andReturn($queue);
 
-        $events = ['item.created', 'item.updated'];
-        $context->shouldReceive('bind')->twice();
+        $context->shouldReceive('bind')->once();
 
         $factory = new ConsumerFactory($context, new AmqpTopic('events'));
 
-        self::assertEquals($consumer, $factory->make($events));
+        self::assertEquals($consumer, $factory->make($event));
     }
 }

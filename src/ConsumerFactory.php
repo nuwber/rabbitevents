@@ -15,6 +15,7 @@ class ConsumerFactory
      * @var AmqpContext
      */
     private $context;
+
     /**
      * @var AmqpTopic
      */
@@ -28,21 +29,21 @@ class ConsumerFactory
 
     /**
      * @param array $events
-     *
      * @return PsrConsumer
      */
-    public function make(array $events)
+    public function make($event)
     {
-        $consumers = [];
-        foreach ($events as $event) {
-            $queueName = $this->convertEventNameToQueueName($event);
-            $queue = $this->context->createQueue($queueName);
-            $this->context->declareQueue($queue);
-            $this->bind($queueName, $queue);
+        $event = $this->convertQueueNameToEventName($event);
+        $queueName = $this->convertEventNameToQueueName($event);
 
-            $consumers[] = $this->context->createConsumer($queue);
-        }
-        return $consumers;
+        $queue = $this->context->createQueue($queueName);
+        $this->context->declareQueue($queue);
+
+        $this->bind($event, $queue);
+
+        $consumer = $this->context->createConsumer($queue);
+
+        return $consumer;
     }
 
     /**
@@ -58,8 +59,25 @@ class ConsumerFactory
         return $this;
     }
 
+    /**
+     * Conver event name to queue name
+     * 
+     * @param string $event
+     * @return null|string
+     */
     protected function convertEventNameToQueueName(string $event)
     {
-        return str_replace('.*', '.all', $event);
+        return preg_replace('/\.\*$/', '.all', $event);
+    }
+
+    /**
+     * Convert queue name to event name
+     *
+     * @param string $queue
+     * @return null|string
+     */
+    protected function convertQueueNameToEventName(string $queue)
+    {
+        return preg_replace('/\.all$/', '.*', $queue);
     }
 }

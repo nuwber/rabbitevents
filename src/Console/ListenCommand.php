@@ -23,7 +23,9 @@ class ListenCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'events:listen
+    protected $signature = 'events:listen 
+                            {queue : The names of the queues to work}
+                            {connection? : The name of the queue connection to work}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a child process can run}
                             {--tries=0 : Number of times to attempt a job before logging it failed}';
@@ -54,17 +56,23 @@ class ListenCommand extends Command
 
         $this->listenForSignals();
 
-        $consumers = $this->makeConsumer();
+        $connection = $this->argument('connection')
+            ?: $this->laravel['config']['queue.default'];
+
+        // We need to get the right queue for the connection which is set in the queue
+        // configuration file for the application. We will pull it based on the set
+        // connection being run for the queue operation currently being executed.
+        $queue = $this->getQueue($connection);
+
+        $consumer = $this->makeConsumer($queue);
 
         $options = $this->gatherProcessingOptions();
 
         $processor = $this->createProcessor($options);
 
         while (true) {
-            foreach ($consumers as $consumer) {
-                if ($payload = $this->getNextJob($consumer, $options)) {
-                    $processor->process($consumer, $payload);
-                }
+            if ($payload = $this->getNextJob($consumer, $options)) {
+                $processor->process($consumer, $payload);
             }
             $this->stopIfNecessary($options);
         }
@@ -184,11 +192,11 @@ class ListenCommand extends Command
     /**
      * @return PsrConsumer
      */
-    private function makeConsumer()
+    private function makeConsumer($queue)
     {
         return $this->laravel->make(ConsumerFactory::class)
             ->make(
-                $this->laravel->make('broadcast.events')->getEvents()
+                $queue
             );
     }
 
@@ -266,4 +274,19 @@ class ListenCommand extends Command
             $this->shouldQuit = true;
         }
     }
+
+    /**
+     * Get the queue name for the worker.
+     *
+     * @param  string $connection
+     *
+     * @return string
+     */
+    protected function getQueue($connection)
+    {
+        return $this->argument('queue') ?: $this->laravel['config']->get(
+            "queue.connections.{$connection}.queue", 'default'
+        );
+    }
+
 }
