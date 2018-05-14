@@ -40,7 +40,6 @@ class BroadcastFactory
      */
     public function send(string $event, AmqpMessage $message)
     {
-        $this->makeChannel($event);
         $this->producer->send($this->topic, $message);
     }
 
@@ -64,18 +63,6 @@ class BroadcastFactory
         return preg_replace('/\.all$/', '.*', $queue);
     }
 
-    public function makeChannel($event)
-    {
-        $event = $this->convertQueueNameToEventName($event);
-        $queueName = $this->convertEventNameToQueueName($event);
-
-        $queue = $this->context->createQueue($queueName);
-        $this->context->declareQueue($queue);
-
-        $this->bind($queueName, $queue);
-
-        return $queue;
-    }
 
     /**
      * Bind queue to concrete event

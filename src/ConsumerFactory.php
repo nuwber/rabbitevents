@@ -28,13 +28,16 @@ class ConsumerFactory
     }
 
     /**
-     * @param array $events
+     * @param string $event
+     * @param string $serviceName
      * @return PsrConsumer
      */
-    public function make($event)
+    public function make(string $event, string $serviceName)
     {
         $event = $this->convertQueueNameToEventName($event);
         $queueName = $this->convertEventNameToQueueName($event);
+
+        $queueName = $this->makeQueueName($queueName, $serviceName);
 
         $queue = $this->context->createQueue($queueName);
         $this->context->declareQueue($queue);
@@ -79,5 +82,9 @@ class ConsumerFactory
     protected function convertQueueNameToEventName(string $queue)
     {
         return preg_replace('/\.all$/', '.*', $queue);
+    }
+
+    protected function makeQueueName($queueName, $serviceName) {
+        return $serviceName.'-'.$queueName;
     }
 }

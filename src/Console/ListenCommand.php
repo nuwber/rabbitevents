@@ -25,7 +25,8 @@ class ListenCommand extends Command
      */
     protected $signature = 'events:listen 
                             {queue : The names of the queues to work}
-                            {connection? : The name of the queue connection to work}
+                            {--service= : The names of the queues to work}
+                            {--connection= : The name of the queue connection to work}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a child process can run}
                             {--tries=0 : Number of times to attempt a job before logging it failed}';
@@ -56,15 +57,15 @@ class ListenCommand extends Command
 
         $this->listenForSignals();
 
-        $connection = $this->argument('connection')
-            ?: $this->laravel['config']['queue.default'];
-
+        $connection = $this->getConnection();
         // We need to get the right queue for the connection which is set in the queue
         // configuration file for the application. We will pull it based on the set
         // connection being run for the queue operation currently being executed.
         $queue = $this->getQueue($connection);
 
-        $consumer = $this->makeConsumer($queue);
+        $serviceName = $this->getService();
+
+        $consumer = $this->makeConsumer($queue, $serviceName);
 
         $options = $this->gatherProcessingOptions();
 
@@ -192,11 +193,11 @@ class ListenCommand extends Command
     /**
      * @return PsrConsumer
      */
-    private function makeConsumer($queue)
+    private function makeConsumer($queue, $serviceName)
     {
         return $this->laravel->make(ConsumerFactory::class)
             ->make(
-                $queue
+                $queue, $serviceName
             );
     }
 
@@ -288,5 +289,28 @@ class ListenCommand extends Command
             "queue.connections.{$connection}.queue", 'default'
         );
     }
+
+    /**
+     * Get the service name for the worker.
+     *
+     * @return string
+     */
+    protected function getService()
+    {
+        return $this->option('service') ?: $this->laravel['config']->get(
+            "app.name");
+    }
+
+    /**
+     * Get the connection for the worker.
+     *
+     * @return string
+     */
+    protected function getConnection()
+    {
+        return $this->option('connection')
+            ?: $this->laravel['config']['queue.default'];
+    }
+
 
 }

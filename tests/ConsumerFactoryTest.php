@@ -14,6 +14,8 @@ class ConsumerFactoryTest extends TestCase
     public function testMake()
     {
         $event = 'item.created';
+        $serviceName = 'items';
+
         $queue = new AmqpQueue($event);
 
         $consumer = \Mockery::mock(AmqpConsumer::class)->makePartial();
@@ -34,6 +36,6 @@ class ConsumerFactoryTest extends TestCase
 
         $factory = new ConsumerFactory($context, new AmqpTopic('events'));
 
-        self::assertEquals($consumer, $factory->make($event));
+        self::assertEquals($consumer, $factory->make($event, $serviceName));
     }
 }
