@@ -23,10 +23,14 @@ class ListenCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'events:listen
+    protected $signature = 'events:listen 
+                            {queue : The names of the queues to work}
+                            {--service= : The names of the queues to work}
+                            {--connection= : The name of the queue connection to work}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a child process can run}
-                            {--tries=0 : Number of times to attempt a job before logging it failed}';
+                            {--tries=0 : Number of times to attempt a job before logging it failed}
+                            {--sleep=5 : Sleep time in seconds before running failed job next time}';
 
     /**
      * The console command description.
@@ -54,7 +58,15 @@ class ListenCommand extends Command
 
         $this->listenForSignals();
 
-        $consumer = $this->makeConsumer();
+        $connection = $this->getConnection();
+        // We need to get the right queue for the connection which is set in the queue
+        // configuration file for the application. We will pull it based on the set
+        // connection being run for the queue operation currently being executed.
+        $queue = $this->getQueue($connection);
+
+        $serviceName = $this->getService();
+
+        $consumer = $this->makeConsumer($queue, $serviceName);
 
         $options = $this->gatherProcessingOptions();
 
@@ -62,7 +74,7 @@ class ListenCommand extends Command
 
         while (true) {
             if ($payload = $this->getNextJob($consumer, $options)) {
-                $processor->process($consumer, $payload);
+                $processor->process($consumer, $payload, $serviceName);
             }
             $this->stopIfNecessary($options);
         }
@@ -182,11 +194,12 @@ class ListenCommand extends Command
     /**
      * @return PsrConsumer
      */
-    private function makeConsumer()
+    private function makeConsumer($queue, $serviceName)
     {
         return $this->laravel->make(ConsumerFactory::class)
             ->make(
-                $this->laravel->make('broadcast.events')->getEvents()
+                $queue,
+                $serviceName
             );
     }
 
@@ -200,7 +213,8 @@ class ListenCommand extends Command
         return new ProcessingOptions(
             $this->option('memory'),
             $this->option('timeout'),
-            $this->option('tries')
+            $this->option('tries'),
+            $this->option('sleep')
         );
     }
 
@@ -263,5 +277,43 @@ class ListenCommand extends Command
         if ($exception instanceof AMQPRuntimeException) {
             $this->shouldQuit = true;
         }
+    }
+
+    /**
+     * Get the queue name for the worker.
+     *
+     * @param  string $connection
+     *
+     * @return string
+     */
+    protected function getQueue($connection)
+    {
+        return $this->argument('queue') ?: $this->laravel['config']->get(
+            "queue.connections.{$connection}.queue",
+            'default'
+        );
+    }
+
+    /**
+     * Get the service name for the worker.
+     *
+     * @return string
+     */
+    protected function getService()
+    {
+        return $this->option('service') ?: $this->laravel['config']->get(
+            "app.name"
+        );
+    }
+
+    /**
+     * Get the connection for the worker.
+     *
+     * @return string
+     */
+    protected function getConnection()
+    {
+        return $this->option('connection')
+            ?: $this->laravel['config']['queue.default'];
     }
 }

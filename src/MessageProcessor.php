@@ -74,10 +74,11 @@ class MessageProcessor
      *
      * @param PsrConsumer $consumer
      * @param PsrMessage $payload
+     * @param string $serviceName
      */
-    public function process(PsrConsumer $consumer, PsrMessage $payload)
+    public function process(PsrConsumer $consumer, PsrMessage $payload, string $serviceName)
     {
-        $jobs = $this->makeJobs($consumer, $payload);
+        $jobs = $this->makeJobs($consumer, $payload, $serviceName);
         try {
             foreach ($jobs as $job) {
                 $response = $this->processJob($job);
@@ -103,11 +104,13 @@ class MessageProcessor
      *
      * @param PsrConsumer $consumer
      * @param PsrMessage $payload
+     * @param string $serviceName
      * @return Job[]
      */
-    protected function makeJobs(PsrConsumer $consumer, PsrMessage $payload)
+    protected function makeJobs(PsrConsumer $consumer, PsrMessage $payload, string $serviceName)
     {
         $event = $payload->getRoutingKey();
+        $event = $this->makeEventName($event, $serviceName);
 
         foreach ($this->broadcastEvents->getListeners($event) as $name => $listeners) {
             foreach ($listeners as $listener) {
@@ -123,6 +126,16 @@ class MessageProcessor
                 );
             }
         }
+    }
+
+    /**
+     * @param string $eventName
+     * @param string $serviceName
+     * @return mixed
+     */
+    protected function makeEventName(string $eventName, string $serviceName)
+    {
+        return str_replace($serviceName . '-', '', $eventName);
     }
 
     /**
@@ -173,7 +186,7 @@ class MessageProcessor
      *
      * @throws \Exception
      */
-    protected function markJobAsFailedIfAlreadyExceedsMaxAttempts(Job $job, $maxTries)
+    protected function markJobAsFailedIfAlreadyExceedsMaxAttempts(Job $job, int $maxTries)
     {
         if ($maxTries === 0 || $job->attempts() <= $maxTries) {
             return;
@@ -242,6 +255,7 @@ class MessageProcessor
             // so it is not lost entirely. This'll let the job be retried at a later time by
             // another listener (or this same one). We will re-throw this exception after.
             if (!$job->isDeleted() && !$job->isReleased() && !$job->hasFailed()) {
+                sleep($this->options->sleep);
                 $job->release();
             }
         }
