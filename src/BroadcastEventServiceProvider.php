@@ -7,6 +7,7 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 use Interop\Amqp\AmqpTopic;
 use Interop\Queue\PsrContext;
 use Interop\Queue\PsrTopic;
+use Nuwber\Events\Console\CheckCommand;
 use Nuwber\Events\Console\ListenCommand;
 use Nuwber\Events\Facades\BroadcastEvent;
 
@@ -25,7 +26,7 @@ class BroadcastEventServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                ListenCommand::class
+                ListenCommand::class,
             ]);
 
             foreach ($this->listen as $event => $listeners) {
@@ -69,6 +70,7 @@ class BroadcastEventServiceProvider extends ServiceProvider
 
             $topic = $context->createTopic($this->exchangeName);
             $topic->setType(AmqpTopic::TYPE_TOPIC);
+            $topic->addFlag(AmqpTopic::FLAG_DURABLE);
 
             $context->declareTopic($topic);
 

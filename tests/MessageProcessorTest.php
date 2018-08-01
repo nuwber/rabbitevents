@@ -3,6 +3,7 @@
 namespace Nuwber\Events\Tests;
 
 use Enqueue\AmqpLib\AmqpConsumer;
+use Enqueue\AmqpLib\AmqpContext;
 use Enqueue\AmqpLib\AmqpProducer;
 use Enqueue\AmqpLib\Buffer;
 use Illuminate\Container\Container;
@@ -18,12 +19,18 @@ use Nuwber\Events\MessageProcessor;
 use Nuwber\Events\ProcessingOptions;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PHPUnit\Framework\Assert;
+use Symfony\Component\Debug\Exception\FatalThrowableError;
 
+/**
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
+ */
 class MessageProcessorTest extends TestCase
 {
     private $payload;
     private $options;
     private $event = 'item.event';
+    private $service = 'service-backend';
     private $listeners;
     private $broadcastEvents;
     private $data;
@@ -61,7 +68,7 @@ class MessageProcessorTest extends TestCase
 
     public function testProcessJob()
     {
-        $result = $this->getProcessor()->process($this->createConsumer(), $this->payload);
+        $result = $this->getProcessor()->process($this->createConsumer(), $this->payload, $this->service);
 
         Assert::assertNull($result);
     }
@@ -90,7 +97,44 @@ class MessageProcessorTest extends TestCase
             ->once();
 
         $result = $this->getProcessor($broadcastEvents, $events, $exceptionHandler)
-            ->process($this->createConsumer(), $this->payload);
+            ->process($this->createConsumer(), $this->payload, $this->service);
+
+        $this->assertNull($result);
+    }
+
+    public function testReleaseJob()
+    {
+        $exception = new \Exception();
+        $this->listeners = [
+            'ListenerClass' => [function () use ($exception) {
+                throw $exception;
+            }]
+        ];
+
+        $broadcastEvents = m::spy(Dispatcher::class)->makePartial();
+        $broadcastEvents->shouldReceive('getListeners')
+            ->andReturn($this->listeners);
+
+        $events = m::mock(\Illuminate\Events\Dispatcher::class)->makePartial();
+        $events->shouldReceive('dispatch')
+            ->with(JobExceptionOccurred::class)
+            ->once();
+
+        $exceptionHandler = m::mock(ExceptionHandler::class);
+        $exceptionHandler->shouldReceive('report')
+            ->with(FatalThrowableError::class)
+            ->once();
+
+        $processor = $this->getProcessor($broadcastEvents, $events, $exceptionHandler);
+
+        $job = m::mock('overload:Nuwber\Events\Job')->makePartial();
+        $job->shouldReceive('isDeleted')->once();
+        $job->shouldReceive('isReleased')->once();
+        $job->shouldReceive('hasFailed')->once();
+        $job->shouldReceive('release')->once();
+        $job->shouldReceive('fire')->once();
+
+        $result = $processor->process($this->createConsumer(), $this->payload, $this->service);
 
         $this->assertNull($result);
     }
@@ -130,9 +174,13 @@ class MessageProcessorTest extends TestCase
     private function createConsumer()
     {
         $queue = new \Interop\Amqp\Impl\AmqpQueue('interop');
+
         $channel = m::mock(AMQPChannel::class)->makePartial();
         $channel->shouldReceive('basic_ack');
 
-        return new AmqpConsumer($channel, $queue, new Buffer(), 'basic_get');
+        $context = m::mock(AmqpContext::class)->makePartial();
+        $context->shouldReceive('getLibChannel')->once()->andReturn($channel);
+
+        return new AmqpConsumer($context, $queue, new Buffer(), 'basic_get');
     }
 }
