@@ -2,13 +2,10 @@
 
 namespace Nuwber\Events\Logging;
 
-use Illuminate\Queue\Events\JobFailed;
-use Illuminate\Queue\Events\JobProcessed;
-use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Carbon;
 use Nuwber\Events\Job;
 
-class Output
+class Output extends Writer
 {
 
     /**
@@ -27,42 +24,14 @@ class Output
         $this->output = $output;
     }
 
-    public function register()
-    {
-        $this->laravel['events']->listen(JobProcessing::class, function ($event) {
-            $this->writeOutput($event->job, 'starting');
-        });
-
-        $this->laravel['events']->listen(JobProcessed::class, function ($event) {
-            $this->writeOutput($event->job, 'success');
-        });
-
-        $this->laravel['events']->listen(JobFailed::class, function ($event) {
-            $this->writeOutput($event->job, 'failed');
-
-            $this->logFailedJob($event);
-        });
-    }
-
     /**
-     * Write the status output for the queue worker.
-     *
-     * @param  Job $listener
-     * @param  string $status
-     * @return void
+     * @inheritdoc
      */
-    protected function writeOutput(Job $listener, $status)
+    public function log($event)
     {
-        switch ($status) {
-            case 'starting':
-                $this->writeStatus($listener, 'Processing', 'comment');
-                break;
-            case 'success':
-                $this->writeStatus($listener, 'Processed', 'info');
-                break;
-            case 'failed':
-                $this->writeStatus($listener, 'Failed', 'error');
-        }
+        $status = $this->getStatus($event);
+
+        $this->writeStatus($event->job, $status, $this->getType($status));
     }
 
     /**
@@ -83,14 +52,15 @@ class Output
         ));
     }
 
-    /**
-     * Store a failed job event.
-     *
-     * @param  \Illuminate\Queue\Events\JobFailed $event
-     * @return void
-     */
-    protected function logFailedJob(JobFailed $event)
+    protected function getType($status)
     {
-        $this->laravel['log']->debug($event->job->getRawBody(), $event->exception->getTrace());
+        switch ($status) {
+            case self::STATUS_PROCESSED;
+                return 'info';
+            case self::STATUS_FAILED;
+                return 'error';
+            default:
+                return 'comment';
+        }
     }
 }
