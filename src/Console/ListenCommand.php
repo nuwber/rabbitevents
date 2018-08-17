@@ -110,7 +110,7 @@ class ListenCommand extends Command
     }
 
     /**
-     * @return PsrConlistenersumer
+     * @return PsrConsumer
      */
     private function makeConsumer()
     {
