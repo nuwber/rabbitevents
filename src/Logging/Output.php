@@ -55,9 +55,9 @@ class Output extends Writer
     protected function getType($status)
     {
         switch ($status) {
-            case self::STATUS_PROCESSED;
+            case self::STATUS_PROCESSED:
                 return 'info';
-            case self::STATUS_FAILED;
+            case self::STATUS_FAILED:
                 return 'error';
             default:
                 return 'comment';
