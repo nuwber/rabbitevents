@@ -4,12 +4,14 @@ namespace Nuwber\Events\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
 use Interop\Queue\PsrConsumer;
 use Interop\Queue\PsrContext;
 use Nuwber\Events\ConsumerFactory;
-use Nuwber\Events\Logging\General;
-use Nuwber\Events\Logging\Output as OutputLogging;
-use Nuwber\Events\Logging\General as GeneralLogging;
+use Nuwber\Events\Logging\Output as OutputWriter;
+use Nuwber\Events\Logging\General as GeneralWriter;
 use Nuwber\Events\MessageProcessor;
 use Nuwber\Events\ProcessingOptions;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
@@ -42,6 +44,11 @@ class ListenCommand extends Command
     private $shouldQuit;
 
     /**
+     * @var array
+     */
+    protected $logWriters = [];
+
+    /**
      * Execute the console command.
      *
      * @throws \Exception
@@ -49,10 +56,7 @@ class ListenCommand extends Command
      */
     public function handle()
     {
-        if (!$this->option('quiet')) {
-            (new OutputLogging($this->laravel, $this->output))->register();
-        }
-        (new GeneralLogging($this->laravel))->register();
+        $this->registerLogWriters();
 
         $this->listenForSignals();
 
@@ -135,6 +139,24 @@ class ListenCommand extends Command
     }
 
     /**
+     * Listen for the queue events in order to update the console output.
+     *
+     * @return void
+     */
+    protected function listenForEvents()
+    {
+        $callback = function ($event) {
+            foreach ($this->logWriters as $writer) {
+                $writer->log($event);
+            }
+        };
+
+        $this->laravel['events']->listen(JobProcessing::class, $callback);
+        $this->laravel['events']->listen(JobProcessed::class, $callback);
+        $this->laravel['events']->listen(JobFailed::class, $callback);
+    }
+
+    /**
      * Enable async signals for the process.
      *
      * @return void
@@ -192,6 +214,17 @@ class ListenCommand extends Command
     {
         if ($exception instanceof AMQPRuntimeException) {
             $this->shouldQuit = true;
+        }
+    }
+
+    private function registerLogWriters()
+    {
+        if (!$this->option('quiet')) {
+            $this->logWriters[] = new OutputWriter($this->laravel, $this->output);
+        }
+
+        if ($this->laravel['config']->get('queue.connections.interop.logging.enabled')) {
+            $this->logWriters[] = new GeneralWriter($this->laravel);
         }
     }
 }
