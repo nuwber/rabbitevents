@@ -3,10 +3,14 @@ language: php
 php:
   - '7.0'
   - '7.1'
+  - '7.2'
 
-before_script:
+install:
+  - sudo add-apt-repository ppa:ondrej/php -y
   - sudo apt-get update -yy
   - sudo apt-get install -y php-bcmath
+
+before_script:
   - composer install -o -q
 
 jobs:
