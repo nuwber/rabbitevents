@@ -5,7 +5,6 @@ php:
   - '7.1'
 
 before_script:
-  - sudo add-apt-repository ppa:ondrej/php -y
   - sudo apt-get update -yy
   - sudo apt-get install -y php-bcmath
   - composer install -o -q
