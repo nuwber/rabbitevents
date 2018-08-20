@@ -19,7 +19,8 @@
     "illuminate/queue": "5.5.*",
     "enqueue/laravel-queue": "^0.7.1",
     "enqueue/amqp-lib": "^0.7.15",
-    "ext-bcmath": "*"
+    "ext-bcmath": "*",
+    "ext-pcntl": "*"
   },
   "require-dev": {
     "mockery/mockery": "0.9.*",
