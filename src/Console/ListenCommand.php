@@ -58,6 +58,7 @@ class ListenCommand extends Command
     {
         $this->registerLogWriters();
 
+        $this->listenForEvents();
         $this->listenForSignals();
 
         $consumer = $this->makeConsumer();
