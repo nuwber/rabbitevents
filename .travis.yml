@@ -23,3 +23,7 @@ jobs:
     - stage: test
       script:
         - phpunit
+
+cache:
+  directories:
+  - $HOME/.composer/cache/files
