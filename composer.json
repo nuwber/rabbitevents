@@ -1,30 +1,35 @@
 {
   "name": "nuwber/rabbitevents",
   "description": "Laravel back-to-back broadcasting events. It uses RabbitMQ as the transport.",
-  "keywords": ["queue", "laravel", "rabbitmq", "events"],
+  "keywords": ["queue", "laravel", "rabbitmq", "rabbit", "events", "event bus", "bus"],
   "type": "library",
   "license": "MIT",
   "authors": [
     {
       "name": "Eugene Kirdzei",
-      "email": "e.ki@nuwber.com"
+      "email": "masterjus@gmail.com"
+    },
+    {
+      "name": "Dzmitry Haiduchonak",
+      "email": "dm.haiduchonak@gmail.com"
     }
   ],
   "require": {
-    "php": ">=7.0",
-    "illuminate/support": "5.5.*",
-    "illuminate/contracts": "5.5.*",
-    "illuminate/console": "5.5.*",
-    "illuminate/events": "5.5.*",
-    "illuminate/queue": "5.5.*",
-    "enqueue/laravel-queue": "^0.7.1",
-    "enqueue/amqp-lib": "^0.7.15",
+    "php": ">=7.1",
     "ext-bcmath": "*",
-    "ext-pcntl": "*"
+    "ext-pcntl": "*",
+    "ext-json": "*",
+    "illuminate/support": "5.5.*|5.6.*",
+    "illuminate/contracts": "5.5.*|5.6.*",
+    "illuminate/console": "5.5.*|5.6.*",
+    "illuminate/events": "5.5.*|5.6.*",
+    "illuminate/queue": "5.5.*|5.6.*",
+    "enqueue/laravel-queue": "^0.8",
+    "enqueue/amqp-lib": "^0.8"
   },
   "require-dev": {
     "mockery/mockery": "0.9.*",
-    "phpunit/phpunit": "^6.4"
+    "phpunit/phpunit": "^7"
   },
   "autoload": {
     "psr-4": {

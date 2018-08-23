@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events\Logging;
+namespace Nuwber\Events\Log;
 
 use Nuwber\Events\Job;
 

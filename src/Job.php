@@ -2,11 +2,11 @@
 
 namespace Nuwber\Events;
 
-use Illuminate\Container\Container;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Arr;
+use Interop\Amqp\AmqpMessage;
 use Interop\Queue\PsrConsumer;
 use Interop\Queue\PsrContext;
-use Interop\Queue\PsrMessage;
 
 class Job extends \Enqueue\LaravelQueue\Job
 {
@@ -18,48 +18,51 @@ class Job extends \Enqueue\LaravelQueue\Job
      * @var PsrConsumer
      */
     private $event;
+
+    /** @var string */
+    protected $name;
     /**
-     * @var
+     * @var string
      */
-    private $listenerName;
+    private $listenerClass;
 
     public function __construct(
-        Container $container,
-        PsrContext $context,
+        Application $app,
         PsrConsumer $consumer,
-        PsrMessage $message,
-        string $connectionName,
-        string $event,
-        $listenerName,
-        callable $callback
+        AmqpMessage $message,
+        $connectionName,
+        callable $callback,
+        string $listenerClass
     ) {
-        parent::__construct($container, $context, $consumer, $message, $connectionName);
+        parent::__construct($app, $app[PsrContext::class], $consumer, $message, $connectionName);
 
-        $this->connectionName = $connectionName;
-        $this->event = $event;
-        $this->listenerName = $listenerName;
+        $this->event = $message->getRoutingKey();
         $this->listener = $callback;
+        $this->listenerClass = $listenerClass;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function fire()
     {
-        $callback = $this->listener();
-
-        return $callback($this->event, Arr::wrap($this->payload()));
+        return call_user_func($this->listener, $this->event, Arr::wrap($this->payload()));
     }
 
-    public function listener()
-    {
-        return $this->listener;
-    }
-
+    /**
+     * @return string
+     */
     public function getName()
     {
-        return "$this->connectionName: " . $this->event . ":$this->listenerName";
+        return sprintf('%s:%s:%s', $this->connectionName, $this->event, $this->listenerClass);
     }
 
     public function failed($exception)
     {
-        //TODO To think how can we use this method
+        $this->markAsFailed();
+
+        if (method_exists($this->instance = $this->resolve($this->listenerClass), 'failed')) {
+            $this->instance->failed($this->payload(), $exception);
+        }
     }
 }

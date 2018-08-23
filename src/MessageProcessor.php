@@ -3,33 +3,23 @@
 namespace Nuwber\Events;
 
 use Exception;
-use Illuminate\Container\Container;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Debug\ExceptionHandler;
-use Illuminate\Events\Dispatcher;
+use Illuminate\Events\Dispatcher as Events;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\FailingJob;
 use Illuminate\Queue\MaxAttemptsExceededException;
-use Interop\Queue\PsrConsumer;
-use Interop\Queue\PsrContext;
-use Interop\Queue\PsrMessage;
-use Nuwber\Events\Dispatcher as BroadcastEvents;
+use Interop\Amqp\AmqpConsumer;
+use Interop\Amqp\AmqpMessage;
 use Nuwber\Events\Exceptions\FailedException;
 use Symfony\Component\Debug\Exception\FatalThrowableError;
 use Throwable;
 
 class MessageProcessor
 {
-    /**
-     * @var Container
-     */
-    private $container;
-    /**
-     * @var  string
-     */
-    private $connectionName;
     /**
      * @var \Illuminate\Events\Dispatcher
      */
@@ -39,47 +29,35 @@ class MessageProcessor
      */
     private $options;
     /**
-     * @var PsrContext
-     */
-    private $context;
-    /**
-     * @var \Nuwber\Events\Dispatcher
-     */
-    private $broadcastEvents;
-    /**
      * @var ExceptionHandler
      */
     private $exceptions;
+    /**
+     * @var Application
+     */
+    private $app;
 
     public function __construct(
-        Container $container,
-        PsrContext $context,
-        Dispatcher $events,
-        BroadcastEvents $broadcastEvents,
-        ProcessingOptions $options,
-        string $connectionName,
-        ExceptionHandler $exceptions
+        Application $app,
+        Events $events,
+        ExceptionHandler $exceptions,
+        ProcessingOptions $options
     ) {
-        $this->container = $container;
-        $this->context = $context;
+        $this->app = $app;
         $this->events = $events;
-        $this->options = $options;
-        $this->broadcastEvents = $broadcastEvents;
-        $this->connectionName = $connectionName;
         $this->exceptions = $exceptions;
+        $this->options = $options;
     }
 
     /**
      * Fire an event and call the listeners.
      *
-     * @param PsrConsumer $consumer
-     * @param PsrMessage $payload
+     * @param AmqpMessage $message
      */
-    public function process(PsrConsumer $consumer, PsrMessage $payload)
+    public function process(AmqpConsumer $consumer, AmqpMessage $message)
     {
-        $jobs = $this->makeJobs($consumer, $payload);
         try {
-            foreach ($jobs as $job) {
+            foreach ($this->makeJobs($consumer, $message) as $job) {
                 $response = $this->processJob($job);
 
                 // If a boolean false is returned from a listener, we will stop propagating
@@ -90,7 +68,6 @@ class MessageProcessor
                 }
             }
 
-            $consumer->acknowledge($payload);
         } catch (Exception $e) {
             $this->exceptions->report($e);
         } catch (Throwable $e) {
@@ -98,31 +75,25 @@ class MessageProcessor
         }
     }
 
-    /**
-     * Build array of Listeners
-     *
-     * @param PsrConsumer $consumer
-     * @param PsrMessage $payload
-     * @return Job[]
-     */
-    protected function makeJobs(PsrConsumer $consumer, PsrMessage $payload)
+    public function makeJobs(AmqpConsumer $consumer, AmqpMessage $message)
     {
-        $event = $payload->getRoutingKey();
-
-        foreach ($this->broadcastEvents->getListeners($event) as $name => $listeners) {
-            foreach ($listeners as $listener) {
+        foreach ($this->getListeners($message) as $listener => $listeners) {
+            foreach ($listeners as $callback) {
                 yield new Job(
-                    $this->container,
-                    $this->context,
+                    $this->app,
                     $consumer,
-                    $payload,
-                    $this->connectionName,
-                    $event,
-                    $name,
+                    $message,
+                    $this->options->connectionName,
+                    $callback,
                     $listener
                 );
             }
         }
+    }
+
+    protected function getListeners(AmqpMessage $message)
+    {
+        return $this->app->make('broadcast.events')->getListeners($message->getRoutingKey());
     }
 
     /**
@@ -159,7 +130,7 @@ class MessageProcessor
      */
     protected function raiseBeforeEvent(Job $job)
     {
-        $this->events->dispatch(new JobProcessing($this->connectionName, $job));
+        $this->events->dispatch(new JobProcessing($this->options->connectionName, $job));
     }
 
     /**
@@ -173,7 +144,7 @@ class MessageProcessor
      *
      * @throws \Exception
      */
-    protected function markJobAsFailedIfAlreadyExceedsMaxAttempts(Job $job, $maxTries)
+    protected function markJobAsFailedIfAlreadyExceedsMaxAttempts(Job $job, int $maxTries)
     {
         if ($maxTries === 0 || $job->attempts() <= $maxTries) {
             return;
@@ -195,7 +166,7 @@ class MessageProcessor
      */
     protected function failJob(Job $job, $e)
     {
-        FailingJob::handle($this->connectionName, $job, $e);
+        FailingJob::handle($this->options->connectionName, $job, $e);
     }
 
     /**
@@ -206,7 +177,7 @@ class MessageProcessor
      */
     protected function raiseAfterEvent(Job $job)
     {
-        $this->events->dispatch(new JobProcessed($this->connectionName, $job));
+        $this->events->dispatch(new JobProcessed($this->options->connectionName, $job));
     }
 
     /**
@@ -242,7 +213,7 @@ class MessageProcessor
             // so it is not lost entirely. This'll let the job be retried at a later time by
             // another listener (or this same one). We will re-throw this exception after.
             if (!$job->isDeleted() && !$job->isReleased() && !$job->hasFailed()) {
-                $job->release();
+                $job->release($this->options->sleep);
             }
         }
 
@@ -273,7 +244,7 @@ class MessageProcessor
      */
     protected function raiseExceptionOccurredEvent(Job $job, $exception)
     {
-        $this->events->dispatch(new JobExceptionOccurred($this->connectionName, $job, $exception));
+        $this->events->dispatch(new JobExceptionOccurred($this->options->connectionName, $job, $exception));
     }
 
     /**
@@ -285,6 +256,6 @@ class MessageProcessor
      */
     protected function raiseFailedJobEvent(Job $job, $exception)
     {
-        $this->events->dispatch(new JobFailed($this->connectionName, $job, $exception));
+        $this->events->dispatch(new JobFailed($this->options->connectionName, $job, $exception));
     }
 }
