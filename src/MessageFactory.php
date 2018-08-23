@@ -31,7 +31,7 @@ class MessageFactory
      */
     public function make(string $event, array $payload)
     {
-        $message = $this->context->createMessage(json_encode($payload));
+        $message = $this->context->createMessage(json_encode($payload, JSON_UNESCAPED_UNICODE));
         $message->setRoutingKey($event);
 
         return $message;

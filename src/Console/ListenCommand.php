@@ -4,17 +4,16 @@ namespace Nuwber\Events\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Events\Dispatcher;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
-use Interop\Queue\PsrConsumer;
-use Interop\Queue\PsrContext;
 use Nuwber\Events\ConsumerFactory;
-use Nuwber\Events\Logging\Output as OutputWriter;
-use Nuwber\Events\Logging\General as GeneralWriter;
 use Nuwber\Events\MessageProcessor;
+use Nuwber\Events\NameResolver;
 use Nuwber\Events\ProcessingOptions;
-use PhpAmqpLib\Exception\AMQPRuntimeException;
+use Nuwber\Events\Worker;
+use Nuwber\Events\Log;
 
 class ListenCommand extends Command
 {
@@ -23,10 +22,14 @@ class ListenCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'events:listen
+    protected $signature = 'rabbitevents:listen
+                            {event : The name of the event to listen to}
+                            {--service= : The name of current service. Necessary to identify listeners}
+                            {--connection= : The name of the queue connection to work}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a child process can run}
                             {--tries=0 : Number of times to attempt a job before logging it failed}
+                            {--sleep=5 : Sleep time in seconds before running failed job next time}
                             {--quiet: No console output}';
 
     /**
@@ -34,19 +37,27 @@ class ListenCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Listen for system events thrown from other services';
+    protected $description = 'Listen for event thrown from other services';
+
+    /** @var Dispatcher */
+    private $events;
 
     /**
-     * Indicates if the listener should exit.
-     *
-     * @var bool
+     * @var ExceptionHandler
      */
-    private $shouldQuit;
+    private $exceptions;
 
     /**
      * @var array
      */
     protected $logWriters = [];
+
+    public function __construct(ExceptionHandler $exceptions)
+    {
+        parent::__construct();
+
+        $this->exceptions = $exceptions;
+    }
 
     /**
      * Execute the console command.
@@ -56,87 +67,25 @@ class ListenCommand extends Command
      */
     public function handle()
     {
+        $this->events = $this->laravel->make('events');
+
         $this->registerLogWriters();
 
         $this->listenForEvents();
-        $this->listenForSignals();
-
-        $consumer = $this->makeConsumer();
 
         $options = $this->gatherProcessingOptions();
 
-        $processor = $this->createProcessor($options);
+        $processor = new MessageProcessor($this->laravel, $this->events, $this->exceptions, $options);
 
-        while (true) {
-            if ($payload = $this->getNextJob($consumer, $options)) {
-                $processor->process($consumer, $payload);
-            }
-            $this->stopIfNecessary($options);
-        }
+        (new Worker(
+            $this->laravel->make(ConsumerFactory::class)->make($this->nameResolver($options)),
+            $this->exceptions
+        ))->work($processor, $options);
     }
 
-    /**
-     * Receive next message from queuer
-     *
-     * @param PsrConsumer $consumer
-     * @param $options
-     * @return \Interop\Queue\PsrMessage|null
-     */
-    protected function getNextJob(PsrConsumer $consumer, $options)
+    protected function nameResolver(ProcessingOptions $options)
     {
-        try {
-            return $consumer->receive($options->timeout);
-        } catch (\Exception $e) {
-            $this->laravel->make(ExceptionHandler::class)->report($e);
-
-            $this->stopListeningIfLostConnection($e);
-        } catch (\Throwable $e) {
-            $this->laravel->make(ExceptionHandler::class)->report($e);
-
-            $this->stopListeningIfLostConnection($e);
-        }
-    }
-
-    /**
-     * @param ProcessingOptions $options
-     * @return MessageProcessor
-     */
-    protected function createProcessor(ProcessingOptions $options)
-    {
-        return new MessageProcessor(
-            $this->laravel,
-            $this->laravel->make(PsrContext::class),
-            $this->laravel->make('events'),
-            $this->laravel->make('broadcast.events'),
-            $options,
-            $this->laravel->make('queue')->getConnectionName(),
-            $this->laravel->make(ExceptionHandler::class)
-        );
-    }
-
-    /**
-     * @return PsrConsumer
-     */
-    private function makeConsumer()
-    {
-        return $this->laravel->make(ConsumerFactory::class)
-            ->make(
-                $this->laravel->make('broadcast.events')->getEvents()
-            );
-    }
-
-    /**
-     * Gather all of the queue worker options as a single object.
-     *
-     * @return ProcessingOptions
-     */
-    protected function gatherProcessingOptions()
-    {
-        return new ProcessingOptions(
-            $this->option('memory'),
-            $this->option('timeout'),
-            $this->option('tries')
-        );
+        return new NameResolver($this->getEvent($this->getConnection()), $options->service);
     }
 
     /**
@@ -152,80 +101,61 @@ class ListenCommand extends Command
             }
         };
 
-        $this->laravel['events']->listen(JobProcessing::class, $callback);
-        $this->laravel['events']->listen(JobProcessed::class, $callback);
-        $this->laravel['events']->listen(JobFailed::class, $callback);
+        $this->events->listen(JobProcessing::class, $callback);
+        $this->events->listen(JobProcessed::class, $callback);
+        $this->events->listen(JobFailed::class, $callback);
     }
 
     /**
-     * Enable async signals for the process.
+     * Gather all of the queue worker options as a single object.
      *
-     * @return void
+     * @return ProcessingOptions
      */
-    protected function listenForSignals()
+    protected function gatherProcessingOptions()
     {
-        pcntl_async_signals(true);
-
-        foreach ([SIGINT, SIGTERM, SIGALRM] as $signal) {
-            pcntl_signal($signal, function () {
-                $this->shouldQuit = true;
-            });
-        }
+        return new ProcessingOptions(
+            $this->option('memory'),
+            $this->option('timeout'),
+            $this->option('tries'),
+            $this->option('sleep'),
+            $this->option('service') ?: $this->laravel['config']->get("app.name"),
+            $this->getConnection()
+        );
     }
 
     /**
-     * Determine if the memory limit has been exceeded.
-     *
-     * @param  int $memoryLimit
-     * @return bool
+     * @return string
      */
-    protected function memoryExceeded($memoryLimit)
+    protected function getConnection()
     {
-        return (memory_get_usage(true) / 1024 / 1024) >= $memoryLimit;
+        return $this->option('connection')
+            ?: $this->laravel['config']['queue.default'];
     }
 
     /**
-     * Stop listening and bail out of the script.
+     * Get the queue name for the worker.
      *
-     * @param  int $status
-     * @return void
+     * @param  string $connection
+     *
+     * @return string
      */
-    protected function stop($status = 0)
+    protected function getEvent($connection = 'interop')
     {
-        exit($status);
+        return $this->argument('event')
+            ?: $this->laravel['config']->get("queue.connections.$connection.queue", 'default');
     }
 
     /**
-     * Stop the process if necessary.
-     *
-     * @param  ProcessingOptions $options
+     * Register classes to write log output
      */
-    protected function stopIfNecessary(ProcessingOptions $options)
-    {
-        if ($this->shouldQuit) {
-            $this->stop();
-        }
-
-        if ($this->memoryExceeded($options->memory)) {
-            $this->stop(12);
-        }
-    }
-
-    protected function stopListeningIfLostConnection($exception)
-    {
-        if ($exception instanceof AMQPRuntimeException) {
-            $this->shouldQuit = true;
-        }
-    }
-
     private function registerLogWriters()
     {
         if (!$this->option('quiet')) {
-            $this->logWriters[] = new OutputWriter($this->laravel, $this->output);
+            $this->logWriters[] = new Log\Output($this->laravel, $this->output);
         }
 
         if ($this->laravel['config']->get('queue.connections.interop.logging.enabled')) {
-            $this->logWriters[] = new GeneralWriter($this->laravel);
+            $this->logWriters[] = new Log\General($this->laravel);
         }
     }
 }

@@ -5,7 +5,7 @@ namespace Nuwber\Events\Facades;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see Dispatcher
+ * @see \Nuwber\Events\Dispatcher
  */
 class BroadcastEvent extends Facade
 {
