@@ -3,9 +3,9 @@
 namespace Nuwber\Events\Tests;
 
 use Illuminate\Container\Container;
+use Interop\Amqp\AmqpMessage;
 use Interop\Queue\PsrConsumer;
 use Interop\Queue\PsrContext;
-use Interop\Queue\PsrMessage;
 use Mockery as m;
 use Nuwber\Events\Job;
 
@@ -22,20 +22,7 @@ class JobTest extends TestCase
             return "Event: $event. Item id: {$payload['id']}";
         };
 
-        $message = m::mock(PsrMessage::class);
-        $message->shouldReceive('getBody')
-            ->andReturn('{"id": 1}');
-
-        $this->job = new Job(
-            m::mock(Container::class),
-            m::mock(PsrContext::class),
-            m::mock(PsrConsumer::class),
-            $message,
-            $this->connectionName,
-            $this->event,
-            $this->listenerClass,
-            $callback
-        );
+        $this->job = $this->getJob($callback);
     }
 
     public function testFire()
@@ -45,9 +32,59 @@ class JobTest extends TestCase
 
     public function testGetName()
     {
-        $expectedMessage =  "$this->connectionName: $this->event:$this->listenerClass";
+        $expectedMessage =  "$this->connectionName:$this->event:$this->listenerClass";
 
         self::assertEquals($expectedMessage, $this->job->getName());
     }
 
+    public function testFailed()
+    {
+        $class = new class() {
+
+            public function fire()
+            {
+                throw new \Exception("Exception in fire");
+            }
+
+            public function failed($exception)
+            {
+                throw $exception;
+            }
+        };
+
+        $callback = function () use ($class) {
+            return call_user_func_array([new $class, 'fire'], []);
+        };
+
+        $job = $this->getJob($callback);
+
+        $this->expectExceptionMessage("Exception in fire");
+
+        $job->fire();
+    }
+
+    protected function getMessage(): AmqpMessage
+    {
+        $message = m::mock(AmqpMessage::class);
+        $message->shouldReceive('getBody')
+            ->andReturn('{"id": 1}');
+
+        $message->shouldReceive('getRoutingKey')
+            ->andReturn($this->event);
+
+        return $message;
+    }
+
+    protected function getJob(callable $callback)
+    {
+        return new Job(
+            m::mock(Container::class),
+            m::mock(PsrContext::class),
+            m::mock(PsrConsumer::class),
+            $this->getMessage(),
+            $this->connectionName,
+            $callback,
+            $this->listenerClass
+        );
+    }
 }

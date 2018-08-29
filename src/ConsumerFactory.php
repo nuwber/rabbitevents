@@ -22,6 +22,9 @@ class ConsumerFactory
      */
     private $topic;
 
+    /** @var AmqpConsumer */
+    private $consumer;
+
     public function __construct(PsrContext $context, PsrTopic $topic)
     {
         $this->context = $context;
@@ -33,13 +36,13 @@ class ConsumerFactory
      * @return AmqpConsumer
      * @throws \Interop\Queue\Exception
      */
-    public function make(NameResolver $nameResolver)
+    public function make(NameResolver $nameResolver): AmqpConsumer
     {
-        $queue = $this->createQueue($nameResolver);
+        if (!$this->consumer) {
+            $this->consumer = $this->createConsumer($nameResolver);
+        }
 
-        $this->bind($nameResolver->bind(), $queue);
-
-        return $this->context->createConsumer($queue);
+        return $this->consumer;
     }
 
     /**
@@ -69,5 +72,19 @@ class ConsumerFactory
         $this->context->declareQueue($queue);
 
         return $queue;
+    }
+
+    /**
+     * @param NameResolver $nameResolver
+     * @return AmqpConsumer
+     * @throws \Interop\Queue\Exception
+     */
+    protected function createConsumer(NameResolver $nameResolver): AmqpConsumer
+    {
+        $queue = $this->createQueue($nameResolver);
+
+        $this->bind($nameResolver->bind(), $queue);
+
+        return $this->context->createConsumer($queue);
     }
 }

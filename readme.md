@@ -4,7 +4,7 @@
 
 Nuwber's broadcasting events provides a simple observer implementation, allowing you to listen for various events that occur in your current and another applications. For example if you need to react to some event fired from another microservice. 
 
-Do not confuse this package with Laravel's broadcast. This package was made to communicate in backend-backend way.
+Do not confuse this package with Laravel's broadcast. This package was made to communicate in backend to backend way.
  
 Generally, this is compilation of Laravel's [events](https://laravel.com/docs/events) and [queues](https://laravel.com/docs/queues).
 
@@ -26,6 +26,32 @@ First of all you need to create a service provider which is extends `Nuwber\Even
 and register it in your `config/app.php` in `providers` section.
 
 To provide `amqp_inerop` connection you need to register `Enqueue\LaravelQueue\EnqueueServiceProvider` in same way.
+
+## RabbitMQ configuring
+
+The library uses internal Laravel's queue system. To configure connection you need to make changes in `config/queue.php`:
+
+-  in the `connections` section add:
+
+```
+'connections' => [
+    'interop' => [
+        'driver' => 'amqp_interop',
+        'connection_factory_class' => \Enqueue\AmqpLib\AmqpConnectionFactory::class,
+        'host' => 'localhost',
+        'port' => 5672,
+        'user' => env('RABBITMQ_USER', 'guest'),
+        'pass' => env('RABBITMQ_PASSWORD', 'guest'),
+        'vhost' => 'events',
+        'logging' => [
+        	'enabled' => false,
+        	'lavel' => 'info',
+        ]
+    ],
+],
+```
+- specify your credentials in `.env` file
+- set `interop` connection as default
 
 ## Registering Events & Listeners
 
@@ -128,40 +154,21 @@ Sometimes, you may wish to stop the propagation of an event to other listeners. 
 There is the command which is registers events in RabbitMQ:
 
 ```
-php artisan events:listen
+php artisan events:listen event.name
 ```
 
-After this command start all registered in project events will be registered in RabbitMQ.
+After this command start event will be registered in RabbitMQ as a separate queue which has bind to an event.
 
-Currently it doesn't detaches command from console, so you can just add `&` at the end of command:
+To detach command from console you can run this way: 
 
 ```
-php artisan events:listen > /dev/null &
+php artisan events:listen event.name > /dev/null &
 ```
 
 In this case you need to remember that you have organize some system such as [Supervisor](http://supervisord.org/) or [pm2](http://pm2.keymetrics.io/) which will controll your processes.
 
-## RabbitMQ configuring
+If your listener will be crached in some reason these managers will rerun your listener and all messages that were sent to queue will be handled in same order as they were sent. There're known problem: as queues are separated and you have messages that affects the same entity there's no guaranty that all actions will be done in expected order. To avoid such problems you can send message time as a part of payload and hanle it internally in your listeners.
 
-The library uses internal Laravel's queue system. To configure connection you need to make changes in `config/queue.php`:
-
--  in the `connections` section add:
-
-```
-'connections' => [
-    'interop' => [
-        'driver' => 'amqp_interop',
-        'connection_factory_class' => \Enqueue\AmqpLib\AmqpConnectionFactory::class,
-        'host' => 'localhost',
-        'port' => 5672,
-        'user' => env('RABBITMQ_USER', 'guest'),
-        'pass' => env('RABBITMQ_PASSWORD', 'guest'),
-        'vhost' => 'events',
-    ],
-],
-```
-- specify your credentials in `.env` file
-- set `interop` connection as default
 
 ## Event firing
 
@@ -189,3 +196,9 @@ $payload = [
 
 fire('item.created', $payload);
 ```
+
+## Logging
+
+The package provides 2 ways to see what happenes on your listener. By default it writes `processing`, `processed` and `failed` messages to php output. Message includes service, event and listener name. If you want to turn this feature off, just run listener with `--quiet` option.
+
+The package also supports your application logger. To use it set config value `connection.interop.logging.enabled` to true and choose log level.

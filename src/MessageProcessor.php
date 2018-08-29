@@ -5,14 +5,13 @@ namespace Nuwber\Events;
 use Exception;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Debug\ExceptionHandler;
-use Illuminate\Events\Dispatcher as Events;
+use Illuminate\Events\Dispatcher;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\FailingJob;
 use Illuminate\Queue\MaxAttemptsExceededException;
-use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpMessage;
 use Nuwber\Events\Exceptions\FailedException;
 use Symfony\Component\Debug\Exception\FatalThrowableError;
@@ -21,7 +20,7 @@ use Throwable;
 class MessageProcessor
 {
     /**
-     * @var \Illuminate\Events\Dispatcher
+     * @var Dispatcher
      */
     private $events;
     /**
@@ -29,23 +28,23 @@ class MessageProcessor
      */
     private $options;
     /**
+     * @var JobsFactory
+     */
+    private $jobsFactory;
+    /**
      * @var ExceptionHandler
      */
     private $exceptions;
-    /**
-     * @var Application
-     */
-    private $app;
 
     public function __construct(
-        Application $app,
-        Events $events,
+        Dispatcher $events,
         ExceptionHandler $exceptions,
+        JobsFactory $jobsFactory,
         ProcessingOptions $options
     ) {
-        $this->app = $app;
         $this->events = $events;
         $this->exceptions = $exceptions;
+        $this->jobsFactory = $jobsFactory;
         $this->options = $options;
     }
 
@@ -54,11 +53,11 @@ class MessageProcessor
      *
      * @param AmqpMessage $message
      */
-    public function process(AmqpConsumer $consumer, AmqpMessage $message)
+    public function process(AmqpMessage $message)
     {
         try {
-            foreach ($this->makeJobs($consumer, $message) as $job) {
-                $response = $this->processJob($job);
+            foreach ($this->jobsFactory->make($message) as $job) {
+                $response = $this->runJob($job);
 
                 // If a boolean false is returned from a listener, we will stop propagating
                 // the event to any further listeners down in the chain, else we keep on
@@ -67,33 +66,11 @@ class MessageProcessor
                     break;
                 }
             }
-
         } catch (Exception $e) {
             $this->exceptions->report($e);
         } catch (Throwable $e) {
             $this->exceptions->report($e = new FatalThrowableError($e));
         }
-    }
-
-    public function makeJobs(AmqpConsumer $consumer, AmqpMessage $message)
-    {
-        foreach ($this->getListeners($message) as $listener => $listeners) {
-            foreach ($listeners as $callback) {
-                yield new Job(
-                    $this->app,
-                    $consumer,
-                    $message,
-                    $this->options->connectionName,
-                    $callback,
-                    $listener
-                );
-            }
-        }
-    }
-
-    protected function getListeners(AmqpMessage $message)
-    {
-        return $this->app->make('broadcast.events')->getListeners($message->getRoutingKey());
     }
 
     /**
@@ -103,7 +80,7 @@ class MessageProcessor
      * @return array|null
      * @throws \Exception
      */
-    protected function processJob(Job $job)
+    public function runJob(Job $job)
     {
         try {
             $this->raiseBeforeEvent($job);
@@ -120,17 +97,6 @@ class MessageProcessor
         } catch (Throwable $e) {
             $this->handleJobException($job, new FatalThrowableError($e));
         }
-    }
-
-    /**
-     * Raise the before queue job event.
-     *
-     * @param  Job $job
-     * @return void
-     */
-    protected function raiseBeforeEvent(Job $job)
-    {
-        $this->events->dispatch(new JobProcessing($this->options->connectionName, $job));
     }
 
     /**
@@ -167,17 +133,6 @@ class MessageProcessor
     protected function failJob(Job $job, $e)
     {
         FailingJob::handle($this->options->connectionName, $job, $e);
-    }
-
-    /**
-     * Raise the after queue job event.
-     *
-     * @param  Job $job
-     * @return void
-     */
-    protected function raiseAfterEvent(Job $job)
-    {
-        $this->events->dispatch(new JobProcessed($this->options->connectionName, $job));
     }
 
     /**
@@ -233,6 +188,28 @@ class MessageProcessor
         if ($maxTries > 0 && $job->attempts() >= $maxTries) {
             $this->failJob($job, $exception);
         }
+    }
+
+    /**
+     * Raise the before queue job event.
+     *
+     * @param  Job $job
+     * @return void
+     */
+    protected function raiseBeforeEvent(Job $job)
+    {
+        $this->events->dispatch(new JobProcessing($this->options->connectionName, $job));
+    }
+
+    /**
+     * Raise the after queue job event.
+     *
+     * @param  Job $job
+     * @return void
+     */
+    protected function raiseAfterEvent(Job $job)
+    {
+        $this->events->dispatch(new JobProcessed($this->options->connectionName, $job));
     }
 
     /**

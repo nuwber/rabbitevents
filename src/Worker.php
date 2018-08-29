@@ -3,6 +3,7 @@
 namespace Nuwber\Events;
 
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Contracts\Foundation\Application;
 use Interop\Amqp\AmqpConsumer;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
 
@@ -18,25 +19,28 @@ class Worker
     /** @var AmqpConsumer */
     private $consumer;
     /**
-     * @var ExceptionHandler
+     * @var Application
      */
-    private $exceptions;
+    private $app;
+    /**
+     * @var MessageProcessor
+     */
+    private $processor;
 
-    public function __construct(
-        AmqpConsumer $consumer,
-        ExceptionHandler $exceptions
-    ) {
+    public function __construct(Application $app, AmqpConsumer $consumer, MessageProcessor $processor)
+    {
+        $this->app = $app;
         $this->consumer = $consumer;
-        $this->exceptions = $exceptions;
+        $this->processor = $processor;
     }
 
-    public function work(MessageProcessor $processor, ProcessingOptions $options)
+    public function work(ProcessingOptions $options)
     {
         $this->listenForSignals();
 
         while (true) {
             if ($message = $this->getNextMessage($options)) {
-                $processor->process($this->consumer, $message);
+                $this->processor->process($message);
 
                 $this->consumer->acknowledge($message);
             }
@@ -56,11 +60,11 @@ class Worker
         try {
             return $this->consumer->receive($options->timeout);
         } catch (\Exception $e) {
-            $this->exceptions->report($e);
+            $this->app->make(ExceptionHandler::class)->report($e);
 
             $this->stopListeningIfLostConnection($e);
         } catch (\Throwable $e) {
-            $this->exceptions->report($e);
+            $this->app->make(ExceptionHandler::class)->report($e);
 
             $this->stopListeningIfLostConnection($e);
         }
