@@ -9,11 +9,12 @@ use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Nuwber\Events\ConsumerFactory;
+use Nuwber\Events\JobsFactory;
+use Nuwber\Events\Log;
 use Nuwber\Events\MessageProcessor;
 use Nuwber\Events\NameResolver;
 use Nuwber\Events\ProcessingOptions;
 use Nuwber\Events\Worker;
-use Nuwber\Events\Log;
 
 class ListenCommand extends Command
 {
@@ -38,9 +39,6 @@ class ListenCommand extends Command
      * @var string
      */
     protected $description = 'Listen for event thrown from other services';
-
-    /** @var Dispatcher */
-    private $events;
 
     /**
      * @var ExceptionHandler
@@ -67,25 +65,32 @@ class ListenCommand extends Command
      */
     public function handle()
     {
-        $this->events = $this->laravel->make('events');
-
         $this->registerLogWriters();
 
         $this->listenForEvents();
 
         $options = $this->gatherProcessingOptions();
 
-        $processor = new MessageProcessor($this->laravel, $this->events, $this->exceptions, $options);
+        $consumer = $this->laravel->make(ConsumerFactory::class)
+            ->make($this->getNameResolver($options));
 
-        (new Worker(
-            $this->laravel->make(ConsumerFactory::class)->make($this->nameResolver($options)),
-            $this->exceptions
-        ))->work($processor, $options);
+        $processor = new MessageProcessor(
+            $this->laravel['events'],
+            $this->laravel[ExceptionHandler::class],
+            new JobsFactory($this->laravel, $consumer, $options->connectionName),
+            $options
+        );
+
+        (new Worker($this->laravel, $consumer, $processor))
+            ->work($options);
     }
 
-    protected function nameResolver(ProcessingOptions $options)
+    protected function getNameResolver(ProcessingOptions $options)
     {
-        return new NameResolver($this->getEvent($this->getConnection()), $options->service);
+        return new NameResolver(
+            $this->getEvent($options->connectionName),
+            $options->service
+        );
     }
 
     /**
@@ -101,9 +106,9 @@ class ListenCommand extends Command
             }
         };
 
-        $this->events->listen(JobProcessing::class, $callback);
-        $this->events->listen(JobProcessed::class, $callback);
-        $this->events->listen(JobFailed::class, $callback);
+        $this->laravel['events']->listen(JobProcessing::class, $callback);
+        $this->laravel['events']->listen(JobProcessed::class, $callback);
+        $this->laravel['events']->listen(JobFailed::class, $callback);
     }
 
     /**
@@ -142,7 +147,8 @@ class ListenCommand extends Command
     protected function getEvent($connection = 'interop')
     {
         return $this->argument('event')
-            ?: $this->laravel['config']->get("queue.connections.$connection.queue", 'default');
+            ?: $this->laravel['config']
+                ->get("queue.connections.$connection.queue", 'default');
     }
 
     /**

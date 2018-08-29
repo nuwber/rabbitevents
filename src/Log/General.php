@@ -33,10 +33,9 @@ class General extends Writer
     {
         $this->laravel['log']->log($level, sprintf('Job "%s" %s', $job->getName(), $status), [
             'job' => [
-                'payload' => $job->payload(),
                 'name' => $job->getName(),
-                'connection' => $job->getConnectionName(),
                 'attempts' => $job->attempts(),
+                'payload' => $job->payload(),
             ],
             'status' => $status,
         ]);

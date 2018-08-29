@@ -2,7 +2,7 @@
 
 namespace Nuwber\Events;
 
-use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use Interop\Amqp\AmqpMessage;
 use Interop\Queue\PsrConsumer;
@@ -27,14 +27,15 @@ class Job extends \Enqueue\LaravelQueue\Job
     private $listenerClass;
 
     public function __construct(
-        Application $app,
+        Container $app,
+        PsrContext $context,
         PsrConsumer $consumer,
         AmqpMessage $message,
         $connectionName,
         callable $callback,
         string $listenerClass
     ) {
-        parent::__construct($app, $app[PsrContext::class], $consumer, $message, $connectionName);
+        parent::__construct($app, $context, $consumer, $message, $connectionName);
 
         $this->event = $message->getRoutingKey();
         $this->listener = $callback;

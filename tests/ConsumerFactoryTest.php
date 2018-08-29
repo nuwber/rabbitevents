@@ -7,12 +7,17 @@ use Enqueue\AmqpLib\AmqpContext;
 use Interop\Amqp\Impl\AmqpQueue;
 use Interop\Amqp\Impl\AmqpTopic;
 use Nuwber\Events\ConsumerFactory;
+use Nuwber\Events\NameResolver;
 
 class ConsumerFactoryTest extends TestCase
 {
 
     public function testMake()
     {
+        $event = 'item.created';
+
+        $nameResolver = new NameResolver($event, 'test-app');
+
         $queue = new AmqpQueue('');
 
         $consumer = \Mockery::mock(AmqpConsumer::class)->makePartial();
@@ -22,15 +27,20 @@ class ConsumerFactoryTest extends TestCase
             ->once()
             ->andReturn($consumer);
 
-        $context->shouldReceive('createTemporaryQueue')
+        $context->shouldReceive('createQueue')
+            ->with($nameResolver->queue())
             ->once()
             ->andReturn($queue);
 
-        $events = ['item.created', 'item.updated'];
-        $context->shouldReceive('bind')->twice();
+        $context->shouldReceive('bind')
+            ->withAnyArgs()
+            ->once();
+        $context->shouldReceive('declareQueue')
+            ->with($queue)
+            ->once();
 
         $factory = new ConsumerFactory($context, new AmqpTopic('events'));
 
-        self::assertEquals($consumer, $factory->make($events));
+        self::assertEquals($consumer, $factory->make($nameResolver));
     }
 }
