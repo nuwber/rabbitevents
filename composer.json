@@ -1,7 +1,7 @@
 {
   "name": "nuwber/rabbitevents",
   "description": "Laravel back-to-back broadcasting events. It uses RabbitMQ as the transport.",
-  "keywords": ["queue", "laravel", "rabbitmq", "rabbit", "events", "event bus", "bus"],
+  "keywords": ["queue", "laravel", "rabbitmq", "events", "event bus", "bus"],
   "type": "library",
   "license": "MIT",
   "authors": [
