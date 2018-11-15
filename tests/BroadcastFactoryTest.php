@@ -1,12 +1,12 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Butik\Events\Tests;
 
+use Butik\Events\BroadcastFactory;
 use Enqueue\AmqpLib\AmqpContext;
 use Enqueue\AmqpLib\AmqpProducer;
 use Interop\Amqp\Impl\AmqpMessage;
 use Interop\Amqp\Impl\AmqpTopic;
-use Nuwber\Events\BroadcastFactory;
 
 class BroadcastFactoryTest extends TestCase
 {

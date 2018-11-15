@@ -1,9 +1,9 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Butik\Events;
 
-use Illuminate\Support\Str;
 use Illuminate\Events\Dispatcher as BaseDispatcher;
+use Illuminate\Support\Str;
 
 class Dispatcher extends BaseDispatcher
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Butik\Events\Tests;
 
 class TestCase extends \PHPUnit\Framework\TestCase
 {

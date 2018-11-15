@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events\Exceptions;
+namespace Butik\Events\Exceptions;
 
 class FailedException extends \RuntimeException
 {

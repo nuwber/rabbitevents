@@ -1,11 +1,11 @@
 <?php
 
-namespace Nuwber\Events\Facades;
+namespace Butik\Events\Facades;
 
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see \Nuwber\Events\Dispatcher
+ * @see \Butik\Events\Dispatcher
  */
 class BroadcastEvent extends Facade
 {

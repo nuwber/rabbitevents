@@ -1,13 +1,13 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Butik\Events\Tests;
 
+use Butik\Events\Job;
 use Illuminate\Container\Container;
 use Interop\Amqp\AmqpMessage;
 use Interop\Queue\PsrConsumer;
 use Interop\Queue\PsrContext;
 use Mockery as m;
-use Nuwber\Events\Job;
 
 class JobTest extends TestCase
 {

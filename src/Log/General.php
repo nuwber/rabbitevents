@@ -1,8 +1,8 @@
 <?php
 
-namespace Nuwber\Events\Log;
+namespace Butik\Events\Log;
 
-use Nuwber\Events\Job;
+use Butik\Events\Job;
 
 class General extends Writer
 {

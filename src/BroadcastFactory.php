@@ -1,10 +1,10 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Butik\Events;
 
-use Interop\Amqp\Impl\AmqpMessage;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\Impl\AmqpBind;
+use Interop\Amqp\Impl\AmqpMessage;
 use Interop\Queue\PsrContext;
 use Interop\Queue\PsrTopic;
 

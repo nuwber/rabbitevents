@@ -1,11 +1,11 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Butik\Events\Tests;
 
+use Butik\Events\MessageFactory;
 use Enqueue\AmqpLib\AmqpContext;
 use Interop\Amqp\Impl\AmqpMessage;
 use Interop\Amqp\Impl\AmqpTopic;
-use Nuwber\Events\MessageFactory;
 use PHPUnit\Framework\TestCase;
 
 class MessageFactoryTest extends TestCase

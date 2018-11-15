@@ -1,8 +1,8 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Butik\Events\Tests;
 
-use Nuwber\Events\NameResolver;
+use Butik\Events\NameResolver;
 use PHPUnit\Framework\TestCase;
 
 class NameResolverTest extends TestCase

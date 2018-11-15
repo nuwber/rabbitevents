@@ -1,24 +1,22 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Butik\Events\Tests;
 
-use Enqueue\AmqpLib\AmqpProducer;
+use Butik\Events\Exceptions\FailedException;
+use Butik\Events\Job;
+use Butik\Events\JobsFactory;
+use Butik\Events\MessageProcessor;
+use Butik\Events\ProcessingOptions;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
-use Illuminate\Events\Dispatcher as Events;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Events\Dispatcher as Events;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Interop\Amqp\Impl\AmqpMessage;
-use Interop\Queue\PsrContext;
 use Mockery as m;
-use Nuwber\Events\Exceptions\FailedException;
-use Nuwber\Events\Job;
-use Nuwber\Events\JobsFactory;
-use Nuwber\Events\MessageProcessor;
-use Nuwber\Events\ProcessingOptions;
 
 class MessageProcessorTest extends TestCase
 {

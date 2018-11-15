@@ -1,8 +1,6 @@
 # Events broadcasting for Laravel by using RabbitMQ
 
-[![Build Status](https://travis-ci.org/nuwber/rabbitevents.svg?branch=master)](https://travis-ci.org/nuwber/rabbitevents)
-
-Nuwber's broadcasting events provides a simple observer implementation, allowing you to listen for various events that occur in your current and another applications. For example if you need to react to some event fired from another microservice. 
+Butik broadcasting events provides (fork of nuwber/rabbitevents) a simple observer implementation, allowing you to listen for various events that occur in your current and another applications. For example if you need to react to some event fired from another microservice. 
 
 Do not confuse this package with Laravel's broadcast. This package was made to communicate in backend to backend way.
  
@@ -17,7 +15,7 @@ All RabbitMQ calls are done by using [Laravel queue package](https://github.com/
 Add this library to your composer.json
 
 ```
-composer require nuwber/rabbitevents
+composer require butik/rabbitevents
 ```
 
 ### Register service providers

@@ -1,9 +1,9 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Butik\Events;
 
+use Butik\Events\Exceptions\FailedException;
 use Exception;
-use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Queue\Events\JobExceptionOccurred;
@@ -13,7 +13,6 @@ use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\FailingJob;
 use Illuminate\Queue\MaxAttemptsExceededException;
 use Interop\Amqp\AmqpMessage;
-use Nuwber\Events\Exceptions\FailedException;
 use Symfony\Component\Debug\Exception\FatalThrowableError;
 use Throwable;
 

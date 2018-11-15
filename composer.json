@@ -1,5 +1,5 @@
 {
-  "name": "nuwber/rabbitevents",
+  "name": "butik/rabbitevents",
   "description": "Laravel back-to-back broadcasting events. It uses RabbitMQ as the transport.",
   "keywords": ["queue", "laravel", "rabbitmq", "events", "event bus", "bus"],
   "type": "library",
@@ -19,11 +19,11 @@
     "ext-bcmath": "*",
     "ext-pcntl": "*",
     "ext-json": "*",
-    "illuminate/support": "^5.5",
-    "illuminate/contracts": "^5.5",
-    "illuminate/console": "^5.5",
-    "illuminate/events": "^5.5",
-    "illuminate/queue": "^5.5",
+    "illuminate/support": "5.4.*",
+    "illuminate/contracts": "5.4.*",
+    "illuminate/console": "5.4.*",
+    "illuminate/events": "5.4.*",
+    "illuminate/queue": "5.4.*",
     "enqueue/laravel-queue": "^0.8",
     "enqueue/amqp-lib": "^0.8"
   },
@@ -33,7 +33,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Nuwber\\Events\\": "src/"
+      "Butik\\Events\\": "src/"
     },
     "files": [
       "src/helpers.php"
@@ -41,13 +41,13 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Nuwber\\Events\\Tests\\": "tests/"
+      "Butik\\Events\\Tests\\": "tests/"
     }
   },
   "extra": {
     "laravel": {
       "providers": [
-        "Enqueue\\LaravelQueue\\EnqueueServiceProvider"
+        "Butik\\LaravelQueue\\EnqueueServiceProvider"
       ]
     }
   }

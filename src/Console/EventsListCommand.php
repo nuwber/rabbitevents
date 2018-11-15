@@ -1,10 +1,8 @@
 <?php
 
-namespace Nuwber\Events\Console;
+namespace Butik\Events\Console;
 
 use Illuminate\Console\Command;
-use Nuwber\Events\Dispatcher;
-use Nuwber\Events\Facades\BroadcastEvent;
 
 class EventsListCommand extends Command
 {

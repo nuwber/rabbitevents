@@ -1,7 +1,7 @@
 <?php
 
-use Nuwber\Events\BroadcastFactory;
-use Nuwber\Events\MessageFactory;
+use Butik\Events\BroadcastFactory;
+use Butik\Events\MessageFactory;
 
 if (!function_exists('fire')) {
 

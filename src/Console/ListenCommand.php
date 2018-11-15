@@ -1,20 +1,19 @@
 <?php
 
-namespace Nuwber\Events\Console;
+namespace Butik\Events\Console;
 
+use Butik\Events\ConsumerFactory;
+use Butik\Events\JobsFactory;
+use Butik\Events\Log;
+use Butik\Events\MessageProcessor;
+use Butik\Events\NameResolver;
+use Butik\Events\ProcessingOptions;
+use Butik\Events\Worker;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Debug\ExceptionHandler;
-use Illuminate\Events\Dispatcher;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
-use Nuwber\Events\ConsumerFactory;
-use Nuwber\Events\JobsFactory;
-use Nuwber\Events\Log;
-use Nuwber\Events\MessageProcessor;
-use Nuwber\Events\NameResolver;
-use Nuwber\Events\ProcessingOptions;
-use Nuwber\Events\Worker;
 
 class ListenCommand extends Command
 {

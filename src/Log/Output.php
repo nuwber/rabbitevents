@@ -1,9 +1,9 @@
 <?php
 
-namespace Nuwber\Events\Log;
+namespace Butik\Events\Log;
 
+use Butik\Events\Job;
 use Illuminate\Support\Carbon;
-use Nuwber\Events\Job;
 
 class Output extends Writer
 {

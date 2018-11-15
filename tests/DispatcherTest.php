@@ -1,9 +1,8 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Butik\Events\Tests;
 
-use Nuwber\Events\Dispatcher;
-use PHPUnit\Framework\Assert;
+use Butik\Events\Dispatcher;
 use PHPUnit\Framework\TestCase;
 
 class DispatcherTest extends TestCase

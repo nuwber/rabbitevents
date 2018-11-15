@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Butik\Events;
 
 use Enqueue\AmqpLib\AmqpContext;
 use Interop\Amqp\AmqpConsumer;

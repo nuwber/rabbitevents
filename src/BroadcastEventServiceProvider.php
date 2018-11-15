@@ -1,15 +1,15 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Butik\Events;
 
+use Butik\Events\Console\EventsListCommand;
+use Butik\Events\Console\ListenCommand;
+use Butik\Events\Facades\BroadcastEvent;
 use Illuminate\Contracts\Queue\Factory as QueueFactoryContract;
 use Illuminate\Support\ServiceProvider;
 use Interop\Amqp\AmqpTopic;
 use Interop\Queue\PsrContext;
 use Interop\Queue\PsrTopic;
-use Nuwber\Events\Console\EventsListCommand;
-use Nuwber\Events\Console\ListenCommand;
-use Nuwber\Events\Facades\BroadcastEvent;
 
 class BroadcastEventServiceProvider extends ServiceProvider
 {

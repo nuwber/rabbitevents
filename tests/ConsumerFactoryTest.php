@@ -1,13 +1,13 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Butik\Events\Tests;
 
+use Butik\Events\ConsumerFactory;
+use Butik\Events\NameResolver;
 use Enqueue\AmqpLib\AmqpConsumer;
 use Enqueue\AmqpLib\AmqpContext;
 use Interop\Amqp\Impl\AmqpQueue;
 use Interop\Amqp\Impl\AmqpTopic;
-use Nuwber\Events\ConsumerFactory;
-use Nuwber\Events\NameResolver;
 
 class ConsumerFactoryTest extends TestCase
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Butik\Events;
 
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Foundation\Application;
