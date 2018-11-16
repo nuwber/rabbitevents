@@ -17,9 +17,9 @@ class Dispatcher extends BaseDispatcher
      * @param array         $payload
      * @param bool          $halt
      *
-     * @return array|null
+     * @return mixed
      */
-    public function dispatch($event, $payload = [], $halt = false): ?array
+    public function dispatch($event, $payload = [], $halt = false)
     {
         if (is_object($event) && $event instanceof ExternalEventContract) {
             fire($event->getExternalEventName(), $event->getExternalPayload());
