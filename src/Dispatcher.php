@@ -3,51 +3,28 @@
 namespace Butik\Events;
 
 use Illuminate\Events\Dispatcher as BaseDispatcher;
-use Illuminate\Support\Str;
+use Butik\Events\Contracts\ExternalEvent as ExternalEventContract;
 
+/**
+ * @author Sergey Kvartnikov <s.kvartnikov@butik.ru>
+ *
+ * Created at 15.11.2018
+ */
 class Dispatcher extends BaseDispatcher
 {
-    public function getEvents()
-    {
-        return array_merge(array_keys($this->listeners), array_keys($this->wildcards));
-    }
-
     /**
-     * Register an event listener with the dispatcher.
+     * @param object|string $event
+     * @param array         $payload
+     * @param bool          $halt
      *
-     * @param  string|array $events
-     * @param  mixed $listener
-     * @return void
+     * @return array|null
      */
-    public function listen($events, $listener)
+    public function dispatch($event, $payload = [], $halt = false): ?array
     {
-        foreach ((array)$events as $event) {
-            if (Str::contains($event, '*')) {
-                $this->setupWildcardListen($event, $listener);
-            } else {
-                $this->listeners[$event][$this->getListenerClass($listener)][] = $this->makeListener($listener);
-            }
-        }
-    }
-
-    /**
-     * Setup a wildcard listener callback.
-     *
-     * @param  string $event
-     * @param  mixed $listener
-     * @return void
-     */
-    protected function setupWildcardListen($event, $listener)
-    {
-        $this->wildcards[$event][$this->getListenerClass($listener)][] = $this->makeListener($listener, true);
-    }
-
-    protected function getListenerClass($listener)
-    {
-        if ($listener instanceof \Closure) {
-            return \Closure::class;
+        if (is_object($event) && $event instanceof ExternalEventContract) {
+            fire($event->getExternalEventName(), $event->getExternalPayload());
         }
 
-        return $listener;
+        return parent::dispatch($event, $payload, $halt);
     }
 }

@@ -2,43 +2,28 @@
 
 namespace Butik\Events;
 
-use Butik\Events\Console\EventsListCommand;
-use Butik\Events\Console\ListenCommand;
-use Butik\Events\Facades\BroadcastEvent;
 use Illuminate\Contracts\Queue\Factory as QueueFactoryContract;
 use Illuminate\Support\ServiceProvider;
 use Interop\Amqp\AmqpTopic;
 use Interop\Queue\PsrContext;
 use Interop\Queue\PsrTopic;
 
+/**
+ * @author Sergey Kvartnikov <s.kvartnikov@butik.ru>
+ *
+ * Created at 15.11.2018
+ */
 class BroadcastEventServiceProvider extends ServiceProvider
 {
-    protected $listen = [];
-
+    /**
+     * @var string
+     */
     private $exchangeName = 'events';
 
     /**
-     * Register any events for your application.
-     *
      * @return void
      */
-    public function boot()
-    {
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                ListenCommand::class,
-                EventsListCommand::class,
-            ]);
-
-            foreach ($this->listen as $event => $listeners) {
-                foreach ($listeners as $listener) {
-                    BroadcastEvent::listen($event, $listener);
-                }
-            }
-        }
-    }
-
-    public function register()
+    public function register(): void
     {
         $this->registerBroadcastEvents();
         $this->registerQueueContext();
@@ -47,9 +32,12 @@ class BroadcastEventServiceProvider extends ServiceProvider
         $this->registerEventProducer();
     }
 
-    protected function registerBroadcastEvents()
+    /**
+     * @return void
+     */
+    protected function registerBroadcastEvents(): void
     {
-        $this->app->singleton('broadcast.events', function ($app) {
+        $this->app->singleton('events', function ($app) {
             return (new Dispatcher($app))
                 ->setQueueResolver(function () use ($app) {
                     return $app->make(QueueFactoryContract::class);
@@ -57,14 +45,20 @@ class BroadcastEventServiceProvider extends ServiceProvider
         });
     }
 
-    protected function registerQueueContext()
+    /**
+     * @return void
+     */
+    protected function registerQueueContext(): void
     {
         $this->app->singleton(PsrContext::class, function ($app) {
-            return $app['queue']->connection()->getPsrContext();
+            return $app['queue']->connection($app['config']['queue']['broadcast_events'] ?? '')->getPsrContext();
         });
     }
 
-    protected function registerPsrTopic()
+    /**
+     * @return void
+     */
+    protected function registerPsrTopic(): void
     {
         $this->app->singleton(PsrTopic::class, function ($app) {
             $context = $app->make(PsrContext::class);
@@ -79,12 +73,12 @@ class BroadcastEventServiceProvider extends ServiceProvider
         });
     }
 
-    protected function registerMessageFactory()
+    protected function registerMessageFactory(): void
     {
         $this->app->singleton(MessageFactory::class);
     }
 
-    protected function registerEventProducer()
+    protected function registerEventProducer(): void
     {
         $this->app->singleton(BroadcastFactory::class);
     }
