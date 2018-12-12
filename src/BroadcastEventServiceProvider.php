@@ -25,11 +25,29 @@ class BroadcastEventServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        if ( ! $this->configIsOk()) {
+            return;
+        }
+
         $this->registerBroadcastEvents();
         $this->registerQueueContext();
         $this->registerPsrTopic();
         $this->registerMessageFactory();
         $this->registerEventProducer();
+    }
+
+    /**
+     * @return bool
+     */
+    protected function configIsOk(): bool
+    {
+        $section = $this->app->config['queue']['broadcast_events'] ?? '';
+        $driver = $this->app->config['queue']['connections'][$section]['driver'] ?? '';
+        if ($driver === 'null') {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -51,7 +69,12 @@ class BroadcastEventServiceProvider extends ServiceProvider
     protected function registerQueueContext(): void
     {
         $this->app->singleton(PsrContext::class, function ($app) {
-            return $app['queue']->connection($app['config']['queue']['broadcast_events'] ?? '')->getPsrContext();
+            $queue = $app['queue']->connection($app['config']['queue']['broadcast_events'] ?? '');
+            if (method_exists($queue, 'getPsrContext')) {
+                return $queue->getPsrContext();
+            }
+
+            return null;
         });
     }
 
