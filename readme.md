@@ -45,7 +45,7 @@ The library uses internal Laravel's queue system. To configure connection you ne
         'vhost' => 'events',
         'logging' => [
         	'enabled' => false,
-        	'lavel' => 'info',
+        	'level' => 'info',
         ]
     ],
 ],
