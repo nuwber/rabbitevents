@@ -2,7 +2,8 @@
 
 namespace Nuwber\Events\Traits;
 
-trait BroadcastEloquentEvents {
+trait BroadcastEloquentEvents
+{
 
     /**
      * @var null
@@ -136,5 +137,4 @@ trait BroadcastEloquentEvents {
 
         return $broadcastModel;
     }
-
 }
