@@ -165,9 +165,9 @@ To detach command from console you can run this way:
 php artisan events:listen event.name > /dev/null &
 ```
 
-In this case you need to remember that you have organize some system such as [Supervisor](http://supervisord.org/) or [pm2](http://pm2.keymetrics.io/) which will controll your processes.
+In this case you need to remember that you have organize some system such as [Supervisor](http://supervisord.org/) or [pm2](http://pm2.keymetrics.io/) which will control your processes.
 
-If your listener will be crached in some reason these managers will rerun your listener and all messages that were sent to queue will be handled in same order as they were sent. There're known problem: as queues are separated and you have messages that affects the same entity there's no guaranty that all actions will be done in expected order. To avoid such problems you can send message time as a part of payload and hanle it internally in your listeners.
+If your listener crashes then the managers will rerun your listener and all messages that were sent to queue will be handled in same order as they were sent. There're known problem: as queues are separated and you have messages that affects the same entity there's no guaranty that all actions will be done in expected order. To avoid such problems you can send message time as a part of payload and handle it internally in your listeners.
 
 
 ## Event firing
@@ -202,3 +202,8 @@ fire('item.created', $payload);
 The package provides 2 ways to see what happenes on your listener. By default it writes `processing`, `processed` and `failed` messages to php output. Message includes service, event and listener name. If you want to turn this feature off, just run listener with `--quiet` option.
 
 The package also supports your application logger. To use it set config value `connection.interop.logging.enabled` to true and choose log level.
+
+## BroadcastEloquentEvents Trait
+Add the trait `Nuwber\Events\Traits\BroadcastEloquentEvents` to any model and it will automatically broadcast events for all of the standard Eloquent events (saving, saved, creating, created, etc.).
+
+They will be formatted as `model.event`, for example a User saving would broadcast as `user.saving`. 
