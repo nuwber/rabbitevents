@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/nuwber/rabbitevents.svg?branch=master)](https://travis-ci.org/nuwber/rabbitevents)
 
-Nuwber's broadcasting events provides a simple observer implementation, allowing you to listen for various events that occur in your current and another applications. For example if you need to react to some event fired from another microservice. 
+Nuwber's broadcasting events provides a simple observer implementation, allowing you to listen for various events that occur in your current and another applications. For example if you need to react to some event fired from another API. 
 
 Do not confuse this package with Laravel's broadcast. This package was made to communicate in backend to backend way.
  
@@ -45,7 +45,7 @@ The library uses internal Laravel's queue system. To configure connection you ne
         'vhost' => 'events',
         'logging' => [
         	'enabled' => false,
-        	'lavel' => 'info',
+        	'level' => 'info',
         ]
     ],
 ],
@@ -154,7 +154,7 @@ Sometimes, you may wish to stop the propagation of an event to other listeners. 
 There is the command which is registers events in RabbitMQ:
 
 ```
-php artisan events:listen event.name
+php artisan rabbitevents:listen event.name
 ```
 
 After this command start event will be registered in RabbitMQ as a separate queue which has bind to an event.
@@ -162,13 +162,20 @@ After this command start event will be registered in RabbitMQ as a separate queu
 To detach command from console you can run this way: 
 
 ```
-php artisan events:listen event.name > /dev/null &
+php artisan rabbitevents:listen event.name > /dev/null &
 ```
 
 In this case you need to remember that you have organize some system such as [Supervisor](http://supervisord.org/) or [pm2](http://pm2.keymetrics.io/) which will controll your processes.
 
 If your listener will be crached in some reason these managers will rerun your listener and all messages that were sent to queue will be handled in same order as they were sent. There're known problem: as queues are separated and you have messages that affects the same entity there's no guaranty that all actions will be done in expected order. To avoid such problems you can send message time as a part of payload and hanle it internally in your listeners.
 
+### Get list of registered events
+
+To get list of all registered listeners there's the command:
+
+```
+php artisan rabbitevents:list
+```
 
 ## Event firing
 
