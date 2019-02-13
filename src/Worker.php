@@ -27,7 +27,12 @@ class Worker
      */
     private $processor;
 
-    public function __construct(Application $app, AmqpConsumer $consumer, MessageProcessor $processor)
+    /**
+     * @param Application $app
+     * @param AmqpConsumer $consumer
+     * @param MessageProcessor $processor
+     */
+    public function __construct($app, AmqpConsumer $consumer, MessageProcessor $processor)
     {
         $this->app = $app;
         $this->consumer = $consumer;
