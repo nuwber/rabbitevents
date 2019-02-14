@@ -2,8 +2,10 @@
 
 namespace Nuwber\Events;
 
+use Illuminate\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
-use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Foundation\Application as LaravelApplication;
+use Laravel\Lumen\Application as LumenApplication;
 use Interop\Amqp\AmqpConsumer;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
 
@@ -18,16 +20,23 @@ class Worker
 
     /** @var AmqpConsumer */
     private $consumer;
+
     /**
-     * @var Application
+     * @var LaravelApplication|LumenApplication
      */
     private $app;
+
     /**
      * @var MessageProcessor
      */
     private $processor;
 
-    public function __construct(Application $app, AmqpConsumer $consumer, MessageProcessor $processor)
+    /**
+     * @param LaravelApplication|LumenApplication $app
+     * @param AmqpConsumer $consumer
+     * @param MessageProcessor $processor
+     */
+    public function __construct(Container $app, AmqpConsumer $consumer, MessageProcessor $processor)
     {
         $this->app = $app;
         $this->consumer = $consumer;
