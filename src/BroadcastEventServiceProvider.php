@@ -9,6 +9,7 @@ use Interop\Queue\PsrContext;
 use Interop\Queue\PsrTopic;
 use Nuwber\Events\Console\EventsListCommand;
 use Nuwber\Events\Console\ListenCommand;
+use Nuwber\Events\Console\ObserverMakeCommand;
 use Nuwber\Events\Facades\BroadcastEvent;
 
 class BroadcastEventServiceProvider extends ServiceProvider
@@ -28,6 +29,7 @@ class BroadcastEventServiceProvider extends ServiceProvider
             $this->commands([
                 ListenCommand::class,
                 EventsListCommand::class,
+                ObserverMakeCommand::class
             ]);
 
             foreach ($this->listen as $event => $listeners) {
