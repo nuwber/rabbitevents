@@ -3,14 +3,12 @@
 namespace Nuwber\Events;
 
 use Exception;
-use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Debug\ExceptionHandler;
-use Illuminate\Events\Dispatcher;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
-use Illuminate\Queue\FailingJob;
 use Illuminate\Queue\MaxAttemptsExceededException;
 use Interop\Amqp\AmqpMessage;
 use Nuwber\Events\Exceptions\FailedException;
@@ -22,19 +20,19 @@ class MessageProcessor
     /**
      * @var Dispatcher
      */
-    private $events;
+    protected $events;
     /**
      * @var ProcessingOptions
      */
-    private $options;
+    protected $options;
     /**
      * @var JobsFactory
      */
-    private $jobsFactory;
+    protected $jobsFactory;
     /**
      * @var ExceptionHandler
      */
-    private $exceptions;
+    protected $exceptions;
 
     public function __construct(
         Dispatcher $events,
@@ -132,7 +130,12 @@ class MessageProcessor
      */
     protected function failJob(Job $job, $e)
     {
-        FailingJob::handle($this->options->connectionName, $job, $e);
+        //Added this to support Laravel version < 5.8
+        if (class_exists('Illuminate\Queue\FailingJob')) {
+            \Illuminate\Queue\FailingJob::handle($this->options->connectionName, $job, $e);
+        } else {
+            $job->fail($e);
+        }
     }
 
     /**

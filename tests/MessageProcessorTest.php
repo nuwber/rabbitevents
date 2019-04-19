@@ -2,7 +2,6 @@
 
 namespace Nuwber\Events\Tests;
 
-use Enqueue\AmqpLib\AmqpProducer;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Events\Dispatcher as Events;
@@ -12,7 +11,6 @@ use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Interop\Amqp\Impl\AmqpMessage;
-use Interop\Queue\PsrContext;
 use Mockery as m;
 use Nuwber\Events\Exceptions\FailedException;
 use Nuwber\Events\Job;
@@ -248,5 +246,10 @@ class FakeJob extends Job
     public function setConnectionName($name)
     {
         $this->connectionName = $name;
+    }
+
+    public function resolve($class)
+    {
+        return Container::getInstance()->make($class);
     }
 }
