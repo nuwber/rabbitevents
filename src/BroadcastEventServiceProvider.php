@@ -2,6 +2,7 @@
 
 namespace Nuwber\Events;
 
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Queue\Factory as QueueFactoryContract;
 use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
@@ -62,7 +63,7 @@ class BroadcastEventServiceProvider extends ServiceProvider
             /** @var AmqpContext $context */
             $context = $app->make(AmqpContext::class);
 
-            $topic = $context->createTopic($this->getExchangeName());
+            $topic = $context->createTopic($this->getExchangeName($app));
             $topic->setType(AmqpTopic::TYPE_TOPIC);
             $topic->addFlag(AmqpTopic::FLAG_DURABLE);
 
@@ -81,7 +82,7 @@ class BroadcastEventServiceProvider extends ServiceProvider
         });
     }
 
-    private function getExchangeName(): string
+    private function getExchangeName(Container $app): string
     {
         $config = $app['config']['queue'];
         $connection = Arr::get($config, 'default');
