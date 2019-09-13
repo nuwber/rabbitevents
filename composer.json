@@ -8,10 +8,6 @@
     {
       "name": "Eugene Kirdzei",
       "email": "masterjus@gmail.com"
-    },
-    {
-      "name": "Dzmitry Haiduchonak",
-      "email": "dm.haiduchonak@gmail.com"
     }
   ],
   "require": {
@@ -19,16 +15,13 @@
     "ext-bcmath": "*",
     "ext-pcntl": "*",
     "ext-json": "*",
-    "illuminate/support": "^5.5",
-    "illuminate/contracts": "^5.5",
-    "illuminate/console": "^5.5",
-    "illuminate/events": "^5.5",
-    "illuminate/queue": "^5.5",
-    "enqueue/laravel-queue": "^0.8",
-    "enqueue/amqp-lib": "^0.8"
+    "illuminate/events": "^5.5|^6.0",
+    "illuminate/queue": "^5.5|^6.0",
+    "enqueue/amqp-lib": "^0.9.12",
+    "queue-interop/amqp-interop": "^0.8.1"
   },
   "require-dev": {
-    "mockery/mockery": "0.9.*",
+    "mockery/mockery": "^1.2",
     "phpunit/phpunit": "^7"
   },
   "autoload": {
@@ -42,13 +35,6 @@
   "autoload-dev": {
     "psr-4": {
       "Nuwber\\Events\\Tests\\": "tests/"
-    }
-  },
-  "extra": {
-    "laravel": {
-      "providers": [
-        "Enqueue\\LaravelQueue\\EnqueueServiceProvider"
-      ]
     }
   }
 }

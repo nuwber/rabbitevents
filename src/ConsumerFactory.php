@@ -2,13 +2,11 @@
 
 namespace Nuwber\Events;
 
-use Enqueue\AmqpLib\AmqpContext;
 use Interop\Amqp\AmqpConsumer;
+use Interop\Amqp\AmqpContext;
+use Interop\Amqp\AmqpQueue;
+use Interop\Amqp\AmqpTopic;
 use Interop\Amqp\Impl\AmqpBind;
-use Interop\Amqp\Impl\AmqpQueue;
-use Interop\Amqp\Impl\AmqpTopic;
-use Interop\Queue\PsrContext;
-use Interop\Queue\PsrTopic;
 
 class ConsumerFactory
 {
@@ -22,10 +20,7 @@ class ConsumerFactory
      */
     private $topic;
 
-    /** @var AmqpConsumer */
-    private $consumer;
-
-    public function __construct(PsrContext $context, PsrTopic $topic)
+    public function __construct(AmqpContext $context, AmqpTopic $topic)
     {
         $this->context = $context;
         $this->topic = $topic;
@@ -34,57 +29,24 @@ class ConsumerFactory
     /**
      * @param NameResolver $nameResolver
      * @return AmqpConsumer
-     * @throws \Interop\Queue\Exception
      */
     public function make(NameResolver $nameResolver): AmqpConsumer
     {
-        if (!$this->consumer) {
-            $this->consumer = $this->createConsumer($nameResolver);
-        }
-
-        return $this->consumer;
-    }
-
-    /**
-     * Bind queue to concrete event.
-     *
-     * @param string $event
-     * @param AmqpQueue $queue
-     * @return $this
-     * @throws \Interop\Queue\Exception
-     */
-    protected function bind(string $event, AmqpQueue $queue)
-    {
-        $this->context->bind(new AmqpBind($this->topic, $queue, $event));
-
-        return $this;
+        return $this->context->createConsumer($this->createQueue($nameResolver));
     }
 
     /**
      * @param NameResolver $nameResolver
-     * @return AmqpQueue|\Interop\Queue\PsrQueue
+     * @return AmqpQueue
      */
-    protected function createQueue(NameResolver $nameResolver)
+    protected function createQueue(NameResolver $nameResolver): AmqpQueue
     {
         $queue = $this->context->createQueue($nameResolver->queue());
         $queue->addFlag(AmqpQueue::FLAG_DURABLE);
 
         $this->context->declareQueue($queue);
+        $this->context->bind(new AmqpBind($this->topic, $queue, $nameResolver->bind()));
 
         return $queue;
-    }
-
-    /**
-     * @param NameResolver $nameResolver
-     * @return AmqpConsumer
-     * @throws \Interop\Queue\Exception
-     */
-    protected function createConsumer(NameResolver $nameResolver): AmqpConsumer
-    {
-        $queue = $this->createQueue($nameResolver);
-
-        $this->bind($nameResolver->bind(), $queue);
-
-        return $this->context->createConsumer($queue);
     }
 }

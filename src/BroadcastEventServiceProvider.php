@@ -3,10 +3,10 @@
 namespace Nuwber\Events;
 
 use Illuminate\Contracts\Queue\Factory as QueueFactoryContract;
+use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
+use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpTopic;
-use Interop\Queue\PsrContext;
-use Interop\Queue\PsrTopic;
 use Nuwber\Events\Console\EventsListCommand;
 use Nuwber\Events\Console\ListenCommand;
 use Nuwber\Events\Console\ObserverMakeCommand;
@@ -16,7 +16,7 @@ class BroadcastEventServiceProvider extends ServiceProvider
 {
     protected $listen = [];
 
-    private $exchangeName = 'events';
+    const DEFAULT_EXCHANGE_NAME = 'events';
 
     /**
      * Register any events for your application.
@@ -29,7 +29,7 @@ class BroadcastEventServiceProvider extends ServiceProvider
             $this->commands([
                 ListenCommand::class,
                 EventsListCommand::class,
-                ObserverMakeCommand::class
+                ObserverMakeCommand::class,
             ]);
 
             foreach ($this->listen as $event => $listeners) {
@@ -43,35 +43,26 @@ class BroadcastEventServiceProvider extends ServiceProvider
     public function register()
     {
         $this->registerBroadcastEvents();
-        $this->registerQueueContext();
-        $this->registerPsrTopic();
-        $this->registerMessageFactory();
-        $this->registerEventProducer();
+        $this->registerContext();
+        $this->registerTopic();
+
+        $this->app->singleton(Publisher::class);
     }
 
     protected function registerBroadcastEvents()
     {
-        $this->app->singleton('broadcast.events', function ($app) {
-            return (new Dispatcher($app))
-                ->setQueueResolver(function () use ($app) {
-                    return $app->make(QueueFactoryContract::class);
-                });
+        $this->app->singleton('broadcast.events', function ($app){
+            return new Dispatcher($app);
         });
     }
 
-    protected function registerQueueContext()
+    protected function registerTopic()
     {
-        $this->app->singleton(PsrContext::class, function ($app) {
-            return $app['queue']->connection()->getPsrContext();
-        });
-    }
+        $this->app->singleton(AmqpTopic::class, function ($app) {
+            /** @var AmqpContext $context */
+            $context = $app->make(AmqpContext::class);
 
-    protected function registerPsrTopic()
-    {
-        $this->app->singleton(PsrTopic::class, function ($app) {
-            $context = $app->make(PsrContext::class);
-
-            $topic = $context->createTopic($this->exchangeName);
+            $topic = $context->createTopic($this->getExchangeName());
             $topic->setType(AmqpTopic::TYPE_TOPIC);
             $topic->addFlag(AmqpTopic::FLAG_DURABLE);
 
@@ -81,13 +72,20 @@ class BroadcastEventServiceProvider extends ServiceProvider
         });
     }
 
-    protected function registerMessageFactory()
+    protected function registerContext()
     {
-        $this->app->singleton(MessageFactory::class);
+        $this->app->singleton(AmqpContext::class, function ($app) {
+            $defaultConnection = $app['config']['queue.default'];
+
+            return (new ContextFactory())->make($app['config']["queue.connections.$defaultConnection"]);
+        });
     }
 
-    protected function registerEventProducer()
+    private function getExchangeName(): string
     {
-        $this->app->singleton(BroadcastFactory::class);
+        $config = $app['config']['queue'];
+        $connection = Arr::get($config, 'default');
+
+        return Arr::get($config, "connections.$connection.exchange", self::DEFAULT_EXCHANGE_NAME);
     }
 }

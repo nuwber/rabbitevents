@@ -3,11 +3,14 @@
 namespace Nuwber\Events\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
-use Illuminate\Events\Dispatcher;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
+use Interop\Amqp\AmqpContext;
+use Interop\Amqp\AmqpTopic;
 use Nuwber\Events\ConsumerFactory;
 use Nuwber\Events\JobsFactory;
 use Nuwber\Events\Log;
@@ -49,48 +52,51 @@ class ListenCommand extends Command
      * @var array
      */
     protected $logWriters = [];
+    /**
+     * @var Dispatcher
+     */
+    private $events;
 
-    public function __construct(ExceptionHandler $exceptions)
+    /**
+     * @var AmqpContext
+     */
+    private $context;
+
+    public function __construct(ExceptionHandler $exceptions, Dispatcher $events, AmqpContext $context)
     {
         parent::__construct();
 
         $this->exceptions = $exceptions;
+        $this->events = $events;
+        $this->context = $context;
     }
 
     /**
      * Execute the console command.
-     *
-     * @throws \Exception
-     * @return mixed
      */
     public function handle()
     {
-        $this->registerLogWriters();
-
-        $this->listenForEvents();
-
         $options = $this->gatherProcessingOptions();
 
-        $consumer = $this->laravel->make(ConsumerFactory::class)
-            ->make($this->getNameResolver($options));
+        $this->registerLogWriters($options->connectionName);
+        $this->listenForEvents();
 
-        $processor = new MessageProcessor(
-            $this->laravel['events'],
-            $this->laravel[ExceptionHandler::class],
-            new JobsFactory($this->laravel, $consumer, $options->connectionName),
-            $options
-        );
-
-        (new Worker($this->laravel, $consumer, $processor))
-            ->work($options);
-    }
-
-    protected function getNameResolver(ProcessingOptions $options)
-    {
-        return new NameResolver(
+        $nameResolver = new NameResolver(
             $this->getEvent($options->connectionName),
             $options->service
         );
+
+        $consumer = (new ConsumerFactory($this->context, $this->laravel[AmqpTopic::class]))
+            ->make($nameResolver);
+
+        $processor = new MessageProcessor(
+            $this->events,
+            $this->exceptions,
+            new JobsFactory($this->laravel, $this->context, $consumer),
+            $options
+        );
+
+        (new Worker($consumer, $processor, $this->exceptions))->work($options);
     }
 
     /**
@@ -106,9 +112,9 @@ class ListenCommand extends Command
             }
         };
 
-        $this->laravel['events']->listen(JobProcessing::class, $callback);
-        $this->laravel['events']->listen(JobProcessed::class, $callback);
-        $this->laravel['events']->listen(JobFailed::class, $callback);
+        $this->events->listen(JobProcessing::class, $callback);
+        $this->events->listen(JobProcessed::class, $callback);
+        $this->events->listen(JobFailed::class, $callback);
     }
 
     /**
@@ -144,7 +150,7 @@ class ListenCommand extends Command
      *
      * @return string
      */
-    protected function getEvent($connection = 'interop')
+    protected function getEvent($connection = 'rabbitmq')
     {
         return $this->argument('event')
             ?: $this->laravel['config']
@@ -154,13 +160,13 @@ class ListenCommand extends Command
     /**
      * Register classes to write log output
      */
-    private function registerLogWriters()
+    private function registerLogWriters($connection = 'rabbitmq')
     {
         if (!$this->option('quiet')) {
             $this->logWriters[] = new Log\Output($this->laravel, $this->output);
         }
 
-        if ($this->laravel['config']->get('queue.connections.interop.logging.enabled')) {
+        if ($this->laravel['config']->get("queue.connections.$connection.logging.enabled")) {
             $this->logWriters[] = new Log\General($this->laravel);
         }
     }

@@ -6,7 +6,7 @@ use Enqueue\AmqpLib\AmqpContext;
 use Enqueue\AmqpLib\AmqpProducer;
 use Interop\Amqp\Impl\AmqpMessage;
 use Interop\Amqp\Impl\AmqpTopic;
-use Nuwber\Events\BroadcastFactory;
+use Nuwber\Events\Publisher;
 
 class BroadcastFactoryTest extends TestCase
 {
@@ -25,7 +25,7 @@ class BroadcastFactoryTest extends TestCase
         $context->shouldReceive('createProducer')
             ->andReturn($producer);
 
-        $factory = new BroadcastFactory($context, $topic);
+        $factory = new Publisher($context, $topic);
 
         self::assertNull($factory->send($message));
     }
