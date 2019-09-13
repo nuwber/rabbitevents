@@ -3,6 +3,7 @@
 namespace Nuwber\Events;
 
 use Enqueue\AmqpLib\AmqpConnectionFactory;
+use Illuminate\Support\Arr;
 use Interop\Amqp\AmqpContext;
 
 class ContextFactory
