@@ -52,7 +52,7 @@ class BroadcastEventServiceProvider extends ServiceProvider
 
     protected function registerBroadcastEvents()
     {
-        $this->app->singleton('broadcast.events', function ($app){
+        $this->app->singleton('broadcast.events', function ($app) {
             return new Dispatcher($app);
         });
     }
