@@ -4,6 +4,7 @@ namespace Nuwber\Events\Tests;
 
 use Enqueue\AmqpLib\AmqpConsumer;
 use Enqueue\AmqpLib\AmqpContext;
+use Interop\Amqp\Impl\AmqpBind;
 use Interop\Amqp\Impl\AmqpQueue;
 use Interop\Amqp\Impl\AmqpTopic;
 use Nuwber\Events\ConsumerFactory;
@@ -11,12 +12,11 @@ use Nuwber\Events\NameResolver;
 
 class ConsumerFactoryTest extends TestCase
 {
+    private $event = 'item.created';
 
     public function testMake()
     {
-        $event = 'item.created';
-
-        $nameResolver = new NameResolver($event, 'test-app');
+        $nameResolver = new NameResolver($this->event, 'test-app');
 
         $queue = new AmqpQueue('');
 
@@ -24,6 +24,7 @@ class ConsumerFactoryTest extends TestCase
 
         $context = \Mockery::mock(AmqpContext::class)->makePartial();
         $context->shouldReceive('createConsumer')
+            ->with($queue)
             ->once()
             ->andReturn($consumer);
 

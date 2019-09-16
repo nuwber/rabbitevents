@@ -4,7 +4,7 @@ namespace Nuwber\Events;
 
 use Exception;
 use Illuminate\Contracts\Debug\ExceptionHandler;
-use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\Events\Dispatcher as EventsDispatcher;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -18,7 +18,7 @@ use Throwable;
 class MessageProcessor
 {
     /**
-     * @var Dispatcher
+     * @var EventsDispatcher
      */
     protected $events;
     /**
@@ -35,7 +35,7 @@ class MessageProcessor
     protected $exceptions;
 
     public function __construct(
-        Dispatcher $events,
+        EventsDispatcher $events,
         ExceptionHandler $exceptions,
         JobsFactory $jobsFactory,
         ProcessingOptions $options

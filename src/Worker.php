@@ -2,10 +2,7 @@
 
 namespace Nuwber\Events;
 
-use Illuminate\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
-use Illuminate\Foundation\Application as LaravelApplication;
-use Laravel\Lumen\Application as LumenApplication;
 use Interop\Amqp\AmqpConsumer;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
 
@@ -22,25 +19,18 @@ class Worker
     private $consumer;
 
     /**
-     * @var LaravelApplication|LumenApplication
-     */
-    private $app;
-
-    /**
      * @var MessageProcessor
      */
     private $processor;
 
-    /**
-     * @param LaravelApplication|LumenApplication $app
-     * @param AmqpConsumer $consumer
-     * @param MessageProcessor $processor
-     */
-    public function __construct(Container $app, AmqpConsumer $consumer, MessageProcessor $processor)
+    /** @var ExceptionHandler */
+    private $exceptions;
+
+    public function __construct(AmqpConsumer $consumer, MessageProcessor $processor, ExceptionHandler $exceptions)
     {
-        $this->app = $app;
         $this->consumer = $consumer;
         $this->processor = $processor;
+        $this->exceptions = $exceptions;
     }
 
     public function work(ProcessingOptions $options)
@@ -48,7 +38,7 @@ class Worker
         $this->listenForSignals();
 
         while (true) {
-            if ($message = $this->getNextMessage($options)) {
+            if ($message = $this->getNextMessage($options->timeout)) {
                 $this->processor->process($message);
 
                 $this->consumer->acknowledge($message);
@@ -60,20 +50,15 @@ class Worker
     /**
      * Receive next message from queuer
      *
-     * @param AmqpConsumer $consumer
-     * @param $options
+     * @param int $timeout
      * @return \Interop\Amqp\AmqpMessage|null
      */
-    protected function getNextMessage(ProcessingOptions $options)
+    protected function getNextMessage(int $timeout = 0)
     {
         try {
-            return $this->consumer->receive($options->timeout);
+            return $this->consumer->receive($timeout);
         } catch (\Exception $e) {
-            $this->app->make(ExceptionHandler::class)->report($e);
-
-            $this->stopListeningIfLostConnection($e);
-        } catch (\Throwable $e) {
-            $this->app->make(ExceptionHandler::class)->report($e);
+            $this->exceptions->report($e);
 
             $this->stopListeningIfLostConnection($e);
         }

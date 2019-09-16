@@ -36,8 +36,9 @@ class ObserverMakeCommand extends GeneratorCommand
     /**
      * Build the class with the given name.
      *
-     * @param  string  $name
+     * @param string $name
      * @return string
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     protected function buildClass($name)
     {

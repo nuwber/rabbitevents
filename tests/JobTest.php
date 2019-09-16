@@ -2,19 +2,18 @@
 
 namespace Nuwber\Events\Tests;
 
-use Illuminate\Container\Container;
+use Interop\Amqp\AmqpConsumer;
+use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpMessage;
-use Interop\Queue\PsrConsumer;
-use Interop\Queue\PsrContext;
 use Mockery as m;
 use Nuwber\Events\Job;
 
 class JobTest extends TestCase
 {
     private $job;
-    private $connectionName = 'interop';
     private $event = 'event.called';
     private $listenerClass = 'ListenerClass';
+    private $jobId = 124567;
 
     public function setUp()
     {
@@ -32,7 +31,7 @@ class JobTest extends TestCase
 
     public function testGetName()
     {
-        $expectedMessage =  "$this->connectionName:$this->event:$this->listenerClass";
+        $expectedMessage =  "$this->event:$this->listenerClass";
 
         self::assertEquals($expectedMessage, $this->job->getName());
     }
@@ -63,6 +62,32 @@ class JobTest extends TestCase
         $job->fire();
     }
 
+    public function testGetJobId()
+    {
+        $job = $this->getJob(function() {});
+
+        $this->assertEquals($this->jobId, $job->getJobId());
+    }
+
+    public function testAcknowledge()
+    {
+        $message = $this->getMessage();
+        $consumer = m::mock(AmqpConsumer::class);
+        $consumer->shouldReceive('acknowledge')
+            ->with($message)
+            ->once();
+
+        $job = new Job(
+            m::mock(AmqpContext::class),
+            $consumer,
+            $message,
+            function() {},
+            $this->listenerClass
+        );
+
+        $this->assertNull($job->delete());
+    }
+
     protected function getMessage(): AmqpMessage
     {
         $message = m::mock(AmqpMessage::class);
@@ -72,17 +97,18 @@ class JobTest extends TestCase
         $message->shouldReceive('getRoutingKey')
             ->andReturn($this->event);
 
+        $message->shouldReceive('getMessageId')
+            ->andReturn($this->jobId);
+
         return $message;
     }
 
     protected function getJob(callable $callback)
     {
         return new Job(
-            m::mock(Container::class),
-            m::mock(PsrContext::class),
-            m::mock(PsrConsumer::class),
+            m::mock(AmqpContext::class),
+            m::mock(AmqpConsumer::class),
             $this->getMessage(),
-            $this->connectionName,
             $callback,
             $this->listenerClass
         );

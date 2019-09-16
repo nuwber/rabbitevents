@@ -3,8 +3,6 @@
 namespace Nuwber\Events\Console;
 
 use Illuminate\Console\Command;
-use Nuwber\Events\Dispatcher;
-use Nuwber\Events\Facades\BroadcastEvent;
 
 class EventsListCommand extends Command
 {
@@ -27,7 +25,8 @@ class EventsListCommand extends Command
         $events = $this->laravel->make('broadcast.events')->getEvents();
 
         if (count($events) === 0) {
-            return $this->error("Your application doesn't have any registered broadcast events.");
+            $this->error("Your application doesn't have any registered broadcast events.");
+            return;
         }
 
         foreach ($events as $event) {

@@ -46,8 +46,6 @@ $ composer require nuwber/rabbitevents
 First of all you need to create a service provider which is extends `Nuwber\Events\BroadcastEventServiceProvider` 
 and register it in your `config/app.php` in `providers` section.
 
-To provide `amqp_inerop` connection you need to register `Enqueue\LaravelQueue\EnqueueServiceProvider` in same way.
-
 ### Configure RabbitMQ connection <a name="rabbitmq-connection-config"></a>
 
 The library uses internal Laravel's queue system. To configure connection you should make changes in `config/queue.php`:
@@ -55,27 +53,23 @@ The library uses internal Laravel's queue system. To configure connection you sh
 ```php
 <?php
 [
-    'default' => env('QUEUE_CONNECTION', 'interop'),
+    'default' => env('QUEUE_CONNECTION', 'rabbitmq'),
     'connections' => [
-        'interop' => [
-            'driver' => 'amqp_interop',
-            'connection_factory_class' => \Enqueue\AmqpLib\AmqpConnectionFactory::class,
+        'rabbitmq' => [
+            'exchange' => env('RABBITMQ_EXCHENGE', 'events'),
             'host' => env('RABBITMQ_HOST', 'localhost'),
             'port' => env('RABBITMQ_PORT', 5672),
             'user' => env('RABBITMQ_USER', 'guest'),
             'pass' => env('RABBITMQ_PASSWORD', 'guest'),
-            'vhost' => 'events',
+            'vhost' => env('RABBITMQ_VHOST', 'events'),
             'logging' => [
-                'enabled' => false,
-                'level' => 'info',
+                'enabled' => env('RABBITEVENTS_LOG_ENABLED', false),
+                'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
             ]
         ],
     ],
 ]
 ```
-
-We've got few requests that library doesn't work because of `Call to undefined method Illuminate\Queue\SyncQueue::getPsrContext()` exception.
-The reason is because setting `QUEUE_CONNECTION` in `.env.example` is set to `sync`. So in your .env file you need to change this value to `interop` or remove this setting if you set it as in the exampe above.
 
 ## Events & Listeners <a name="events-listeners"></a>
 
@@ -348,4 +342,4 @@ class AppServiceProvider extends ServiceProvider
 
 The package provides 2 ways to see what happens on your listener. By default it writes `processing`, `processed` and `failed` messages to php output. Message includes service, event and listener name. If you want to turn this feature off, just run listener with `--quiet` option.
 
-The package also supports your application logger. To use it set config value `connection.interop.logging.enabled` to true and choose log level.
+The package also supports your application logger. To use it set config value `connection.rabbitmq.logging.enabled` to `true` and choose log level.

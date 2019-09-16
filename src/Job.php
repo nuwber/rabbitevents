@@ -4,20 +4,18 @@ namespace Nuwber\Events;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
+use Interop\Amqp\AmqpConsumer;
+use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpMessage;
-use Interop\Queue\PsrConsumer;
-use Interop\Queue\PsrContext;
+use Interop\Amqp\AmqpProducer;
+use Interop\Queue\Exception\DeliveryDelayNotSupportedException;
 
-class Job extends \Enqueue\LaravelQueue\Job
+class Job extends \Illuminate\Queue\Jobs\Job
 {
     /**
-     * @var \Callback
+     * @var Callback
      */
     private $listener;
-    /**
-     * @var PsrConsumer
-     */
-    private $event;
 
     /** @var string */
     protected $name;
@@ -25,18 +23,33 @@ class Job extends \Enqueue\LaravelQueue\Job
      * @var string
      */
     private $listenerClass;
+    /**
+     * @var AmqpMessage
+     */
+    private $message;
+    /**
+     * @var AmqpConsumer
+     */
+    private $consumer;
+    /**
+     * @var AmqpContext
+     */
+    private $context;
+    /**
+     * @var string
+     */
+    private $event;
 
     public function __construct(
-        Container $app,
-        PsrContext $context,
-        PsrConsumer $consumer,
+        AmqpContext $context,
+        AmqpConsumer $consumer,
         AmqpMessage $message,
-        $connectionName,
         callable $callback,
         string $listenerClass
     ) {
-        parent::__construct($app, $context, $consumer, $message, $connectionName);
-
+        $this->context = $context;
+        $this->consumer = $consumer;
+        $this->message = $message;
         $this->event = $message->getRoutingKey();
         $this->listener = $callback;
         $this->listenerClass = $listenerClass;
@@ -55,7 +68,7 @@ class Job extends \Enqueue\LaravelQueue\Job
      */
     public function getName()
     {
-        return sprintf('%s:%s:%s', $this->connectionName, $this->event, $this->listenerClass);
+        return sprintf('%s:%s', $this->event, $this->listenerClass);
     }
 
     public function failed($exception)
@@ -65,5 +78,65 @@ class Job extends \Enqueue\LaravelQueue\Job
         if (method_exists($this->instance = $this->resolve($this->listenerClass), 'failed')) {
             $this->instance->failed($this->payload(), $exception);
         }
+    }
+
+    public function getJobId()
+    {
+        return $this->message->getMessageId();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function delete()
+    {
+        parent::delete();
+        $this->consumer->acknowledge($this->message);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function release($delay = 0)
+    {
+        parent::release($delay);
+
+        $requeueMessage = clone $this->message;
+        $requeueMessage->setProperty('x-attempts', $this->attempts() + 1);
+
+        /** @var AmqpProducer $producer */
+        $producer = $this->context->createProducer();
+        try {
+            $producer->setDeliveryDelay($this->secondsUntil($delay) * 1000);
+        } catch (DeliveryDelayNotSupportedException $e) {
+        }
+
+        $this->delete();
+        $producer->send($this->consumer->getQueue(), $requeueMessage);
+    }
+
+    public function attempts()
+    {
+        return $this->message->getProperty('x-attempts', 1);
+    }
+
+    /**
+     * Get the raw body of the job.
+     *
+     * @return string
+     */
+    public function getRawBody()
+    {
+        return $this->message->getBody();
+    }
+
+    public function getQueue()
+    {
+        return $this->consumer->getQueue()->getQueueName();
+    }
+
+    public function displayName()
+    {
+        return $this->getName();
     }
 }
