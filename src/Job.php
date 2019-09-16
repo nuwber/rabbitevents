@@ -8,6 +8,7 @@ use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\AmqpProducer;
+use Interop\Queue\Exception\DeliveryDelayNotSupportedException;
 
 class Job extends \Illuminate\Queue\Jobs\Job
 {

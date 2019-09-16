@@ -25,7 +25,7 @@ class ContextFactory
      * @param array $config
      * @return AmqpConnectionFactory
      */
-    protected function connect(array $config): AmqpConnectionFactory
+    public function connect(array $config): AmqpConnectionFactory
     {
         return new AmqpConnectionFactory([
                 'dsn' => Arr::get($config, 'dsn'),
