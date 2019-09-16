@@ -21,7 +21,7 @@ jobs:
         - ./vendor/bin/phpqa --analyzedDirs src --report --buildDir ./docs --tools phpcs:0,phpmd,phpcpd:0,phpmetrics:0,phploc,pdepend
     - stage: test
       script:
-        - phpunit
+        - ./vendor/bin/phpunit -c phpunit.xml.dist
 
 cache:
   directories:
