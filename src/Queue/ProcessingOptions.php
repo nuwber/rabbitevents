@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Nuwber\Events\Queue;
 
 class ProcessingOptions
 {

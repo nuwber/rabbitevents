@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Nuwber\Events\Queue;
 
 use Exception;
 use Illuminate\Contracts\Debug\ExceptionHandler;
@@ -11,7 +11,8 @@ use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\MaxAttemptsExceededException;
 use Interop\Amqp\AmqpMessage;
-use Nuwber\Events\Exceptions\FailedException;
+use Nuwber\Events\Queue\Exceptions\FailedException;
+use Nuwber\Events\Queue\ProcessingOptions;
 use Symfony\Component\Debug\Exception\FatalThrowableError;
 use Throwable;
 
@@ -26,7 +27,7 @@ class MessageProcessor
      */
     protected $options;
     /**
-     * @var JobsFactory
+     * @var \Nuwber\Events\Queue\JobsFactory
      */
     protected $jobsFactory;
     /**
@@ -74,7 +75,7 @@ class MessageProcessor
     /**
      * Process concrete listener
      *
-     * @param Job $job
+     * @param \Nuwber\Events\Queue\Job $job
      * @return array|null
      * @throws \Exception
      */
@@ -181,7 +182,7 @@ class MessageProcessor
     /**
      * Mark the given job as failed if it has exceeded the maximum allowed attempts.
      *
-     * @param  Job $job
+     * @param  \Nuwber\Events\Queue\Job $job
      * @param  int $maxTries
      * @param  \Exception $exception
      * @return void

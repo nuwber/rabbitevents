@@ -3,7 +3,7 @@
 namespace Nuwber\Events\Console;
 
 use Illuminate\Console\Command;
-use Illuminate\Container\Container;
+use Nuwber\Events\Console\Log;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Queue\Events\JobFailed;
@@ -11,13 +11,12 @@ use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpTopic;
-use Nuwber\Events\ConsumerFactory;
-use Nuwber\Events\JobsFactory;
-use Nuwber\Events\Log;
-use Nuwber\Events\MessageProcessor;
-use Nuwber\Events\NameResolver;
-use Nuwber\Events\ProcessingOptions;
-use Nuwber\Events\Worker;
+use Nuwber\Events\Queue\ConsumerFactory;
+use Nuwber\Events\Queue\JobsFactory;
+use Nuwber\Events\Queue\MessageProcessor;
+use Nuwber\Events\Queue\NameResolver;
+use Nuwber\Events\Queue\ProcessingOptions;
+use Nuwber\Events\Queue\Worker;
 
 class ListenCommand extends Command
 {

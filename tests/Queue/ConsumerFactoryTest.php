@@ -1,14 +1,14 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Nuwber\Events\Tests\Queue;
 
 use Enqueue\AmqpLib\AmqpConsumer;
 use Enqueue\AmqpLib\AmqpContext;
-use Interop\Amqp\Impl\AmqpBind;
 use Interop\Amqp\Impl\AmqpQueue;
 use Interop\Amqp\Impl\AmqpTopic;
-use Nuwber\Events\ConsumerFactory;
-use Nuwber\Events\NameResolver;
+use Nuwber\Events\Queue\ConsumerFactory;
+use Nuwber\Events\Queue\NameResolver;
+use Nuwber\Events\Tests\TestCase;
 
 class ConsumerFactoryTest extends TestCase
 {
