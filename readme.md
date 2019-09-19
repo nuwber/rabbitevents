@@ -178,19 +178,19 @@ This is the example how to publish your event and payload:
 $model = new SomeModel(['name' => 'Jonh Doe', 'email' => 'email@example.com']);
 $someArray = ['key' => 'item'];
 $someString = 'Hello!';
-// **Example 1.** Old way to publish your data. Will be deprecated it next versions.
+// Example 1. Old way to publish your data. Will be deprecated it next versions.
 // Remember: You MUST pass array of arguments
 fire('something.happened', [$model->toArray(), $someArray, $someString]);
 
-// **Example 2.** Method `publish` from `Publishable` trait
+// Example 2. Method `publish` from `Publishable` trait
 SomeEvent::publish($model, $someArray, $someString);
 
 $someEvent = new SomeEvent($model, $someArray, $someString);
 
-// **Example 3.** Use helper `publish`
+// Example 3. Use helper `publish`
 publish($someEvent);
 
-// **Example 4.** You could use helper `publish` as you used to use helper `fire`
+// Example 4. You could use helper `publish` as you used to use helper `fire`
 publish('something.happened', [$model->toArray(), $someArray, $someString]);
 publish($someEvent->publishEventName(), $someEvent->toPublish());
 ```
@@ -200,10 +200,9 @@ Example of such class you could see [here](https://github.com/nuwber/rabbitevent
 If you'll try to publish an event without implementation, 
 the exception `InvalidArgumentException('Event must be a string or implement "ShouldPublish" interface')` will be thrown.
 
-If you want to add method `publish` to your event (Example 2) you could use the trait `Publishavble`. 
-It adds this method to your class. 
+If you want to add method `publish` to an event class (Example 2) you could use the trait `Publishable`. 
 
-There are helper functions `publush` and `fire` (will be deprecated in next versions).
+There are helper functions `publish` and `fire` (will be deprecated in next versions).
 Examples 1, 3 and 4 illustrates how to use them. 
 
 ## Console commands <a name='commands'></a>
