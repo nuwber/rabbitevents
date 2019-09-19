@@ -13,7 +13,7 @@
     - [Defining Listeners](#defining-listeners)
         - [Listeners for wildcard events](#defining-wildcard-listeners)
     - [Stopping The Propagation Of An Event](#stopping-propagination)
-    - [How to dispatch an event](#event-firing)
+    - [How to publish an event](#event-publishing)
 4. [Console commands](#commands)
     - [rabbitevents:listen](#command-listen) - listen to an event
     - [rabbitevents:list](#command-list) - display list of registered events
@@ -156,10 +156,10 @@ class ItemLogger
      */
     public function handle(string $event, array $payload)
     {
-    	if ($event === 'item.created') {
-    		// do something special
-    	}
-    	
+        if ($event === 'item.created') {
+            // do something special
+        }
+
        log(...);
     }
 }
@@ -169,33 +169,41 @@ class ItemLogger
 
 Sometimes, you may wish to stop the propagation of an event to other listeners. You may do so by returning `false` from your listener's handle method as it is in Laravel's listeners.
 
-### How to dispatch an event <a name="event-firing"></a>
+### How to publish an event <a name="event-publishing"></a>
 
-
-To broadcast an event you can use the helper function `fire` (you may create your own solution). The first argument is event name, that second is payload. Note that payload should me an array of items array.
+This is the example how to publish your event and payload:
 
 ```php
 <?php
-// your activity
-$payload = [
-    // First argument
-    [
-        'user_id' => 1,
-        'first_name' => 'John',
-        'last_name' = 'Doe'
-    ],
+$model = new SomeModel(['name' => 'Jonh Doe', 'email' => 'email@example.com']);
+$someArray = ['key' => 'item'];
+$someString = 'Hello!';
+// **Example 1.** Old way to publish your data. Will be deprecated it next versions.
+// Remember: You MUST pass array of arguments
+fire('something.happened', [$model->toArray(), $someArray, $someString]);
 
-    // Second argument
-    [
-        'product_id' => 72,
-        'description' => 'Product Description',
-        'amount' => 9.99
-    ],
-    //...
-];
+// **Example 2.** Method `publish` from `Publishable` trait
+SomeEvent::publish($model, $someArray, $someString);
 
-fire('item.created', $payload);
+$someEvent = new SomeEvent($model, $someArray, $someString);
+
+// **Example 3.** Use helper `publish`
+publish($someEvent);
+
+// **Example 4.** You could use helper `publish` as you used to use helper `fire`
+publish('something.happened', [$model->toArray(), $someArray, $someString]);
+publish($someEvent->publishEventName(), $someEvent->toPublish());
 ```
+
+If you want to make your event class publishable you should implement interface `ShouldPublish`. 
+If you'll try to publish an event without implementation, 
+the exception `InvalidArgumentException('Event must be a string or implement "ShouldPublish" interface')` will be thrown.
+
+If you want to add method `publish` to your event (Example 2) you could use the trait `Publishavble`. 
+It adds this method to your class. 
+
+There are helper functions `publush` and `fire` (will be deprecated in next versions).
+Examples 1, 3 and 4 illustrates how to use them. 
 
 ## Console commands <a name='commands'></a>
 ### Command `rabbitevents:listen` <a name='command-listen'></a>
