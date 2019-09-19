@@ -196,6 +196,7 @@ publish($someEvent->publishEventName(), $someEvent->toPublish());
 ```
 
 If you want to make your event class publishable you should implement interface `ShouldPublish`. 
+Example of such class you could see [here](https://github.com/nuwber/rabbitevents/issues/29#issuecomment-531859944).
 If you'll try to publish an event without implementation, 
 the exception `InvalidArgumentException('Event must be a string or implement "ShouldPublish" interface')` will be thrown.
 
