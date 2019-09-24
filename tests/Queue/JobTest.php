@@ -1,12 +1,13 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Nuwber\Events\Tests\Queue;
 
 use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpMessage;
 use Mockery as m;
-use Nuwber\Events\Job;
+use Nuwber\Events\Queue\Job;
+use Nuwber\Events\Tests\TestCase;
 
 class JobTest extends TestCase
 {
@@ -71,6 +72,8 @@ class JobTest extends TestCase
 
     public function testAcknowledge()
     {
+        $this->expectNotToPerformAssertions();
+
         $message = $this->getMessage();
         $consumer = m::mock(AmqpConsumer::class);
         $consumer->shouldReceive('acknowledge')
@@ -85,7 +88,7 @@ class JobTest extends TestCase
             $this->listenerClass
         );
 
-        $this->assertNull($job->delete());
+        $job->delete();
     }
 
     protected function getMessage(): AmqpMessage

@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Nuwber\Events\Tests\Queue;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
@@ -12,11 +12,12 @@ use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Interop\Amqp\Impl\AmqpMessage;
 use Mockery as m;
-use Nuwber\Events\Exceptions\FailedException;
-use Nuwber\Events\Job;
-use Nuwber\Events\JobsFactory;
-use Nuwber\Events\MessageProcessor;
-use Nuwber\Events\ProcessingOptions;
+use Nuwber\Events\Queue\Exceptions\FailedException;
+use Nuwber\Events\Queue\Job;
+use Nuwber\Events\Queue\JobsFactory;
+use Nuwber\Events\Queue\MessageProcessor;
+use Nuwber\Events\Queue\ProcessingOptions;
+use Nuwber\Events\Tests\TestCase;
 
 class MessageProcessorTest extends TestCase
 {

@@ -1,9 +1,9 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Nuwber\Events\Tests\Queue;
 
 use Enqueue\AmqpLib\AmqpConnectionFactory;
-use Nuwber\Events\ContextFactory;
+use Nuwber\Events\Queue\ContextFactory;
 use PHPUnit\Framework\TestCase;
 
 class ContextFactoryTest extends TestCase

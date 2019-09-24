@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Nuwber\Events\Queue;
 
 use Enqueue\AmqpLib\AmqpConnectionFactory;
 use Illuminate\Support\Arr;

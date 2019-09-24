@@ -1,8 +1,7 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Nuwber\Events\Queue;
 
-use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpContext;
