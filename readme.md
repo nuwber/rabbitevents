@@ -19,6 +19,7 @@
     - [rabbitevents:list](#command-list) - display list of registered events
     - [rabbitevents:make:observer](#command-make-observer) - make an Eloquent model events observer
 5. [Logging](#logging)
+6. [Handling Examples](#examples)
 
     
 ## Introduction <a name="introduction"></a>
@@ -93,7 +94,6 @@ protected $listen = [
 
 #### Wildcard Event Listeners <a name="register-wildcard-listener"></a>
 
-
 You may even register listeners using the * as a wildcard parameter, allowing you to catch multiple events on the same listener. Wildcard listeners receive the event name as their first argument, and the entire event data array as their second argument:
 
 ```php
@@ -164,6 +164,9 @@ class ItemLogger
     }
 }
 ```
+
+More examples you could find [here](#examples)
+
 
 ### Stopping The Propagation Of An Event <a name="stopping-propagination"></a>
 
@@ -352,9 +355,9 @@ The package provides 2 ways to see what happens on your listener. By default it 
 
 The package also supports your application logger. To use it set config value `connection.rabbitmq.logging.enabled` to `true` and choose log level.
 
-## Examples
+## Handling Examples <a name=examples></a>
 ### Single event
-app/Listeners/UserAuthenticated.php
+**app/Listeners/UserAuthenticated.php**
 ```php
 <?php
 
@@ -369,7 +372,7 @@ class UserAuthenticated
 }
 ```
 
-app/Providers/BroadcastEventServiceProvider.php
+**app/Providers/BroadcastEventServiceProvider.php**
 ```php
 <?php
 
@@ -392,7 +395,7 @@ php artisan rabbitevents:listen user.authenticated
 ```
 
 ### Wildcard event
-app/Listeners/UserAuthenticated.php
+**app/Listeners/UserAuthenticated.php**
 ```php
 <?php
 
@@ -408,7 +411,7 @@ class UserAuthenticated
 }
 ```
 
-app/Providers/BroadcastEventServiceProvider.php
+**app/Providers/BroadcastEventServiceProvider.php**
 ```php
 <?php
 
