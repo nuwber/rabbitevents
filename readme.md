@@ -343,3 +343,81 @@ class AppServiceProvider extends ServiceProvider
 The package provides 2 ways to see what happens on your listener. By default it writes `processing`, `processed` and `failed` messages to php output. Message includes service, event and listener name. If you want to turn this feature off, just run listener with `--quiet` option.
 
 The package also supports your application logger. To use it set config value `connection.rabbitmq.logging.enabled` to `true` and choose log level.
+
+## Examples
+### Single event
+app/Listeners/UserAuthenticated.php
+```php
+<?php
+
+namespace App\Listeners;
+
+class UserAuthenticated
+{
+    public function handle($payload)
+    {
+        var_dump($payload);
+    }
+}
+```
+
+app/Providers/BroadcastEventServiceProvider.php
+```php
+<?php
+
+namespace App\Providers;
+
+use App\Listeners\UserAuthenticated;
+
+class BroadcastEventServiceProvider extends \Nuwber\Events\BroadcastEventServiceProvider
+{
+    protected $listen = [
+        'user.authenticated' => [
+            UserAuthenticated::class
+        ],
+    ];
+}
+```
+
+```bash
+php artisan rabbitevents:listen user.authenticated
+```
+
+### Wildcard event
+app/Listeners/UserAuthenticated.php
+```php
+<?php
+
+namespace App\Listeners;
+
+class UserAuthenticated
+{
+    public function handle($route, $payload)
+    {
+        var_dump($route);
+        var_dump($payload);
+    }
+}
+```
+
+app/Providers/BroadcastEventServiceProvider.php
+```php
+<?php
+
+namespace App\Providers;
+
+use App\Listeners\UserAuthenticated;
+
+class BroadcastEventServiceProvider extends \Nuwber\Events\BroadcastEventServiceProvider
+{
+    protected $listen = [
+        'user.*' => [
+            UserAuthenticated::class
+        ],
+    ];
+}
+```
+
+```bash
+php artisan rabbitevents:listen user.*
+```
