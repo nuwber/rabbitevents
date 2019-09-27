@@ -59,7 +59,7 @@ class Job extends \Illuminate\Queue\Jobs\Job
      */
     public function fire()
     {
-        return call_user_func($this->listener, $this->event, Arr::wrap($this->payload()));
+        return call_user_func($this->listener, $this->event, Arr::wrap([$this->payload()]));
     }
 
     /**
