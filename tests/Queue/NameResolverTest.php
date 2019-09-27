@@ -1,8 +1,8 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Nuwber\Events\Tests\Queue;
 
-use Nuwber\Events\NameResolver;
+use Nuwber\Events\Queue\NameResolver;
 use PHPUnit\Framework\TestCase;
 
 class NameResolverTest extends TestCase
@@ -11,7 +11,7 @@ class NameResolverTest extends TestCase
 
     private $serviceName = 'test-app';
 
-    /** @var NameResolver */
+    /** @var \Nuwber\Events\Queue\NameResolver */
     private $resolver;
 
     public function setUp()

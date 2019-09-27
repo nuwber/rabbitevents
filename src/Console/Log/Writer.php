@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events\Log;
+namespace Nuwber\Events\Console\Log;
 
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;

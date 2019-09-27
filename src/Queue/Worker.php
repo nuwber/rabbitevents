@@ -1,9 +1,11 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Nuwber\Events\Queue;
 
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Interop\Amqp\AmqpConsumer;
+use Nuwber\Events\Queue\ProcessingOptions;
+use Nuwber\Events\Queue\MessageProcessor;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
 
 class Worker
@@ -19,7 +21,7 @@ class Worker
     private $consumer;
 
     /**
-     * @var MessageProcessor
+     * @var \Nuwber\Events\Queue\MessageProcessor
      */
     private $processor;
 

@@ -1,13 +1,14 @@
 <?php
 
-namespace Nuwber\Events\Log;
+namespace Nuwber\Events\Console\Log;
 
-use Nuwber\Events\Job;
+use Illuminate\Contracts\Foundation\Application;
+use Nuwber\Events\Queue\Job;
 
 class General extends Writer
 {
     /**
-     * @var \Illuminate\Contracts\Foundation\Application
+     * @var Application
      */
     protected $laravel;
 

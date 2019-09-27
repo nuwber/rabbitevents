@@ -3,7 +3,6 @@
 namespace Nuwber\Events;
 
 use Illuminate\Contracts\Container\Container;
-use Illuminate\Contracts\Queue\Factory as QueueFactoryContract;
 use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use Interop\Amqp\AmqpContext;
@@ -11,7 +10,8 @@ use Interop\Amqp\AmqpTopic;
 use Nuwber\Events\Console\EventsListCommand;
 use Nuwber\Events\Console\ListenCommand;
 use Nuwber\Events\Console\ObserverMakeCommand;
-use Nuwber\Events\Facades\BroadcastEvent;
+use Nuwber\Events\Event\Publisher;
+use Nuwber\Events\Queue\ContextFactory;
 
 class BroadcastEventServiceProvider extends ServiceProvider
 {
@@ -23,20 +23,25 @@ class BroadcastEventServiceProvider extends ServiceProvider
      * Register any events for your application.
      *
      * @return void
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     public function boot()
     {
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                ListenCommand::class,
-                EventsListCommand::class,
-                ObserverMakeCommand::class,
-            ]);
+        if (!$this->app->runningInConsole()) {
+            return;
+        }
 
-            foreach ($this->listen as $event => $listeners) {
-                foreach ($listeners as $listener) {
-                    BroadcastEvent::listen($event, $listener);
-                }
+        $this->commands([
+            ListenCommand::class,
+            EventsListCommand::class,
+            ObserverMakeCommand::class,
+        ]);
+
+        $dispatcher = $this->app->make('broadcast.events');
+
+        foreach ($this->listen as $event => $listeners) {
+            foreach ($listeners as $listener) {
+                $dispatcher->listen($event, $listener);
             }
         }
     }

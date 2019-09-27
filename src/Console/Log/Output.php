@@ -1,20 +1,22 @@
 <?php
 
-namespace Nuwber\Events\Log;
+namespace Nuwber\Events\Console\Log;
 
+use Illuminate\Console\OutputStyle;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Carbon;
-use Nuwber\Events\Job;
+use Nuwber\Events\Queue\Job;
 
 class Output extends Writer
 {
 
     /**
-     * @var \Illuminate\Contracts\Foundation\Application
+     * @var Application
      */
     protected $laravel;
 
     /**
-     * @var \Illuminate\Console\OutputStyle
+     * @var OutputStyle
      */
     protected $output;
 
@@ -37,7 +39,7 @@ class Output extends Writer
     /**
      * Format the status output for the queue worker.
      *
-     * @param  Job $listener
+     * @param  \Nuwber\Events\Queue\Job $listener
      * @param  string $status
      * @param  string $type
      * @return void
