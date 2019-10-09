@@ -10,11 +10,11 @@ class General extends Writer
     /**
      * @var Application
      */
-    protected $laravel;
+    protected $app;
 
-    public function __construct($laravel)
+    public function __construct($app)
     {
-        $this->laravel = $laravel;
+        $this->app = $app;
     }
 
     /**
@@ -23,16 +23,13 @@ class General extends Writer
     public function log($event)
     {
         $status = $this->getStatus($event);
-        $level = $status != self::STATUS_FAILED ?
-            $this->laravel['config']->get('queue.connections.interop.logging.level', 'info') :
-            'error';
 
-        $this->write($event->job, $status, $level);
+        $this->write($event->job, $status);
     }
 
-    protected function write(Job $job, $status, $level)
+    protected function write(Job $job, $status)
     {
-        $this->laravel['log']->log($level, sprintf('Job "%s" %s', $job->getName(), $status), [
+        $this->app['log']->log($this->getLogLevel($status), sprintf('Job "%s" %s', $job->getName(), $status), [
             'job' => [
                 'name' => $job->getName(),
                 'attempts' => $job->attempts(),
@@ -40,5 +37,16 @@ class General extends Writer
             ],
             'status' => $status,
         ]);
+    }
+
+    protected function getLogLevel($status)
+    {
+        if ($status == static::STATUS_EXCEPTION || $status == static::STATUS_FAILED) {
+            return 'error';
+        }
+
+        $connection = $this->app['config']->get('queue.default', 'rabbitmq');
+
+        return $this->app['config']->get("queue.connections.$connection.logging.level", 'info');
     }
 }

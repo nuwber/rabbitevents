@@ -34,6 +34,9 @@ class Output extends Writer
         $status = $this->getStatus($event);
 
         $this->writeStatus($event->job, $status, $this->getType($status));
+        if (isset($event->exception)) {
+            $this->output->writeln('Exception message: ' . $event->exception->getMessage());
+        }
     }
 
     /**
@@ -52,6 +55,7 @@ class Output extends Writer
             str_pad("{$status}:", 11),
             $listener->resolveName()
         ));
+
     }
 
     protected function getType($status)

@@ -41,6 +41,7 @@ class JobsFactory
         foreach ($this->getListeners($message) as $listener => $listeners) {
             foreach ($listeners as $callback) {
                 yield new Job(
+                    $this->container,
                     $this->context,
                     $this->consumer,
                     $message,

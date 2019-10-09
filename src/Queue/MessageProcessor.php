@@ -10,6 +10,7 @@ use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\MaxAttemptsExceededException;
+use Illuminate\Support\Carbon;
 use Interop\Amqp\AmqpMessage;
 use Nuwber\Events\Queue\Exceptions\FailedException;
 use Nuwber\Events\Queue\ProcessingOptions;
@@ -189,6 +190,12 @@ class MessageProcessor
      */
     protected function markJobAsFailedIfWillExceedMaxAttempts(Job $job, $maxTries, $exception)
     {
+        $maxTries = ! is_null($job->maxTries()) ? $job->maxTries() : $maxTries;
+
+        if ($job->timeoutAt() && $job->timeoutAt() <= Carbon::now()->getTimestamp()) {
+            $this->failJob($job, $e);
+        }
+
         if ($maxTries > 0 && $job->attempts() >= $maxTries) {
             $this->failJob($job, $exception);
         }
