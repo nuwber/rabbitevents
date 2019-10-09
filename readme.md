@@ -165,6 +165,10 @@ class ItemLogger
 }
 ```
 
+### Retrying Failed Jobs <a name="retrying-failed-jobs"></a>
+
+The `rabbitevents:listen` command sets number of terties to 3 by default. This means that there will be 3 attempts to handle  your `Job`. If for some reason Job shouldn't be retried, throw `\Nuwber\Events\Exception\FailedException`. It will mark Job as `failed` without new attemts to handle.
+
 More examples you could find [here](#examples)
 
 
