@@ -55,7 +55,6 @@ class Output extends Writer
             str_pad("{$status}:", 11),
             $listener->resolveName()
         ));
-
     }
 
     protected function getType($status)

@@ -32,7 +32,7 @@ class ListenCommand extends Command
                             {--connection= : The name of the queue connection to work}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a child process can run}
-                            {--tries=3 : Number of times to attempt a job before logging it failed}
+                            {--tries=1 : Number of times to attempt a job before logging it failed}
                             {--sleep=5 : Sleep time in seconds before running failed job next time}
                             {--quiet: No console output}';
 
