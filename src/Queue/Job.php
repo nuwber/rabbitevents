@@ -2,12 +2,15 @@
 
 namespace Nuwber\Events\Queue;
 
+use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\AmqpProducer;
+use Interop\Amqp\AmqpTopic;
 use Interop\Queue\Exception\DeliveryDelayNotSupportedException;
+use Nuwber\Events\Event\Publisher;
 
 class Job extends \Illuminate\Queue\Jobs\Job
 {
@@ -40,12 +43,14 @@ class Job extends \Illuminate\Queue\Jobs\Job
     private $event;
 
     public function __construct(
+        Container $container,
         AmqpContext $context,
         AmqpConsumer $consumer,
         AmqpMessage $message,
         callable $callback,
         string $listenerClass
     ) {
+        $this->container = $container;
         $this->context = $context;
         $this->consumer = $consumer;
         $this->message = $message;
@@ -87,31 +92,14 @@ class Job extends \Illuminate\Queue\Jobs\Job
     /**
      * {@inheritdoc}
      */
-    public function delete()
-    {
-        parent::delete();
-        $this->consumer->acknowledge($this->message);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function release($delay = 0)
     {
-        parent::release($delay);
+        parent::release();
 
         $requeueMessage = clone $this->message;
         $requeueMessage->setProperty('x-attempts', $this->attempts() + 1);
 
-        /** @var AmqpProducer $producer */
-        $producer = $this->context->createProducer();
-        try {
-            $producer->setDeliveryDelay($this->secondsUntil($delay) * 1000);
-        } catch (DeliveryDelayNotSupportedException $e) {
-        }
-
-        $this->delete();
-        $producer->send($this->consumer->getQueue(), $requeueMessage);
+        $this->container->make(Publisher::class)->sendMessage($requeueMessage, $delay);
     }
 
     public function attempts()

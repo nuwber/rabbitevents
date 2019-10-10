@@ -9,6 +9,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Queue\Events\JobExceptionOccurred;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpTopic;
 use Nuwber\Events\Queue\ConsumerFactory;
@@ -31,7 +32,7 @@ class ListenCommand extends Command
                             {--connection= : The name of the queue connection to work}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a child process can run}
-                            {--tries=0 : Number of times to attempt a job before logging it failed}
+                            {--tries=1 : Number of times to attempt a job before logging it failed}
                             {--sleep=5 : Sleep time in seconds before running failed job next time}
                             {--quiet: No console output}';
 
@@ -114,6 +115,7 @@ class ListenCommand extends Command
         $this->events->listen(JobProcessing::class, $callback);
         $this->events->listen(JobProcessed::class, $callback);
         $this->events->listen(JobFailed::class, $callback);
+        $this->events->listen(JobExceptionOccurred::class, $callback);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Nuwber\Events\Console\Log;
 
+use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
@@ -11,6 +12,7 @@ abstract class Writer
 
     const STATUS_PROCESSING = 'Processing';
     const STATUS_PROCESSED = 'Processed';
+    const STATUS_EXCEPTION = 'Exception Occurred';
     const STATUS_FAILED = 'Failed';
 
     /**
@@ -29,6 +31,8 @@ abstract class Writer
                 return self::STATUS_PROCESSING;
             case JobProcessed::class:
                 return self::STATUS_PROCESSED;
+            case JobExceptionOccurred::class:
+                return self::STATUS_EXCEPTION;
             case JobFailed::class:
                 return self::STATUS_FAILED;
         }

@@ -3,15 +3,20 @@
 namespace Nuwber\Events\Event;
 
 use Illuminate\Support\Arr;
+use Illuminate\Support\InteractsWithTime;
+use Interop\Amqp\AmqpMessage;
+use Interop\Amqp\AmqpProducer;
 use Interop\Amqp\AmqpTopic;
 use Interop\Amqp\AmqpContext;
 use Interop\Queue\Exception;
+use Interop\Queue\Exception\DeliveryDelayNotSupportedException;
 use Interop\Queue\Exception\InvalidDestinationException;
 use Interop\Queue\Exception\InvalidMessageException;
 use ReflectionClass;
 
 class Publisher
 {
+    use InteractsWithTime;
     /**
      * @var AmqpTopic
      */
@@ -39,14 +44,27 @@ class Publisher
      * @throws InvalidDestinationException
      * @throws InvalidMessageException
      */
-    public function send(string $event, array $payload): self
+    public function send(string $event, array $payload, int $delay = 0): self
     {
         $payload = json_encode($payload, JSON_UNESCAPED_UNICODE);
 
         $message = $this->context->createMessage($payload);
         $message->setRoutingKey($event);
 
-        $this->context->createProducer()->send($this->topic, $message);
+        return $this->sendMessage($message);
+    }
+
+    public function sendMessage(AmqpMessage $message, int $delay = 0)
+    {
+        /** @var AmqpProducer $producer */
+        $producer = $this->context->createProducer();
+
+        try {
+            $producer->setDeliveryDelay($this->secondsUntil($delay) * 1000);
+        } catch (DeliveryDelayNotSupportedException $e) {
+        }
+
+        $producer->send($this->topic, $message);
 
         return $this;
     }

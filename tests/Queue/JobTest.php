@@ -2,10 +2,12 @@
 
 namespace Nuwber\Events\Tests\Queue;
 
+use Illuminate\Container\Container;
 use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpMessage;
 use Mockery as m;
+use Nuwber\Events\Event\Publisher;
 use Nuwber\Events\Queue\Job;
 use Nuwber\Events\Tests\TestCase;
 
@@ -81,6 +83,7 @@ class JobTest extends TestCase
             ->once();
 
         $job = new Job(
+            m::mock(Container::class),
             m::mock(AmqpContext::class),
             $consumer,
             $message,
@@ -89,6 +92,45 @@ class JobTest extends TestCase
         );
 
         $job->delete();
+    }
+
+    public function testRelease()
+    {
+        $this->expectNotToPerformAssertions();
+
+        $container = m::mock(Container::class);
+        $publisher = m::mock(Publither::class);
+
+        $container->shouldReceive('make')
+            ->with(Publisher::class)
+            ->andReturn($publisher);
+
+        $publisher->shouldReceive('sendMessage')
+            ->once()
+            ->withAnyArgs()
+            ->andReturnSelf();
+
+        $message = m::mock(AmqpMessage::class);
+        $message->shouldReceive('getProperty')
+            ->once()
+            ->andReturn(0);
+        $message->shouldReceive('getRoutingKey')
+            ->andReturn($this->event);
+
+        $message->shouldReceive('setProperty')
+            ->with('x-attempts', 1)
+            ->once();
+
+        $job = new Job(
+            $container,
+            m::mock(AmqpContext::class),
+            m::mock(AmqpConsumer::class),
+            $message,
+            function() {},
+            $this->listenerClass
+        );
+
+        $job->release();
     }
 
     protected function getMessage(): AmqpMessage
@@ -109,6 +151,7 @@ class JobTest extends TestCase
     protected function getJob(callable $callback)
     {
         return new Job(
+            m::mock(Container::class),
             m::mock(AmqpContext::class),
             m::mock(AmqpConsumer::class),
             $this->getMessage(),

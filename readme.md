@@ -12,6 +12,7 @@
         - [Wildcard Listeners](#register-wildcard-listeners)
     - [Defining Listeners](#defining-listeners)
         - [Listeners for wildcard events](#defining-wildcard-listeners)
+    - [Retrying Failed Jobs](#retry-failed-jobs)
     - [Stopping The Propagation Of An Event](#stopping-propagination)
     - [How to publish an event](#event-publishing)
 4. [Console commands](#commands)
@@ -165,8 +166,13 @@ class ItemLogger
 }
 ```
 
-More examples you could find [here](#examples)
+### Retrying Failed Jobs <a name="retry-failed-jobs"></a>
 
+The [rabbitevents:listen](#command-listen) command sets number of tries to handle a Job to `1` by default. `--tries=0` means that Rabbitevents will attempt to handle a `Job` forever. 
+This means that there will be 3 attempts to handle  your `Job` with delay of `sleep` option (default is 5 seconds). 
+If for some reason Job shouldn't be retried, throw `\Nuwber\Events\Exception\FailedException`. It will mark Job as `failed` without new attempts to handle.
+
+More examples you could find [here](#examples)
 
 ### Stopping The Propagation Of An Event <a name="stopping-propagination"></a>
 
@@ -214,7 +220,7 @@ Examples 1, 3 and 4 illustrates how to use them.
 There is the command which is registers events in RabbitMQ:
 
 ```bash
-$ php artisan rabbitevents:listen event.name
+$ php artisan rabbitevents:listen event.name --memory=512 --timeout=60 --tries=3 --sleep=5
 ```
 
 After this command start event will be registered in RabbitMQ as a separate queue which has bind to an event.

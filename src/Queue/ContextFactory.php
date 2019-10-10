@@ -3,6 +3,7 @@
 namespace Nuwber\Events\Queue;
 
 use Enqueue\AmqpLib\AmqpConnectionFactory;
+use Enqueue\AmqpTools\RabbitMqDlxDelayStrategy;
 use Illuminate\Support\Arr;
 use Interop\Amqp\AmqpContext;
 
@@ -27,7 +28,7 @@ class ContextFactory
      */
     public function connect(array $config): AmqpConnectionFactory
     {
-        return new AmqpConnectionFactory([
+        $factory = new AmqpConnectionFactory([
             'dsn' => Arr::get($config, 'dsn'),
             'host' => Arr::get($config, 'host', '127.0.0.1'),
             'port' => Arr::get($config, 'port', 5672),
@@ -41,5 +42,9 @@ class ContextFactory
             'ssl_key' => Arr::get($config, 'ssl_params.local_key'),
             'ssl_passphrase' => Arr::get($config, 'ssl_params.passphrase'),
         ]);
+
+        $factory->setDelayStrategy(new RabbitMqDlxDelayStrategy());
+
+        return $factory;
     }
 }

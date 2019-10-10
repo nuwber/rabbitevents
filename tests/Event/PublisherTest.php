@@ -80,6 +80,11 @@ class PublisherTest extends TestCase
             ->with($topic, $message)
             ->once();
 
+        $producer->shouldReceive('setDeliveryDelay')
+            ->with(0)
+            ->once()
+            ->andReturnSelf();
+
         $context = \Mockery::mock(AmqpContext::class);
         $context->shouldReceive('createProducer')
             ->andReturn($producer);
