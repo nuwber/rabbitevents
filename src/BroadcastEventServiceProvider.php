@@ -2,7 +2,6 @@
 
 namespace Nuwber\Events;
 
-use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use Interop\Amqp\AmqpContext;
@@ -48,11 +47,32 @@ class BroadcastEventServiceProvider extends ServiceProvider
 
     public function register()
     {
+        if (!$config = $this->resolveConfig()) {
+            return;
+        }
+
         $this->registerBroadcastEvents();
-        $this->registerContext();
-        $this->registerTopic();
+        $this->registerContext($config);
+        $this->registerTopic($config);
 
         $this->app->singleton(Publisher::class);
+    }
+
+    protected function resolveConfig()
+    {
+        $defaultConnection = $this->app['config']['queue.default'];
+
+        if ($this->app['config']["queue.connections.$defaultConnection.driver"] == 'rabbitmq') {
+            return $this->app['config']["queue.connections.$defaultConnection"];
+        }
+
+        foreach ($this->app['config']["queue.connections"] as $connection => $config) {
+            if (Arr::get($config, 'driver') == 'rabbitmq') {
+                return $config;
+            }
+        }
+
+        return [];
     }
 
     protected function registerBroadcastEvents()
@@ -62,13 +82,13 @@ class BroadcastEventServiceProvider extends ServiceProvider
         });
     }
 
-    protected function registerTopic()
+    protected function registerTopic(array $config)
     {
-        $this->app->singleton(AmqpTopic::class, function ($app) {
+        $this->app->singleton(AmqpTopic::class, function ($app) use ($config) {
             /** @var AmqpContext $context */
             $context = $app->make(AmqpContext::class);
 
-            $topic = $context->createTopic($this->getExchangeName($app));
+            $topic = $context->createTopic(Arr::get($config, 'exchange', self::DEFAULT_EXCHANGE_NAME));
             $topic->setType(AmqpTopic::TYPE_TOPIC);
             $topic->addFlag(AmqpTopic::FLAG_DURABLE);
 
@@ -78,20 +98,10 @@ class BroadcastEventServiceProvider extends ServiceProvider
         });
     }
 
-    protected function registerContext()
+    protected function registerContext(array $config)
     {
-        $this->app->singleton(AmqpContext::class, function ($app) {
-            $defaultConnection = $app['config']['queue.default'];
-
-            return (new ContextFactory())->make($app['config']["queue.connections.$defaultConnection"]);
+        $this->app->singleton(AmqpContext::class, function ($app) use ($config) {
+            return (new ContextFactory())->make($config);
         });
-    }
-
-    private function getExchangeName(Container $app): string
-    {
-        $config = $app['config']['queue'];
-        $connection = Arr::get($config, 'default');
-
-        return Arr::get($config, "connections.$connection.exchange", self::DEFAULT_EXCHANGE_NAME);
     }
 }
