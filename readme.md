@@ -74,6 +74,9 @@ The library uses internal Laravel's queue system. To configure connection you sh
 ]
 ```
 
+You may specify `RABBITEVENTS_CONNECTION` in `.env` if connection is only for `Rabbitevents`. 
+This is usable if you have another RabbitMQ or any other driver for queues.
+
 ## Events & Listeners <a name="events-listeners"></a>
 
 ### Register a Listener <a name="register-regular-listener"></a>
