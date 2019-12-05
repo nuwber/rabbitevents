@@ -60,7 +60,7 @@ class BroadcastEventServiceProvider extends ServiceProvider
 
     protected function resolveConfig()
     {
-        $defaultConnection = env('RABBITEVENTS_CONNECTION', $this->app['config']['queue.default']);
+        $defaultConnection = $this->app['config']['queue.default'];
 
         if ($this->app['config']["queue.connections.$defaultConnection.driver"] == 'rabbitmq') {
             return $this->app['config']["queue.connections.$defaultConnection"];
