@@ -2,7 +2,6 @@
 
 namespace Nuwber\Events;
 
-use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use Interop\Amqp\AmqpContext;
@@ -101,7 +100,7 @@ class BroadcastEventServiceProvider extends ServiceProvider
 
     protected function registerContext(array $config)
     {
-        $this->app->singleton(AmqpContext::class, function ($app) use ($config){
+        $this->app->singleton(AmqpContext::class, function ($app) use ($config) {
             return (new ContextFactory())->make($config);
         });
     }
