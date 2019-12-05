@@ -58,6 +58,7 @@ The library uses internal Laravel's queue system. To configure connection you sh
     'default' => env('QUEUE_CONNECTION', 'rabbitmq'),
     'connections' => [
         'rabbitmq' => [
+            'driver' => 'rabbitmq',
             'exchange' => env('RABBITMQ_EXCHENGE', 'events'),
             'host' => env('RABBITMQ_HOST', 'localhost'),
             'port' => env('RABBITMQ_PORT', 5672),
