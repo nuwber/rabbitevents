@@ -1,4 +1,4 @@
-# Events broadcasting for Laravel by using RabbitMQ
+# Events publishing for Laravel by using RabbitMQ
 
 [![Build Status](https://travis-ci.org/nuwber/rabbitevents.svg?branch=master)](https://travis-ci.org/nuwber/rabbitevents)
 
@@ -169,8 +169,9 @@ class ItemLogger
 
 ### Retrying Failed Jobs <a name="retry-failed-jobs"></a>
 
-The [rabbitevents:listen](#command-listen) command sets number of tries to handle a Job to `1` by default. `--tries=0` means that Rabbitevents will attempt to handle a `Job` forever. 
-This means that there will be 3 attempts to handle  your `Job` with delay of `sleep` option (default is 5 seconds). 
+The [rabbitevents:listen](#command-listen) command sets number of tries to handle a Job to `1` by default. 
+This means that there will be 2 attempts (first attempt and 1 retry) to handle  your `Job` with delay of `sleep` option (default is 5 seconds). 
+`--tries=0` means that Rabbitevents will attempt to handle a `Job` forever.
 If for some reason Job shouldn't be retried, throw `\Nuwber\Events\Exception\FailedException`. It will mark Job as `failed` without new attempts to handle.
 
 More examples you could find [here](#examples)
