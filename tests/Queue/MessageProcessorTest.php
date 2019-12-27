@@ -26,7 +26,7 @@ class MessageProcessorTest extends TestCase
     private $events;
     private $exceptionHandler;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->events = m::spy(Events::class);
         $this->exceptionHandler = m::spy(ExceptionHandler::class);
