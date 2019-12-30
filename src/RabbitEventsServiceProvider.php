@@ -128,10 +128,11 @@ class RabbitEventsServiceProvider extends ServiceProvider
      */
     protected function offerPublishing(): void
     {
-        dd($this->app->path('Providers/RabbitEventsServiceProvider.php'));
         if ($this->app->runningInConsole()) {
+            $providerName = 'RabbitEventsServiceProvider';
+            
             $this->publishes([
-                __DIR__ . '/../stubs/RabbitEventsServiceProvider.stub' => $this->app->path('Providers/RabbitEventsServiceProvider.php'),
+                __DIR__ . "/../stubs/{$providerName}.stub" => $this->app->path("Providers/{$providerName}.php"),
             ], 'rabbitevents-provider');
             $this->publishes([
                 __DIR__ . '/../config/rabbitevents.php' => $this->app->configPath('rabbitevents.php'),

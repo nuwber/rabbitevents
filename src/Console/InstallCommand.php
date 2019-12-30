@@ -42,13 +42,16 @@ class InstallCommand extends Command
     protected function registerServiceProvider()
     {
         $namespace = Str::replaceLast('\\', '', $this->laravel->getNamespace());
+        $prefix = "{namespace}\\Providers";
         $appConfig = file_get_contents($this->laravel->configPath('app.php'));
-        if (Str::contains($appConfig, $namespace.'\\Providers\\RabbitEventsServiceProvider::class')) {
+        if (Str::contains($appConfig, $prefix . 'RabbitEventsServiceProvider::class')) {
             return;
         }
-        file_put_contents($this->laravel->configPath('app.php'), str_replace(
-            "{$namespace}\\Providers\EventServiceProvider::class,".PHP_EOL,
-            "{$namespace}\\Providers\EventServiceProvider::class,".PHP_EOL."        {$namespace}\Providers\RabbitEventsServiceProvider::class,".PHP_EOL,
+        file_put_contents(
+            $this->laravel->configPath('app.php'), str_replace(
+            "{$prefix}\\EventServiceProvider::class," . PHP_EOL,
+            "{$prefix}\\EventServiceProvider::class," . PHP_EOL
+            . "        {$prefix}\\RabbitEventsServiceProvider::class," . PHP_EOL,
             $appConfig
         ));
         file_put_contents($this->laravel->path('Providers/RabbitEventsServiceProvider.php'), str_replace(
