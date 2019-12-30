@@ -69,7 +69,8 @@ class RabbitEventsServiceProvider extends ServiceProvider
     protected function resolveConfig(): array
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/rabbitevents.php', 'rabbitevents'
+            __DIR__ . '/../config/rabbitevents.php',
+            'rabbitevents'
         );
 
         $config = $this->app['config']['rabbitevents'];
