@@ -48,12 +48,15 @@ class InstallCommand extends Command
             return;
         }
         file_put_contents(
-            $this->laravel->configPath('app.php'), str_replace(
-            "{$prefix}\\EventServiceProvider::class," . PHP_EOL,
-            "{$prefix}\\EventServiceProvider::class," . PHP_EOL
-            . "        {$prefix}\\RabbitEventsServiceProvider::class," . PHP_EOL,
-            $appConfig
-        ));
+            $this->laravel->configPath('app.php'),
+            str_replace(
+                "{$prefix}\\EventServiceProvider::class," . PHP_EOL,
+                "{$prefix}\\EventServiceProvider::class," . PHP_EOL
+                . "        {$prefix}\\RabbitEventsServiceProvider::class," . PHP_EOL,
+                $appConfig
+            )
+        );
+        
         file_put_contents($this->laravel->path('Providers/RabbitEventsServiceProvider.php'), str_replace(
             "namespace App\Providers;",
             "namespace {$namespace}\Providers;",

@@ -130,7 +130,7 @@ class RabbitEventsServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $providerName = 'RabbitEventsServiceProvider';
-            
+
             $this->publishes([
                 __DIR__ . "/../stubs/{$providerName}.stub" => $this->app->path("Providers/{$providerName}.php"),
             ], 'rabbitevents-provider');
