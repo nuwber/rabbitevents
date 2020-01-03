@@ -14,7 +14,7 @@ class DummyClass
      */
     public function created(DummyModel $dummyModel)
     {
-        fire('DummyModel.created', [$dummyModel->toArray()]);
+        publish('DummyModel.created', [$dummyModel->toArray()]);
     }
 
     /**
@@ -25,7 +25,7 @@ class DummyClass
      */
     public function updated(DummyModel $dummyModel)
     {
-        fire('DummyModel.updated', [$dummyModel->toArray()]);
+        publish('DummyModel.updated', [$dummyModel->toArray()]);
     }
 
     /**
@@ -36,7 +36,7 @@ class DummyClass
      */
     public function deleted(DummyModel $dummyModel)
     {
-        fire('DummyModel.deleted', [$dummyModel->toArray()]);
+        publish('DummyModel.deleted', [$dummyModel->toArray()]);
     }
 
     /**
@@ -47,7 +47,7 @@ class DummyClass
      */
     public function restored(DummyModel $dummyModel)
     {
-        fire('DummyModel.restored', [$dummyModel->toArray()]);
+        publish('DummyModel.restored', [$dummyModel->toArray()]);
     }
 
     /**
@@ -58,6 +58,6 @@ class DummyClass
      */
     public function forceDeleted(DummyModel $dummyModel)
     {
-        fire('DummyModel.forceDeleted', [$dummyModel->toArray()]);
+        publish('DummyModel.forceDeleted', [$dummyModel->toArray()]);
     }
 }

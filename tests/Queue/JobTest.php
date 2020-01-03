@@ -18,7 +18,7 @@ class JobTest extends TestCase
     private $listenerClass = 'ListenerClass';
     private $jobId = 124567;
 
-    public function setUp()
+    public function setUp(): void
     {
         $callback = function ($event, $payload) {
             return "Event: $event. Item id: {$payload['id']}";

@@ -57,8 +57,8 @@ class ObserverMakeCommand extends GeneratorCommand
     protected function getStub()
     {
         return $this->option('model')
-            ? __DIR__.'/stubs/observer.stub'
-            : __DIR__.'/stubs/observer.plain.stub';
+            ? __DIR__ . '/../../stubs/observer.stub'
+            : __DIR__ . '/../../stubs/observer.plain.stub';
     }
 
     /**

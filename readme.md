@@ -5,8 +5,7 @@
 # Table of contents
 1. [Introduction](#introduction)
 2. [Installation](#installation)
-    - [Register seervice providers](#register-sp)
-    - [Configure RabbitMQ connection](#rabbitmq-connection-config)
+    - [Configuration](#configuration)
 3. [Events & Listeners](#events-listeners)
     - [Register a Listener](#register-regular-listener)
         - [Wildcard Listeners](#register-wildcard-listeners)
@@ -25,7 +24,7 @@
     
 ## Introduction <a name="introduction"></a>
 
-Nuwber's broadcasting events provides a simple observer implementation, allowing you to listen for various events that occur in your current and another applications. For example if you need to react to some event fired from another API. 
+Nuwber's broadcasting events provides a simple observer implementation, allowing you to listen for various events that occur in your current and another applications. For example if you need to react to some event published from another API. 
 
 Do not confuse this package with Laravel's broadcast. This package was made to communicate in backend to backend way.
  
@@ -33,52 +32,56 @@ Generally, this is compilation of Laravel's [events](https://laravel.com/docs/ev
 
 Listener classes are typically stored in the `app/Listeners` folder. You may use Laravel's artisan command to generate them as it described in the [official documentation](https://laravel.com/docs/events).
 
-
-All RabbitMQ calls are done by using [Laravel queue package](https://github.com/php-enqueue/laravel-queue). So for better understanding read their documentation first.
+All RabbitMQ calls are done by using [Laravel queue package](https://github.com/php-enqueue/laravel-queue) as an example. So for better understanding read their documentation first.
 
 ## Installation <a name="installation"></a>
-Add this library to your composer.json
+You may use Composer to install RabbitEvents into your Laravel project:
 
 ```bash
 $ composer require nuwber/rabbitevents
 ```
 
-### Register service providers <a name="register-sp"></a>
+After installing RabbitEvents, publish its config and a service provider using the `rabbitevents:install` Artisan command:
 
-First of all you need to create a service provider which is extends `Nuwber\Events\BroadcastEventServiceProvider` 
-and register it in your `config/app.php` in `providers` section.
+```bash
+$ php artisan rabbitevents:install
+```
 
-### Configure RabbitMQ connection <a name="rabbitmq-connection-config"></a>
+### Configuration <a name="configuration"></a>
+After publishing assets, its primary configuration file will be located at `config/rabbitevents.php`. 
+This configuration file allows you to configure your connection and logging options.
 
-The library uses internal Laravel's queue system. To configure connection you should make changes in `config/queue.php`:
+It's very similar to queue connection but now you'll never be confused if you have another connection to RabbitMQ. 
 
 ```php
 <?php
-[
-    'default' => env('QUEUE_CONNECTION', 'rabbitmq'),
-    'connections' => [
-        'rabbitmq' => [
-            'driver' => 'rabbitmq',
-            'exchange' => env('RABBITMQ_EXCHENGE', 'events'),
-            'host' => env('RABBITMQ_HOST', 'localhost'),
-            'port' => env('RABBITMQ_PORT', 5672),
-            'user' => env('RABBITMQ_USER', 'guest'),
-            'pass' => env('RABBITMQ_PASSWORD', 'guest'),
-            'vhost' => env('RABBITMQ_VHOST', 'events'),
-            'logging' => [
-                'enabled' => env('RABBITEVENTS_LOG_ENABLED', false),
-                'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
-            ]
+return [
+    [
+        'default' => env('RABBITEVENTS_CONNECTION', 'rabbitmq'),
+        'connections' => [
+            'rabbitmq' => [
+                'driver' => 'rabbitmq',
+                'exchange' => env('RABBITEVENTS_EXCHANGE', 'events'),
+                'host' => env('RABBITEVENTS_HOST', 'localhost'),
+                'port' => env('RABBITEVENTS_PORT', 5672),
+                'user' => env('RABBITEVENTS_USER', 'guest'),
+                'pass' => env('RABBITEVENTS_PASSWORD', 'guest'),
+                'vhost' => env('RABBITEVENTS_VHOST', 'events'),
+                'logging' => [
+                    'enabled' => env('RABBITEVENTS_LOG_ENABLED', false),
+                    'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
+                ],
+            ],
         ],
     ],
-]
+];
 ```
 
 ## Events & Listeners <a name="events-listeners"></a>
 
 ### Register a Listener <a name="register-regular-listener"></a>
 
-The `listen` property of `BroadcastEventServiceProvider` contains an array of all events (keys) and their listeners (values). Of course, you may add as many events to this array as your application requires.
+The `listen` property of `RabbitEventsServiceProvider` contains an array of all events (keys) and their listeners (values). Of course, you may add as many events to this array as your application requires.
 
 ```php
 <?php
@@ -90,6 +93,7 @@ The `listen` property of `BroadcastEventServiceProvider` contains an array of al
 protected $listen = [
     'item.created' => [
         'App\Listeners\SendItemCreatedNotification',
+        'App\Listeners\ChangeUserRole',
     ],
 ];
 ```
@@ -189,6 +193,7 @@ This is the example how to publish your event and payload:
 $model = new SomeModel(['name' => 'Jonh Doe', 'email' => 'email@example.com']);
 $someArray = ['key' => 'item'];
 $someString = 'Hello!';
+
 // Example 1. Old way to publish your data. Will be deprecated it next versions.
 // Remember: You MUST pass array of arguments
 fire('something.happened', [$model->toArray(), $someArray, $someString]);
@@ -248,13 +253,13 @@ $ php artisan rabbitevents:list
 
 ### Command `rabbitevents:make:observer` <a name='command-make-observer'></a>
 
-Sometimes you may with to send a broadcast event to each change of a model. Observers classes have method names which reflect the Eloquent events you wish to listen for. Each of these methods receives the model as their only argument. The difference from Laravel's command is that `rabbitevents:make:observer` creates an observer class with stubbed `fire` function call in each method.
+Sometimes you may with to publish an event to each change of a model. Observers classes have method names which reflect the Eloquent events you wish to listen for. Each of these methods receives the model as their only argument. The difference from Laravel's command is that `rabbitevents:make:observer` creates an observer class with stubbed `fire` function call in each method.
 
 ```bash
 $ php artisan rabbitevents:make:observer UserObserver --model=User
 ```
 
-This command will place the new observer in your App/Observers directory. If this directory does not exist, Artisan will create it for you. Your fresh observer will look like the following:
+This command will place the new observer in your `App/Observers` directory. If this directory does not exist, Artisan will create it for you. Your fresh observer will look like the following:
 
 ```php
 <?php
@@ -273,7 +278,7 @@ class UserObserver
      */
     public function created(User $user)
     {
-        fire('User.created', [$user->toArray()]);
+        publish('User.created', [$user->toArray()]);
     }
 
     /**
@@ -284,7 +289,7 @@ class UserObserver
      */
     public function updated(User $user)
     {
-        fire('User.updated', [$user->toArray()]);
+        publish('User.updated', [$user->toArray()]);
     }
 
     /**
@@ -295,7 +300,7 @@ class UserObserver
      */
     public function deleted(User $user)
     {
-        fire('User.deleted', [$user->toArray()]);
+        publish('User.deleted', [$user->toArray()]);
     }
 
     /**
@@ -306,7 +311,7 @@ class UserObserver
      */
     public function restored(User $user)
     {
-        fire('User.restored', [$user->toArray()]);
+        publish('User.restored', [$user->toArray()]);
     }
 
     /**
@@ -317,7 +322,7 @@ class UserObserver
      */
     public function forceDeleted(User $user)
     {
-        fire('User.forceDeleted', [$user->toArray()]);
+        publish('User.forceDeleted', [$user->toArray()]);
     }
 }
 ```
@@ -361,7 +366,7 @@ class AppServiceProvider extends ServiceProvider
 
 The package provides 2 ways to see what happens on your listener. By default it writes `processing`, `processed` and `failed` messages to php output. Message includes service, event and listener name. If you want to turn this feature off, just run listener with `--quiet` option.
 
-The package also supports your application logger. To use it set config value `connection.rabbitmq.logging.enabled` to `true` and choose log level.
+The package also supports your application logger. To use it set config value `rabbitevents.connection.rabbitmq.logging.enabled` to `true` and choose log level.
 
 ## Handling Examples <a name=examples></a>
 ### Single event
@@ -380,7 +385,7 @@ class UserAuthenticated
 }
 ```
 
-**app/Providers/BroadcastEventServiceProvider.php**
+**app/Providers/RabbitEventsServiceProvider.php**
 ```php
 <?php
 
@@ -388,7 +393,7 @@ namespace App\Providers;
 
 use App\Listeners\UserAuthenticated;
 
-class BroadcastEventServiceProvider extends \Nuwber\Events\BroadcastEventServiceProvider
+class RabbitEventsServiceProvider extends \Nuwber\Events\RabbitEventsServiceProvider
 {
     protected $listen = [
         'user.authenticated' => [
@@ -419,7 +424,7 @@ class UserAuthenticated
 }
 ```
 
-**app/Providers/BroadcastEventServiceProvider.php**
+**app/Providers/RabbitEventsServiceProvider.php**
 ```php
 <?php
 
@@ -427,7 +432,7 @@ namespace App\Providers;
 
 use App\Listeners\UserAuthenticated;
 
-class BroadcastEventServiceProvider extends \Nuwber\Events\BroadcastEventServiceProvider
+class RabbitEventsServiceProvider extends \Nuwber\Events\RabbitEventsServiceProvider
 {
     protected $listen = [
         'user.*' => [

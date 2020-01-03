@@ -99,6 +99,7 @@ class Publisher
      *
      * @param object $event
      * @return bool
+     * @throws \ReflectionException
      */
     protected function eventShouldBePublished($event)
     {
