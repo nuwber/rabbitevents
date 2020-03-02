@@ -15,6 +15,7 @@
     - [Stopping The Propagation Of An Event](#stopping-propagination)
     - [How to publish an event](#event-publishing)
 4. [Console commands](#commands)
+    - [rabbitevents:install](#command-install) - install package assets 
     - [rabbitevents:listen](#command-listen) - listen to an event
     - [rabbitevents:list](#command-list) - display list of registered events
     - [rabbitevents:make:observer](#command-make-observer) - make an Eloquent model events observer
@@ -222,6 +223,14 @@ There are helper functions `publish` and `fire` (will be deprecated in next vers
 Examples 1, 3 and 4 illustrates how to use them. 
 
 ## Console commands <a name='commands'></a>
+### Command `rabbitevents:install` <a name='command-install'></a>
+If you don't want manually create config file and register a service provider, you may run the command `rabbitevents:install` 
+which will automatically do all this stuff.
+
+```bash
+$ php artisan rabbitevents:install 
+``` 
+
 ### Command `rabbitevents:listen` <a name='command-listen'></a>
 
 There is the command which is registers events in RabbitMQ:
