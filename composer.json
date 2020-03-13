@@ -22,11 +22,11 @@
     "ext-bcmath": "*",
     "ext-pcntl": "*",
     "ext-json": "*",
-    "illuminate/events": "~5.7.0|~5.8.0|^6.0",
-    "illuminate/queue": "~5.7.0|~5.8.0|^6.0",
-    "illuminate/support": "~5.7.0|~5.8.0|^6.0",
-    "enqueue/amqp-lib": "^0.9.12",
-    "queue-interop/amqp-interop": "^0.8.1"
+    "illuminate/events": "^5.0|^6.0|^7.0",
+    "illuminate/queue": "^5.0|^6.0|^7.0",
+    "illuminate/support": "^5.0|^6.0|^7.0",
+    "enqueue/amqp-lib": "^0.10",
+    "queue-interop/amqp-interop": "^0.8"
   },
   "require-dev": {
     "mockery/mockery": "^1.2",
