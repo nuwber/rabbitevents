@@ -57,21 +57,19 @@ It's very similar to queue connection but now you'll never be confused if you ha
 ```php
 <?php
 return [
-    [
-        'default' => env('RABBITEVENTS_CONNECTION', 'rabbitmq'),
-        'connections' => [
-            'rabbitmq' => [
-                'driver' => 'rabbitmq',
-                'exchange' => env('RABBITEVENTS_EXCHANGE', 'events'),
-                'host' => env('RABBITEVENTS_HOST', 'localhost'),
-                'port' => env('RABBITEVENTS_PORT', 5672),
-                'user' => env('RABBITEVENTS_USER', 'guest'),
-                'pass' => env('RABBITEVENTS_PASSWORD', 'guest'),
-                'vhost' => env('RABBITEVENTS_VHOST', 'events'),
-                'logging' => [
-                    'enabled' => env('RABBITEVENTS_LOG_ENABLED', false),
-                    'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
-                ],
+    'default' => env('RABBITEVENTS_CONNECTION', 'rabbitmq'),
+    'connections' => [
+        'rabbitmq' => [
+            'driver' => 'rabbitmq',
+            'exchange' => env('RABBITEVENTS_EXCHANGE', 'events'),
+            'host' => env('RABBITEVENTS_HOST', 'localhost'),
+            'port' => env('RABBITEVENTS_PORT', 5672),
+            'user' => env('RABBITEVENTS_USER', 'guest'),
+            'pass' => env('RABBITEVENTS_PASSWORD', 'guest'),
+            'vhost' => env('RABBITEVENTS_VHOST', 'events'),
+            'logging' => [
+                'enabled' => env('RABBITEVENTS_LOG_ENABLED', false),
+                'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
             ],
         ],
     ],
