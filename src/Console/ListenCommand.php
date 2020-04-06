@@ -141,7 +141,7 @@ class ListenCommand extends Command
     protected function getConnection()
     {
         return $this->option('connection')
-            ?: $this->laravel['config']['queue.default'];
+            ?: $this->laravel['config']['rabbitevents.default'];
     }
 
     /**
@@ -155,7 +155,7 @@ class ListenCommand extends Command
     {
         return $this->argument('event')
             ?: $this->laravel['config']
-                ->get("queue.connections.$connection.queue", 'default');
+                ->get("rabbitevents.connections.$connection.queue", 'default');
     }
 
     /**
@@ -167,7 +167,7 @@ class ListenCommand extends Command
             $this->logWriters[] = new Log\Output($this->laravel, $this->output);
         }
 
-        if ($this->laravel['config']->get("queue.connections.$connection.logging.enabled")) {
+        if ($this->laravel['config']->get("rabbitevents.connections.$connection.logging.enabled")) {
             $this->logWriters[] = new Log\General($this->laravel);
         }
     }
