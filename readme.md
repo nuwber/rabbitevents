@@ -375,7 +375,7 @@ The package provides 2 ways to see what happens on your listener. By default it 
 
 The package also supports your application logger. To use it set config value `rabbitevents.connection.rabbitmq.logging.enabled` to `true` and choose log level.
 
-## Handling Examples <a name=examples></a>
+## Handling Examples <a name="examples"></a>
 ### Single event
 **app/Listeners/UserAuthenticated.php**
 ```php
