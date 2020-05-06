@@ -15,7 +15,7 @@ class RabbitEventsServiceProvider extends \Nuwber\Events\RabbitEventsServiceProv
     ];
 
     /**
-     * Global application's global Rabbitevents middleware stack
+     * Global application's Rabbitevents middleware stack
      *
      * These middleware are run for every received message.
 

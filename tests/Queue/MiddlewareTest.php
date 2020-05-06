@@ -2,61 +2,69 @@
 
 namespace Nuwber\Events\Tests\Queue;
 
-use Illuminate\Support\Arr;
 use Interop\Amqp\Impl\AmqpMessage;
 use Nuwber\Events\Dispatcher;
 use Nuwber\Events\Queue\Job;
+use Nuwber\Events\Tests\Queue\Stubs\ListenerWithAttributeMiddleware;
+use Nuwber\Events\Tests\Queue\Stubs\ListenerWithMethodMiddleware;
+use Nuwber\Events\Tests\Queue\Stubs\ListenerWithMixOfMiddleware;
 use Nuwber\Events\Tests\TestCase;
 
 class MiddlewareTest extends TestCase
 {
-
     public function testExecuteMiddlewareAsMethod()
     {
         $message = $this->makeMessage('true');
 
-        $expectation = 'Middleware was called';
-
-        $this->assertEquals($expectation, $this->makeJob($message, $this->makeCallback(MethodMiddleware::class))->fire());
+        $this->assertEquals(1, $this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddleware::class))->fire());
 
         // Wildcard
-        $this->assertEquals($expectation, $this->makeJob($message, $this->makeCallback(MethodMiddleware::class, true))->fire());
+        $this->assertEquals(1, $this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddleware::class, true))->fire());
     }
 
     public function testMiddlewareReturnedFalse()
     {
         $message = $this->makeMessage('false');
-        $expectation = '';
 
-        $this->assertEquals($expectation, $this->makeJob($message, $this->makeCallback(MethodMiddleware::class))->fire());
+        $this->assertNull($this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddleware::class))->fire());
 
         // Wildcard
-        $this->assertEquals($expectation, $this->makeJob($message, $this->makeCallback(MethodMiddleware::class, true))->fire());
+        $this->assertNull($this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddleware::class, true))->fire());
     }
 
     public function testExecuteMiddlewareAsArgument()
     {
         $message = $this->makeMessage('true');
 
-        $expectation = 'Middleware was called';
-
-        $this->assertEquals($expectation, $this->makeJob($message, $this->makeCallback(AttributeMiddleware::class))->fire());
+        $this->assertEquals(2, $this->makeJob($message, $this->makeCallback(ListenerWithAttributeMiddleware::class))->fire());
 
         // Wildcard
-        $this->assertEquals($expectation, $this->makeJob($message, $this->makeCallback(AttributeMiddleware::class, true))->fire());
+        $this->assertEquals(2, $this->makeJob($message, $this->makeCallback(ListenerWithAttributeMiddleware::class, true))->fire());
     }
 
     public function testMiddlewareAsArgReturnedFalse()
     {
-        $this->assertEquals('', $this->makeJob($this->makeMessage('false'), $this->makeCallback(AttributeMiddleware::class))->fire());
+        $message = $this->makeMessage('false');
+
+        $this->assertNull($this->makeJob($message, $this->makeCallback(ListenerWithAttributeMiddleware::class))->fire());
 
         // Wildcard
-        $this->assertEquals('', $this->makeJob($this->makeMessage('false'), $this->makeCallback(AttributeMiddleware::class, true))->fire());
+        $this->assertNull($this->makeJob($message, $this->makeCallback(ListenerWithAttributeMiddleware::class, true))->fire());
+    }
+
+    public function testAllKindOfMiddlewareTogether()
+    {
+         $message = $this->makeMessage('true');
+
+        $this->assertEquals(3, $this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class))->fire());
+
+        // Wildcard
+        $this->assertEquals(3, $this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class, true))->fire());
     }
 
     private function makeCallback($listenerClass, $wildcard = false)
     {
-        return (new Dispatcher())->createClassListener($listenerClass, $wildcard);
+        return (new Dispatcher())->makeListener($listenerClass, $wildcard);
     }
 
     private function makeMessage($payload)
@@ -78,44 +86,5 @@ class MiddlewareTest extends TestCase
             $callback,
             __CLASS__
         );
-    }
-}
-
-class MethodMiddleware
-{
-    private $middlewareWasCalled = false;
-
-    public function handle($payload)
-    {
-        return "Middleware was " . ($this->middlewareWasCalled ? '' : ' not ') . 'called';
-    }
-
-    public function middleware($payload)
-    {
-        $this->middlewareWasCalled = true;
-
-        return Arr::first($payload);
-    }
-}
-
-class AttributeMiddleware
-{
-    public $middleware = [GlobalMiddleware::class, 'action'];
-
-    public function handle($payload)
-    {
-        return "Middleware was " . (GlobalMiddleware::$middlewareWasCalled ? '' : ' not ') . 'called';
-    }
-}
-
-class GlobalMiddleware
-{
-    public static $middlewareWasCalled = false;
-
-    public static function action($payload)
-    {
-        self::$middlewareWasCalled = true;
-
-        return Arr::first($payload);
     }
 }

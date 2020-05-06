@@ -2,20 +2,10 @@
 
 namespace Nuwber\Events\Facades;
 
-use Illuminate\Support\Facades\Facade;
-
 /**
- * @see \Nuwber\Events\Dispatcher
+ * @deprecated Will be removed in some next release
  */
-class BroadcastEvent extends Facade
+class BroadcastEvent extends RabbitEvents
 {
-    /**
-     * Get the registered name of the component.
-     *
-     * @return string
-     */
-    protected static function getFacadeAccessor()
-    {
-        return 'broadcast.events';
-    }
+
 }

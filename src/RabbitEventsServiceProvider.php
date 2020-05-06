@@ -3,7 +3,6 @@
 namespace Nuwber\Events;
 
 use Illuminate\Container\Container;
-use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use Interop\Amqp\AmqpContext;
@@ -13,10 +12,16 @@ use Nuwber\Events\Console\InstallCommand;
 use Nuwber\Events\Console\ListenCommand;
 use Nuwber\Events\Console\ObserverMakeCommand;
 use Nuwber\Events\Event\Publisher;
+use Nuwber\Events\Facades\RabbitEvents;
 use Nuwber\Events\Queue\ContextFactory;
 
 class RabbitEventsServiceProvider extends ServiceProvider
 {
+    /**
+     * The event listener mappings for the application.
+     *
+     * @var array
+     */
     protected $listen = [];
 
     const DEFAULT_EXCHANGE_NAME = 'events';
@@ -25,7 +30,6 @@ class RabbitEventsServiceProvider extends ServiceProvider
      * Register any events for your application.
      *
      * @return void
-     * @throws BindingResolutionException
      */
     public function boot()
     {
@@ -40,11 +44,9 @@ class RabbitEventsServiceProvider extends ServiceProvider
             ObserverMakeCommand::class,
         ]);
 
-        $dispatcher = $this->app->make('broadcast.events');
-
         foreach ($this->listen as $event => $listeners) {
             foreach ($listeners as $listener) {
-                $dispatcher->listen($event, $listener);
+                RabbitEvents::listen($event, $listener);
             }
         }
     }
@@ -55,7 +57,6 @@ class RabbitEventsServiceProvider extends ServiceProvider
 
         $this->offerPublishing();
 
-        $this->registerRabbitEvents();
         $this->registerContext($config);
         $this->registerTopic($config);
 
@@ -78,16 +79,6 @@ class RabbitEventsServiceProvider extends ServiceProvider
         $defaultConnection = Arr::get($config, 'default');
 
         return Arr::get($config, "connections.$defaultConnection", []);
-    }
-
-    /**
-     * @return void
-     */
-    protected function registerRabbitEvents(): void
-    {
-        $this->app->singleton('broadcast.events', function ($app) {
-            return new Dispatcher($app);
-        });
     }
 
     /**
