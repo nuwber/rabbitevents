@@ -62,6 +62,16 @@ class MiddlewareTest extends TestCase
         $this->assertEquals(3, $this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class, true))->fire());
     }
 
+    public function testAllKindOfMiddlewareTogetherReturnedFalse()
+    {
+        $message = $this->makeMessage('false');
+
+        $this->assertNull($this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class))->fire());
+
+        // Wildcard
+        $this->assertNull($this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class, true))->fire());
+    }
+
     private function makeCallback($listenerClass, $wildcard = false)
     {
         return (new Dispatcher())->makeListener($listenerClass, $wildcard);
