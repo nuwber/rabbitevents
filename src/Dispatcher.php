@@ -61,9 +61,7 @@ class Dispatcher extends BaseDispatcher
         return function ($event, $payload) use ($listener, $wildcard) {
             $callback = parent::makeListener($listener, $wildcard);
 
-            if (!$throughMiddleware = $this->extractMiddleware($listener)) {
-                return $callback;
-            };
+            $throughMiddleware = $this->extractMiddleware($listener);
 
             foreach ($throughMiddleware as $middleware) {
                 $result = $wildcard
