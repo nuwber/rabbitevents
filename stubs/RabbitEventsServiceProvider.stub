@@ -15,15 +15,6 @@ class RabbitEventsServiceProvider extends \Nuwber\Events\RabbitEventsServiceProv
     ];
 
     /**
-     * Global application's Rabbitevents middleware stack
-     *
-     * These middleware are run for every received message.
-
-     * @var array
-     */
-    protected $middleware = [];
-
-    /**
      * Register any events for your application.
      *
      * @return void
