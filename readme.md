@@ -31,6 +31,7 @@ All RabbitMQ calls are done by using [Laravel queue package](https://github.com/
     - [rabbitevents:list](#command-list) - display list of registered events
     - [rabbitevents:make:observer](#command-make-observer) - make an Eloquent model events observer
 1. [Logging](#logging)
+1. [Testing](#testing)
 1. [Handling Examples](#examples)
 
 # Installation <a name="installation"></a>
@@ -449,6 +450,31 @@ class AppServiceProvider extends ServiceProvider
 The package provides 2 ways to see what happens on your listener. By default it writes `processing`, `processed` and `failed` messages to php output. Message includes service, event and listener name. If you want to turn this feature off, just run listener with `--quiet` option.
 
 The package also supports your application logger. To use it set config value `rabbitevents.connection.rabbitmq.logging.enabled` to `true` and choose log level.
+
+# Testing <a name="testing"></a>
+
+We always write tests. Tests in our applications contains many mocks and fakes to test how events published. We've made this process a bit easier for Event classes that implements `ShouldPublish` and uses `Publishable` trait.   
+
+```php
+<?php
+use \App\Listeners\Listener;
+
+Listener::fake();
+
+$payload = [
+    "key1" => 'value1',
+    "key2" => 'value2',
+];
+
+Listener::publish($payload);
+
+Listener::assertPublished('something.happened', $payload);
+
+AnotherListener::assertNotPublished();
+```
+
+If assertion not passes `Mockery\Exception\InvalidCountException` will bw thrown. 
+Don't forget to call `\Mockery::close()` in `tearDown` or similar methods of your tests.
 
 # Handling Examples <a name="examples"></a>
 ## Single event

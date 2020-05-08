@@ -41,11 +41,6 @@ trait Publishable
      */
     public static function publish()
     {
-        throw_unless(
-            in_array(ShouldPublish::class, class_implements(static::class)),
-            InterfaceNotImplemented::class,
-        );
-
         return Container::getInstance()
             ->make(Publisher::class)
             ->publish(
