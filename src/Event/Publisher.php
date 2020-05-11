@@ -39,12 +39,8 @@ class Publisher
      * @param string $event
      * @param array $payload
      * @return Publisher
-     *
-     * @throws Exception
-     * @throws InvalidDestinationException
-     * @throws InvalidMessageException
      */
-    public function send(string $event, array $payload, int $delay = 0): self
+    public function send(string $event, array $payload): self
     {
         $payload = json_encode($payload, JSON_UNESCAPED_UNICODE);
 
@@ -80,6 +76,7 @@ class Publisher
      * @param $event
      * @param array $payload
      * @return array
+     * @throws \InvalidArgumentException
      */
     private function extractEventAndPayload($event, array $payload)
     {
@@ -99,7 +96,6 @@ class Publisher
      *
      * @param object $event
      * @return bool
-     * @throws \ReflectionException
      */
     protected function eventShouldBePublished($event)
     {

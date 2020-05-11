@@ -7,7 +7,7 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpMessage;
-use Nuwber\Events\Queue\Job;
+use Nuwber\Events\Facades\RabbitEvents;
 
 class JobsFactory
 {
@@ -59,7 +59,6 @@ class JobsFactory
      */
     protected function getListeners(AmqpMessage $message)
     {
-        return $this->container->make('broadcast.events')
-            ->getListeners($message->getRoutingKey());
+        return RabbitEvents::getListeners($message->getRoutingKey());
     }
 }

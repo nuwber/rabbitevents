@@ -99,7 +99,7 @@ class JobTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         $container = m::mock(Container::class);
-        $publisher = m::mock(Publither::class);
+        $publisher = m::mock(Publisher::class);
 
         $container->shouldReceive('make')
             ->with(Publisher::class)
