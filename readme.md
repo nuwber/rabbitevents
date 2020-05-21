@@ -32,7 +32,7 @@ All RabbitMQ calls are done by using [Laravel queue package](https://github.com/
     - [rabbitevents:make:observer](#command-make-observer) - make an Eloquent model events observer
 1. [Logging](#logging)
 1. [Testing](#testing)
-1. [Handling Examples](#examples)
+1. [Examples](/examples)
 
 # Installation <a name="installation"></a>
 You may use Composer to install RabbitEvents into your Laravel project:
@@ -475,81 +475,3 @@ AnotherListener::assertNotPublished();
 
 If assertion not passes `Mockery\Exception\InvalidCountException` will bw thrown. 
 Don't forget to call `\Mockery::close()` in `tearDown` or similar methods of your tests.
-
-# Handling Examples <a name="examples"></a>
-## Single event
-**app/Listeners/UserAuthenticated.php**
-```php
-<?php
-
-namespace App\Listeners;
-
-class UserAuthenticated
-{
-    public function handle($payload)
-    {
-        var_dump($payload);
-    }
-}
-```
-
-**app/Providers/RabbitEventsServiceProvider.php**
-```php
-<?php
-
-namespace App\Providers;
-
-use App\Listeners\UserAuthenticated;
-
-class RabbitEventsServiceProvider extends \Nuwber\Events\RabbitEventsServiceProvider
-{
-    protected $listen = [
-        'user.authenticated' => [
-            UserAuthenticated::class
-        ],
-    ];
-}
-```
-
-```bash
-php artisan rabbitevents:listen user.authenticated
-```
-
-## Wildcard event
-**app/Listeners/UserAuthenticated.php**
-```php
-<?php
-
-namespace App\Listeners;
-
-class UserAuthenticated
-{
-    public function handle($route, $payload)
-    {
-        var_dump($route);
-        var_dump($payload);
-    }
-}
-```
-
-**app/Providers/RabbitEventsServiceProvider.php**
-```php
-<?php
-
-namespace App\Providers;
-
-use App\Listeners\UserAuthenticated;
-
-class RabbitEventsServiceProvider extends \Nuwber\Events\RabbitEventsServiceProvider
-{
-    protected $listen = [
-        'user.*' => [
-            UserAuthenticated::class
-        ],
-    ];
-}
-```
-
-```bash
-php artisan rabbitevents:listen user.*
-```
