@@ -6,7 +6,7 @@ Nuwber's events provides a simple observer implementation, allowing you to liste
 
 Do not confuse this package with Laravel's broadcast. This package was made to communicate a backend to backend.
  
-Finally, this is compilation of Laravel's [events](https://laravel.com/docs/events) and [queues](https://laravel.com/docs/queues) with some improvements like [middleware](#middleware).
+It's actually a compilation of Laravel's [events](https://laravel.com/docs/events) and [queues](https://laravel.com/docs/queues) with some improvements, such as [middleware](#middleware).
 
 Listener classes are typically stored in the `app/Listeners` folder. You may use Laravel's artisan command to generate them as it described in the [official documentation](https://laravel.com/docs/events).
 
