@@ -2,6 +2,7 @@
 
 namespace Nuwber\Events;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Events\Dispatcher as BaseDispatcher;
 
@@ -64,6 +65,11 @@ class Dispatcher extends BaseDispatcher
             $throughMiddleware = $this->extractMiddleware($listener);
 
             foreach ($throughMiddleware as $middleware) {
+                
+                if (Arr::isAssoc($payload)) {
+                    $payload = [$payload];
+                }
+
                 $result = $wildcard
                     ? call_user_func($middleware, $event, ...array_values($payload))
                     : call_user_func_array($middleware, $payload);
