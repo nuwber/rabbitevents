@@ -2,8 +2,9 @@
 
 namespace Nuwber\Events\Tests;
 
+use Illuminate\Support\Arr;
 use Nuwber\Events\Dispatcher;
-use PHPUnit\Framework\Assert;
+use Nuwber\Events\Tests\Queue\Stubs\ListenerStub;
 use PHPUnit\Framework\TestCase;
 
 class DispatcherTest extends TestCase
@@ -72,6 +73,32 @@ class DispatcherTest extends TestCase
         self::assertCount(3, $listeners);
 
         self::assertEquals(['Listeners/Class1', 'Listeners/Class2', 'Listeners/Class4'], array_keys($listeners));
+    }
+
+    public function testSimpleListenerCallWithAssocArrayAsPayload()
+    {
+        $payload = ['item' => true];
+
+        $dispatcher = new Dispatcher();
+        $dispatcher->listen('simple', ListenerStub::class);
+        $listeners = $dispatcher->getListeners('simple');
+        $closure = Arr::first(Arr::get($listeners, ListenerStub::class));
+
+        //array is because listener returns func_get_args
+        $this->assertEquals([$payload], $closure('simple', $payload));
+    }
+
+    public function testWildcardListenerCallWithAssocArrayAsPayload()
+    {
+        $payload = ['item' => true];
+
+        $dispatcher = new Dispatcher();
+        $dispatcher->listen('wildcard.*', ListenerStub::class);
+        $listeners = $dispatcher->getListeners('wildcard.*');
+        $closure = Arr::first(Arr::get($listeners, ListenerStub::class));
+
+        //array is because listener returns func_get_args
+        $this->assertEquals(['wildcard.event', $payload], $closure('wildcard.event', $payload));
     }
 
     private function setupDispatcher()
