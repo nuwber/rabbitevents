@@ -5,9 +5,9 @@ namespace Nuwber\Events\Tests\Queue;
 use Interop\Amqp\Impl\AmqpMessage;
 use Nuwber\Events\Dispatcher;
 use Nuwber\Events\Queue\Job;
+use Nuwber\Events\Tests\Queue\Stubs\ListenerStub;
 use Nuwber\Events\Tests\Queue\Stubs\ListenerWithAttributeMiddleware;
 use Nuwber\Events\Tests\Queue\Stubs\ListenerWithMethodMiddleware;
-use Nuwber\Events\Tests\Queue\Stubs\ListenerWithMethodMiddlewareReceivingArray;
 use Nuwber\Events\Tests\Queue\Stubs\ListenerWithMixOfMiddleware;
 use Nuwber\Events\Tests\TestCase;
 
@@ -82,10 +82,10 @@ class MiddlewareTest extends TestCase
 
         $expectedResult = ['first' => '1'];
 
-        $this->assertEquals($expectedResult, $this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddlewareReceivingArray::class))->fire());
+        $this->assertEquals([$expectedResult], $this->makeJob($message, $this->makeCallback(ListenerStub::class))->fire());
 
         // Wildcard
-        $this->assertEquals($expectedResult, $this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddlewareReceivingArray::class, true))->fire());
+        $this->assertEquals(['event', $expectedResult], $this->makeJob($message, $this->makeCallback(ListenerStub::class, true))->fire());
     }
 
     private function makeCallback($listenerClass, $wildcard = false)

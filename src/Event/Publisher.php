@@ -85,6 +85,10 @@ class Publisher
         }
 
         if (is_string($event)) {
+            if (Arr::isAssoc($payload)) {
+                $payload = [$payload];
+            }
+
             return [$event, Arr::wrap($payload)];
         }
 

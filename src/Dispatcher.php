@@ -60,32 +60,24 @@ class Dispatcher extends BaseDispatcher
     public function makeListener($listener, $wildcard = false)
     {
         return function ($event, $payload) use ($listener, $wildcard) {
-            $callback = parent::makeListener($listener, $wildcard);
-
             $throughMiddleware = $this->extractMiddleware($listener);
 
             foreach ($throughMiddleware as $middleware) {
-                
-                if (Arr::isAssoc($payload)) {
-                    $middlewarePayload = [$payload];
-                } else {
-                    $middlewarePayload = $payload;
+
+                if (!$wildcard && Arr::isAssoc($payload)) {
+                    $payload = [$payload];
                 }
 
                 $result = $wildcard
-                    ? call_user_func($middleware, $event, ...array_values($middlewarePayload))
-                    : call_user_func_array($middleware, $middlewarePayload);
+                    ? call_user_func($middleware, $event, ...array_values($payload))
+                    : call_user_func_array($middleware, $payload);
 
                 if (false === $result) {
                     return null;
                 }
             }
 
-            if (! $wildcard && Arr::isAssoc($payload)) {
-                $payload = [$payload];
-            }
-
-            return $callback($event, $payload);
+            return parent::makeListener($listener, $wildcard)($event, $payload);
         };
     }
 
