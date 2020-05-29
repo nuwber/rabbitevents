@@ -2,14 +2,15 @@
 
 namespace Nuwber\Events\Tests\Queue;
 
-use Interop\Amqp\Impl\AmqpMessage;
-use Nuwber\Events\Dispatcher;
 use Nuwber\Events\Queue\Job;
-use Nuwber\Events\Tests\Queue\Stubs\ListenerStub;
-use Nuwber\Events\Tests\Queue\Stubs\ListenerWithAttributeMiddleware;
-use Nuwber\Events\Tests\Queue\Stubs\ListenerWithMethodMiddleware;
-use Nuwber\Events\Tests\Queue\Stubs\ListenerWithMixOfMiddleware;
+use Nuwber\Events\Dispatcher;
 use Nuwber\Events\Tests\TestCase;
+use Interop\Amqp\Impl\AmqpMessage;
+use Nuwber\Events\Tests\Queue\Stubs\ListenerStub;
+use Nuwber\Events\Tests\Queue\Stubs\ListenerStubForMiddleware;
+use Nuwber\Events\Tests\Queue\Stubs\ListenerWithMixOfMiddleware;
+use Nuwber\Events\Tests\Queue\Stubs\ListenerWithMethodMiddleware;
+use Nuwber\Events\Tests\Queue\Stubs\ListenerWithAttributeMiddleware;
 
 class MiddlewareTest extends TestCase
 {
@@ -78,14 +79,15 @@ class MiddlewareTest extends TestCase
      */
     public function testMiddlewareReceiveAssociativeArray()
     {
-        $message = $this->makeMessage('{"first":"1"}');
+        //incomming message payload should always be wrapped in array
+        $message = $this->makeMessage('[{"first":"1"}]');
 
         $expectedResult = ['first' => '1'];
 
-        $this->assertEquals([$expectedResult], $this->makeJob($message, $this->makeCallback(ListenerStub::class))->fire());
+        $this->assertEquals([$expectedResult], $this->makeJob($message, $this->makeCallback(ListenerStubForMiddleware::class))->fire());
 
         // Wildcard
-        $this->assertEquals(['event', $expectedResult], $this->makeJob($message, $this->makeCallback(ListenerStub::class, true))->fire());
+        $this->assertEquals(['event', $expectedResult], $this->makeJob($message, $this->makeCallback(ListenerStubForMiddleware::class, true))->fire());
     }
 
     private function makeCallback($listenerClass, $wildcard = false)
