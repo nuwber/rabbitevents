@@ -62,11 +62,11 @@ class Dispatcher extends BaseDispatcher
         return function ($event, $payload) use ($listener, $wildcard) {
             $throughMiddleware = $this->extractMiddleware($listener);
 
-            foreach ($throughMiddleware as $middleware) {
+            if (!$wildcard && Arr::isAssoc($payload)) {
+                $payload = [$payload];
+            }
 
-                if (!$wildcard && Arr::isAssoc($payload)) {
-                    $payload = [$payload];
-                }
+            foreach ($throughMiddleware as $middleware) {
 
                 $result = $wildcard
                     ? call_user_func($middleware, $event, ...array_values($payload))

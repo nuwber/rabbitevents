@@ -81,7 +81,13 @@ class Publisher
     private function extractEventAndPayload($event, array $payload)
     {
         if (is_object($event) && $this->eventShouldBePublished($event)) {
-            return [$event->publishEventKey(), $event->toPublish()];
+            $payload = $event->toPublish();
+
+            if (Arr::isAssoc($payload)) {
+                $payload = [$payload];
+            }
+
+            return [$event->publishEventKey(), $payload];
         }
 
         if (is_string($event)) {
