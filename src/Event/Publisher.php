@@ -81,14 +81,25 @@ class Publisher
     private function extractEventAndPayload($event, array $payload)
     {
         if (is_object($event) && $this->eventShouldBePublished($event)) {
-            return [$event->publishEventKey(), $event->toPublish()];
+            return [$event->publishEventKey(), $this->preparePayload($event->toPublish())];
         }
 
         if (is_string($event)) {
-            return [$event, Arr::wrap($payload)];
+            return [$event, $this->preparePayload($payload)];
         }
 
         throw new \InvalidArgumentException('Event must be a string or implement `ShouldPublish` interface');
+    }
+
+    /**
+     * Prepare payload array before publishing
+     *
+     * @param array $payload
+     * @return array
+     */
+    private function preparePayload(array $payload)
+    {
+        return Arr::isAssoc($payload) ? [$payload] : Arr::wrap($payload);
     }
 
     /**

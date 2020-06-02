@@ -14,7 +14,6 @@ use Illuminate\Support\Carbon;
 use Interop\Amqp\AmqpMessage;
 use Nuwber\Events\Queue\Exceptions\FailedException;
 use Nuwber\Events\Queue\ProcessingOptions;
-use Symfony\Component\Debug\Exception\FatalThrowableError;
 use Throwable;
 
 class MessageProcessor
@@ -69,7 +68,7 @@ class MessageProcessor
         } catch (Exception $e) {
             $this->exceptions->report($e);
         } catch (Throwable $e) {
-            $this->exceptions->report($e = new FatalThrowableError($e));
+            $this->exceptions->report($e);
         }
     }
 
@@ -95,7 +94,7 @@ class MessageProcessor
         } catch (Exception $e) {
             $this->handleJobException($job, $e);
         } catch (Throwable $e) {
-            $this->handleJobException($job, new FatalThrowableError($e));
+            $this->handleJobException($job, $e);
         }
     }
 

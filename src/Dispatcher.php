@@ -2,6 +2,7 @@
 
 namespace Nuwber\Events;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Events\Dispatcher as BaseDispatcher;
 
@@ -59,11 +60,14 @@ class Dispatcher extends BaseDispatcher
     public function makeListener($listener, $wildcard = false)
     {
         return function ($event, $payload) use ($listener, $wildcard) {
-            $callback = parent::makeListener($listener, $wildcard);
-
             $throughMiddleware = $this->extractMiddleware($listener);
 
+            if (!$wildcard && Arr::isAssoc($payload)) {
+                $payload = [$payload];
+            }
+
             foreach ($throughMiddleware as $middleware) {
+
                 $result = $wildcard
                     ? call_user_func($middleware, $event, ...array_values($payload))
                     : call_user_func_array($middleware, $payload);
@@ -73,7 +77,7 @@ class Dispatcher extends BaseDispatcher
                 }
             }
 
-            return $callback($event, $payload);
+            return parent::makeListener($listener, $wildcard)($event, $payload);
         };
     }
 
