@@ -17,7 +17,7 @@ jobs:
       install:
         - composer global require edgedesign/phpqa --update-no-dev --no-progress -q
       script:
-        - ./home/travis/.composer/phpqa --analyzedDirs src --output cli --tools phpcs:0,phpmd,phpcpd:0,phpmetrics:0,phploc,pdepend
+        - ./home/travis/.composer/bin/phpqa --analyzedDirs src --output cli --tools phpcs:0,phpmd,phpcpd:0,phpmetrics:0,phploc,pdepend
     - stage: test
       script:
         - ./vendor/bin/phpunit -c phpunit.xml.dist
