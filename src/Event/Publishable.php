@@ -19,7 +19,7 @@ trait Publishable
         Container::getInstance()
             ->make(Publisher::class)
             ->shouldHaveReceived()
-            ->publish(\Mockery::on(function(ShouldPublish $object) use ($event, $payload) {
+            ->publish(\Mockery::on(function (ShouldPublish $object) use ($event, $payload) {
                 return $object instanceof static
                     && $object->publishEventKey() == $event
                     && $object->toPublish() == $payload;
