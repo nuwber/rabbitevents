@@ -67,7 +67,6 @@ class Dispatcher extends BaseDispatcher
             }
 
             foreach ($throughMiddleware as $middleware) {
-
                 $result = $wildcard
                     ? call_user_func($middleware, $event, ...array_values($payload))
                     : call_user_func_array($middleware, $payload);
@@ -108,7 +107,7 @@ class Dispatcher extends BaseDispatcher
 
     public function makeListenerInstance($listener)
     {
-        if (is_string($listener) ) {
+        if (is_string($listener)) {
             list($class,) = Str::parseCallback($listener);
 
             return $this->container->instance($class, $this->container->make($class));

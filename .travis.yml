@@ -1,4 +1,3 @@
-sudo: true
 language: php
 php:
   - '7.3'
@@ -14,11 +13,11 @@ before_script:
 
 jobs:
   include:
-    - stage: build
+    - stage: test
       install:
-        - composer require edgedesign/phpqa --update-no-dev --no-progress -q
+        - composer global require edgedesign/phpqa --update-no-dev --no-progress -q
       script:
-        - ./vendor/bin/phpqa --analyzedDirs src --output cli --tools phpcs:0,phpmd,phpcpd:0,phpmetrics:0,phploc,pdepend
+        - /home/travis/.composer/vendor/bin/phpqa --analyzedDirs src --output cli --tools phpcs:0,phpmd,phpcpd:0,phpmetrics:0,phploc,pdepend
     - stage: test
       script:
         - ./vendor/bin/phpunit -c phpunit.xml.dist
