@@ -121,7 +121,7 @@ This means that there will be 2 attempts (first attempt and 1 retry) to handle  
 `--tries=0` means that Rabbitevents will attempt to handle an event forever.
 If for some reason event handling shouldn't be retried, throw `\Nuwber\Events\Exception\FailedException` from a Listener. It will mark an event Job as `failed` without new attempts to handle.
 
-More examples [here](#examples)
+More examples [here](/examples)
 
 # Listeners <a name="listeners"></a>
 ## Register a Listener <a name="register-regular-listener"></a>
