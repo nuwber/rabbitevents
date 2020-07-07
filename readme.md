@@ -36,6 +36,7 @@ All RabbitMQ calls are done by using [Laravel queue package](https://github.com/
 1. [Logging](#logging)
 1. [Testing](#testing)
 1. [Examples](/examples)
+1. [Non-standard use](#non-standard-use)
 
 # Installation <a name="installation"></a>
 You may use Composer to install RabbitEvents into your Laravel project:
@@ -364,7 +365,7 @@ class UserObserver
      */
     public function created(User $user)
     {
-        publish('User.created', [$user->toArray()]);
+        publish('User.created', $user->toArray());
     }
 
     /**
@@ -375,7 +376,7 @@ class UserObserver
      */
     public function updated(User $user)
     {
-        publish('User.updated', [$user->toArray()]);
+        publish('User.updated', $user->toArray());
     }
 
     /**
@@ -386,7 +387,7 @@ class UserObserver
      */
     public function deleted(User $user)
     {
-        publish('User.deleted', [$user->toArray()]);
+        publish('User.deleted', $user->toArray());
     }
 
     /**
@@ -397,7 +398,7 @@ class UserObserver
      */
     public function restored(User $user)
     {
-        publish('User.restored', [$user->toArray()]);
+        publish('User.restored', $user->toArray());
     }
 
     /**
@@ -408,7 +409,7 @@ class UserObserver
      */
     public function forceDeleted(User $user)
     {
-        publish('User.forceDeleted', [$user->toArray()]);
+        publish('User.forceDeleted', $user->toArray());
     }
 }
 ```
@@ -478,3 +479,24 @@ AnotherListener::assertNotPublished();
 
 If assertion not passes `Mockery\Exception\InvalidCountException` will bw thrown. 
 Don't forget to call `\Mockery::close()` in `tearDown` or similar methods of your tests.
+
+# Non-standard use <a name="#non-standard-use">
+
+If you're using only one of parts of RabbitEvents, you should know a few things:
+
+1. You remember, we're using RabbitMQ as the transport layer. In the [RabbitMQ Documentation](https://www.rabbitmq.com/tutorials/tutorial-five-python.html) you could find examples how to publish your messages using a routing key. 
+This is an event name like `something.happened` from examples above.
+
+1. RabbitEvents expects that a message body is a JSON encoded array. Every element of an array will be passed to a Listener as a separate variable. Example:
+```json
+[
+  {
+    "key": "value"  
+  },
+  "string",
+  123 
+]
+```
+
+There'e 3 elements of an array, so 3 variables will be passed to a Listener (array, string and integer). 
+If an associative array is being passed, the Dispatcher wraps this array by itself.
