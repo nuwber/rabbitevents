@@ -126,4 +126,14 @@ class Job extends \Illuminate\Queue\Jobs\Job
     {
         return $this->getName();
     }
+    
+    /**
+     * Get the timestamp indicating when the job should timeout.
+     *
+     * @return int|null
+     */
+    public function timeoutAt()
+    {
+        return $this->payload()['timeoutAt'] ?? null;
+    }
 }
