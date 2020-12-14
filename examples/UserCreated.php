@@ -1,5 +1,5 @@
 <?php
-namespace app/RabbitEvents;
+namespace app\RabbitEvents;
 
 use Nuwber\Events\Event\Publishable;
 use Nuwber\Events\Event\ShouldPublish;
