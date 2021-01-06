@@ -3,7 +3,7 @@
 namespace Nuwber\Events\Console\Log;
 
 use Illuminate\Contracts\Foundation\Application;
-use Nuwber\Events\Queue\Job;
+use Nuwber\Events\Queue\Jobs\Job;
 
 class General extends Writer
 {

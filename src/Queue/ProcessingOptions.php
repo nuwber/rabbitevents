@@ -8,14 +8,17 @@ class ProcessingOptions
      * @var int
      */
     public $timeout;
+
     /**
      * @var int
      */
     public $maxTries;
+
     /**
      * @var int
      */
     public $memory;
+
     /**
      * @var int
      */
@@ -23,24 +26,30 @@ class ProcessingOptions
 
     /** @var string */
     public $service;
+
     /**
      * @var string
      */
     public $connectionName;
 
+    /**
+     * @var string
+     */
+    public $event;
+
     public function __construct(
-        $memory = 128,
-        $timeout = 60,
-        $maxTries = 0,
-        $sleep = 5,
-        $service = '',
-        $connectionName = ''
+        string $service,
+        string $connectionName,
+        int $memory = 128,
+        int $timeout = 60,
+        int $maxTries = 0,
+        int $sleep = 5
     ) {
-        $this->timeout = $timeout;
-        $this->memory = $memory;
-        $this->maxTries = (int)$maxTries;
-        $this->sleep = (int)$sleep;
         $this->service = $service;
         $this->connectionName = $connectionName;
+        $this->timeout = $timeout;
+        $this->memory = $memory;
+        $this->maxTries = $maxTries;
+        $this->sleep = $sleep;
     }
 }

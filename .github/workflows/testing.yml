@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-versions: ['7.3', '7.4']
+        php-versions: ['7.3', '7.4', '8.0']
     name: Testing on PHP ${{ matrix.php-versions }}
     steps:
       - uses: actions/checkout@v2
@@ -18,6 +18,6 @@ jobs:
           extensions: mbstring,bcmath
           tools: phpunit,composer
       - name: install deps
-        run: composer install -o -q
+        run: composer install -o
       - name: phpunit
         run: phpunit -c phpunit.xml.dist

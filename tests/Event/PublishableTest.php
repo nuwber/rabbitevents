@@ -5,6 +5,7 @@ namespace Nuwber\Events\Tests\Event;
 use Illuminate\Container\Container;
 use Mockery\Exception\InvalidCountException;
 use Nuwber\Events\Event\Publishable;
+use Nuwber\Events\Event\Testing\PublishableEventTesting;
 use Nuwber\Events\Event\Publisher;
 use Nuwber\Events\Event\ShouldPublish;
 use Nuwber\Events\Tests\TestCase;
@@ -14,28 +15,26 @@ class PublishableTest extends TestCase
     /**
      * @var \Mockery\LegacyMockInterface|\Mockery\MockInterface|Publisher
      */
-    private $spy;
+    private $publisher;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->spy = \Mockery::spy(Publisher::class);
-        Container::getInstance()->instance(Publisher::class, $this->spy);
+        $this->publisher = \Mockery::spy(Publisher::class);
+        Container::getInstance()->instance(Publisher::class, $this->publisher);
     }
 
     public function testPublishingMethod()
     {
-        $this->expectNotToPerformAssertions();
-
         $payload = [
             "key1" => 'value1',
             "key2" => 'value2',
         ];
 
-        Listener::publish($payload);
+        self::assertNull(Listener::publish($payload));
 
-        $this->spy->shouldHaveReceived()
+        $this->publisher->shouldHaveReceived()
             ->publish(\Mockery::on(function(ShouldPublish $object) use ($payload) {
                 return $object instanceof Listener
                     && $object->publishEventKey() == 'something.happened'
@@ -46,8 +45,6 @@ class PublishableTest extends TestCase
 
     public function testFake()
     {
-        $this->expectNotToPerformAssertions();
-
         Listener::fake();
 
         $payload = [
@@ -55,7 +52,7 @@ class PublishableTest extends TestCase
             "key2" => 'value2',
         ];
 
-        Listener::publish($payload);
+        self::assertNull(Listener::publish($payload));
 
         Listener::assertPublished('something.happened', $payload);
     }
@@ -71,18 +68,16 @@ class PublishableTest extends TestCase
             "key2" => 'value2',
         ];
 
-        Listener::publish($payload);
+        self::assertNull(Listener::publish($payload));
 
         Listener::assertPublished('something.other.happened', []);
     }
 
     public function testAssertNotPublishedIfNotPublished()
     {
-        $this->expectNotToPerformAssertions();
-
         Listener::fake();
 
-        AnotherListener::publish();
+        self::assertNull(AnotherListener::publish());
 
         Listener::assertNotPublished();
     }
@@ -102,6 +97,7 @@ class PublishableTest extends TestCase
 class Listener implements ShouldPublish
 {
     use Publishable;
+    use \Nuwber\Events\Event\Testing\PublishableEventTesting;
 
     private $payload = [];
 
@@ -124,6 +120,7 @@ class Listener implements ShouldPublish
 class AnotherListener implements ShouldPublish
 {
     use Publishable;
+    use PublishableEventTesting;
 
     public function publishEventKey(): string
     {
