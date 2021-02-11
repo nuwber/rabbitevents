@@ -47,6 +47,7 @@ class ContextFactory
             'heartbeat' => Arr::get($config, 'heartbeat', 0),
             'persisted' => Arr::get($config, 'persisted', false),
             'lazy' => Arr::get($config, 'lazy', true),
+            'keepalive' => Arr::get($config, 'keepalive', false),
         ]);
 
         $factory->setDelayStrategy(new RabbitMqDlxDelayStrategy());
