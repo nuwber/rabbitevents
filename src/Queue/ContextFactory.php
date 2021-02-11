@@ -41,6 +41,12 @@ class ContextFactory
             'ssl_cert' => Arr::get($config, 'ssl_params.local_cert'),
             'ssl_key' => Arr::get($config, 'ssl_params.local_key'),
             'ssl_passphrase' => Arr::get($config, 'ssl_params.passphrase'),
+            'read_timeout' => Arr::get($config, 'read_timeout', 3.),
+            'write_timeout' => Arr::get($config, 'write_timeout', 3.),
+            'connection_timeout' => Arr::get($config, 'connection_timeout', 3.),
+            'heartbeat' => Arr::get($config, 'heartbeat', 0),
+            'persisted' => Arr::get($config, 'persisted', false),
+            'lazy' => Arr::get($config, 'lazy', true),
         ]);
 
         $factory->setDelayStrategy(new RabbitMqDlxDelayStrategy());
