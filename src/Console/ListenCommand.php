@@ -83,10 +83,10 @@ class ListenCommand extends Command
         return new ProcessingOptions(
             $this->option('service') ?: $this->laravel['config']->get("app.name"),
             $this->option('connection') ?: $this->laravel['config']['rabbitevents.default'],
-            $this->option('sleep'),
             $this->option('memory'),
             $this->option('timeout'),
-            $this->option('tries')
+            $this->option('tries'),
+            $this->option('sleep')
         );
     }
 
