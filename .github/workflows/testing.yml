@@ -18,6 +18,6 @@ jobs:
           extensions: mbstring,bcmath
           tools: phpunit,composer
       - name: install deps
-        run: composer install -o
+        run: composer install -o -q
       - name: phpunit
         run: phpunit -c phpunit.xml.dist
