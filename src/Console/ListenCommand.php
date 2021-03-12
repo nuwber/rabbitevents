@@ -3,12 +3,10 @@
 namespace Nuwber\Events\Console;
 
 use Illuminate\Console\Command;
-use Illuminate\Contracts\Debug\ExceptionHandler;
 use Interop\Amqp\AmqpQueue;
 use Nuwber\Events\Amqp\BindFactory;
 use Nuwber\Events\Amqp\QueueFactory;
 use Nuwber\Events\Console\Log;
-use Nuwber\Events\Dispatcher;
 use Nuwber\Events\Queue\Context;
 use Nuwber\Events\Queue\Events\JobExceptionOccurred;
 use Nuwber\Events\Queue\Events\JobFailed;
