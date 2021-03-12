@@ -64,7 +64,7 @@ class Job extends \Illuminate\Queue\Jobs\Job implements \Illuminate\Contracts\Qu
      */
     public function getName(): string
     {
-        return sprintf('%s:%s', $this->event, $this->listenerClass);
+        return sprintf('%s:%s', $this->getQueue(), $this->listenerClass);
     }
 
     public function failed($e): void

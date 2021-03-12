@@ -24,11 +24,6 @@ class Processor
     protected $events;
 
     /**
-     * @var ProcessingOptions
-     */
-    protected $options;
-
-    /**
      * @var Factory
      */
     private $jobsFactory;

@@ -4,17 +4,12 @@ namespace Nuwber\Events\Queue\Jobs;
 
 use Generator;
 use Interop\Amqp\AmqpMessage;
-use Nuwber\Events\Dispatcher;
+use Nuwber\Events\Facades\RabbitEvents;
 use Nuwber\Events\Queue\Manager;
 use Illuminate\Container\Container;
 
 class Factory
 {
-    /**
-     * @var Dispatcher
-     */
-    private $dispatcher;
-
     /**
      * @var Manager
      */
@@ -25,10 +20,9 @@ class Factory
      */
     private $container;
 
-    public function __construct(Container $container, Dispatcher $dispatcher, Manager $queueManager)
+    public function __construct(Container $container, Manager $queueManager)
     {
         $this->container = $container;
-        $this->dispatcher = $dispatcher;
         $this->queueManager = $queueManager;
     }
 
@@ -51,6 +45,6 @@ class Factory
      */
     private function getListeners(AmqpMessage $message): array
     {
-        return $this->dispatcher->getListeners($message->getRoutingKey());
+        return RabbitEvents::getListeners($message->getRoutingKey());
     }
 }

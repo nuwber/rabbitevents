@@ -24,18 +24,15 @@ class ProcessingOptions
      */
     public $sleep;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     public $service;
 
     /**
      * @var string
      */
     public $connectionName;
-
-    /**
-     * @var string
-     */
-    public $event;
 
     public function __construct(
         string $service,

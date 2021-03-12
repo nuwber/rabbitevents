@@ -5,7 +5,7 @@ namespace Nuwber\Events\Tests\Queue\Jobs;
 use Illuminate\Container\Container;
 use Interop\Amqp\Impl\AmqpMessage;
 use Mockery as m;
-use Nuwber\Events\Dispatcher;
+use Nuwber\Events\Facades\RabbitEvents;
 use Nuwber\Events\Queue\Jobs\Factory;
 use Nuwber\Events\Queue\Jobs\Job;
 use Nuwber\Events\Queue\Manager;
@@ -15,7 +15,7 @@ class FactoryTest extends TestCase
 {
     public function testMakeJob()
     {
-        $dispatcher = m::mock(Dispatcher::class)->makePartial();
+        $dispatcher = RabbitEvents::partialMock();
         $dispatcher->shouldReceive()
             ->getListeners('item.created')
             ->andReturn($this->listeners());
@@ -23,7 +23,7 @@ class FactoryTest extends TestCase
         $message = new AmqpMessage();
         $message->setRoutingKey('item.created');
 
-        $factory = new Factory(m::mock(Container::class), $dispatcher, m::spy(Manager::class));
+        $factory = new Factory(m::mock(Container::class), m::spy(Manager::class));
         $jobs = $factory->makeJobs($message);
 
         self::assertInstanceOf(\Generator::class, $jobs);

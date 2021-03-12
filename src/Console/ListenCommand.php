@@ -68,9 +68,11 @@ class ListenCommand extends Command
             $context->transport()
         );
 
-        $processor = $this->makeProcessor($queue);
-
-        $worker->work($processor, $queue, $options);
+        $worker->work(
+            new Processor($this->laravel['events'], new Factory($this->laravel, $queue)),
+            $queue,
+            $options
+        );
     }
 
     /**
@@ -139,17 +141,5 @@ class ListenCommand extends Command
         );
 
         return $factory->make($this->argument('event'));
-    }
-
-    /**
-     * @param Manager $queueManager
-     * @return Processor
-     */
-    protected function makeProcessor(Manager $queueManager): Processor
-    {
-        return new Processor(
-            $this->laravel['events'],
-            new Factory($this->laravel, $this->laravel[Dispatcher::class], $queueManager)
-        );
     }
 }

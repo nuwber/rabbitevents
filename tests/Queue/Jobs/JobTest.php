@@ -34,10 +34,18 @@ class JobTest extends TestCase
 
     public function testGetName()
     {
-        $expectedMessage = "$this->event:$this->listenerClass";
+        $manager = new FakeManager();
+        $manager->event = $this->event;
 
-        self::assertEquals($expectedMessage, $this->job->getName());
-        self::assertEquals($expectedMessage, $this->job->displayName());
+        $job = new Job(
+            m::mock(Container::class),
+            $manager,
+            $this->getMessage(),
+            'trim',
+            $this->listenerClass
+        );
+
+        self::assertEquals("test-app:{$this->event}:{$this->listenerClass}", $job->getName());
     }
 
     public function testExceptionFired()
@@ -123,8 +131,6 @@ class JobTest extends TestCase
 
     public function testGetQueue()
     {
-        $queueName = 'test-app:' . $this->event;
-
         $manager = new FakeManager();
         $manager->event = $this->event;
 
@@ -136,7 +142,7 @@ class JobTest extends TestCase
             $this->listenerClass
         );
 
-        self::assertEquals($queueName, $job->getQueue());
+        self::assertEquals("test-app:{$this->event}", $job->getQueue());
     }
 
     public function testDestructor()
