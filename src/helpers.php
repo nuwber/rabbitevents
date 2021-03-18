@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Arr;
+use Illuminate\Container\Container;
 use Nuwber\Events\Event\Publisher;
 use Nuwber\Events\Event\ShouldPublish;
 
@@ -30,8 +31,10 @@ if (!function_exists('publish')) {
                 }
             };
         }
-
-        app(Publisher::class)->publish($event);
+        
+        Container::getInstance()
+            ->get(Publisher::class)
+            ->publish($event);
     }
 
 }
