@@ -2,99 +2,35 @@
 
 namespace Nuwber\Events\Tests\Event;
 
+use Enqueue\AmqpLib\AmqpContext;
 use Illuminate\Contracts\Support\Arrayable;
-use Interop\Amqp\AmqpContext;
-use Interop\Amqp\AmqpProducer;
-use Interop\Amqp\AmqpMessage;
-use Interop\Amqp\Impl\AmqpTopic;
-use InvalidArgumentException;
+use Interop\Queue\Topic;
+use Mockery as m;
 use Nuwber\Events\Event\Publishable;
 use Nuwber\Events\Event\Publisher;
 use Nuwber\Events\Event\ShouldPublish;
+use Nuwber\Events\Queue\Message\Sender;
+use Nuwber\Events\Queue\Context;
 use Nuwber\Events\Tests\TestCase;
 
 class PublisherTest extends TestCase
 {
-    private $event = 'something.happened';
-
-    private $payload = ['data' => 'payload'];
-
-    public function testSend()
-    {
-        $publisher = new Publisher(...$this->makeMocks($this->event, $this->payload));
-
-        $this->assertEquals($publisher, $publisher->send($this->event, $this->payload));
-    }
-
     public function testPublish()
     {
-        $payload = [
-            (new SomeModel())->toArray(),
-            ['foo' => 'bar'],
-            'Hello!'
-        ];
+        $sender = m::spy(Sender::class);
 
-        $publisher = new Publisher(...$this->makeMocks($this->event, $payload));
+        $context = new Context(m::mock(AmqpContext::class), m::mock(Topic::class));
+        $context->setTransport($sender);
 
-        $event = new SomeEvent(new SomeModel(), ['foo' => 'bar'], 'Hello!');
+        $publisher = new Publisher($context);
+        self::assertNull($publisher->publish($this->getEvent()));
 
-        $this->assertEquals($publisher, $publisher->publish($event));
+        $sender->shouldHaveReceived('send');
     }
 
-    public function testPublishWithSeparateEventAndPayload()
+    protected function getEvent()
     {
-        $payload = [
-            (new SomeModel())->toArray(),
-            ['foo' => 'bar'],
-            'Hello!'
-        ];
-
-        $publisher = new Publisher(...$this->makeMocks($this->event, $payload));
-
-        $this->assertEquals($publisher, $publisher->publish($this->event, $payload));
-    }
-
-    public function testEventClassShouldImplementInterface()
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Event must be a string or implement `ShouldPublish` interface');
-
-        $publisher = new Publisher(\Mockery::mock(AmqpContext::class), new AmqpTopic('eventsTesting'));
-
-        $event = new class {};
-
-        $this->assertEquals($publisher, $publisher->publish($event));
-    }
-
-    protected function makeMocks(string $event, array $payload)
-    {
-        $topic = new AmqpTopic('eventsTesting');
-
-        $message = \Mockery::mock(AmqpMessage::class);
-        $message->shouldReceive('setRoutingKey')
-            ->with($event)
-            ->once();
-
-        $producer = \Mockery::mock(AmqpProducer::class);
-        $producer->shouldReceive('send')
-            ->with($topic, $message)
-            ->once();
-
-        $producer->shouldReceive('setDeliveryDelay')
-            ->with(0)
-            ->once()
-            ->andReturnSelf();
-
-        $context = \Mockery::mock(AmqpContext::class);
-        $context->shouldReceive('createProducer')
-            ->andReturn($producer);
-
-        $context->shouldReceive('createMessage')
-            ->with(json_encode($payload, JSON_UNESCAPED_UNICODE))
-            ->once()
-            ->andReturn($message);
-
-        return [$context, $topic];
+        return new SomeEvent(new SomeModel(), ['foo' => 'bar'], 'Hello!');
     }
 }
 

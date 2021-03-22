@@ -1,5 +1,7 @@
 <?php
 
+use Enqueue\AmqpTools\RabbitMqDlxDelayStrategy;
+
 return [
 
     /*
@@ -26,6 +28,15 @@ return [
             'logging' => [
                 'enabled' => env('RABBITEVENTS_LOG_ENABLED', false),
                 'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
+            ],
+            'delay_strategy' => env('RABBITEVENTS_DELAY_STRATEGY', RabbitMqDlxDelayStrategy::class),
+            'ssl' => [
+                'is_enabled' => env('RABBITEVENTS_SSL_ENABLED', false),
+                'verify_peer' => env('RABBITEVENTS_SSL_VERIFY_PEER', true),
+                'cafile' => env('RABBITEVENTS_SSL_CAFILE'),
+                'local_cert' => env('RABBITEVENTS_SSL_LOCAL_CERT'),
+                'local_key' => env('RABBITEVENTS_SSL_LOCAL_KEY'),
+                'passphrase' => env('RABBITEVENTS_SSL_PASSPHRASE', ''),
             ],
         ],
     ],

@@ -1,4 +1,5 @@
 <?php
+
 namespace Nuwber\Events\Event;
 
 interface ShouldPublish

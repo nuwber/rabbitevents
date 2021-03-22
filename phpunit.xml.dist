@@ -1,17 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" backupGlobals="false" backupStaticAttributes="false" colors="false" convertErrorsToExceptions="true" convertNoticesToExceptions="true" convertWarningsToExceptions="true" processIsolation="false" stopOnFailure="false" bootstrap="./vendor/autoload.php" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
-  <coverage>
-    <include>
-      <directory suffix=".php">./src</directory>
-    </include>
-    <report>
-      <text outputFile="php://stdout" showUncoveredFiles="false"/>
-    </report>
-  </coverage>
-  <testsuites>
-    <testsuite name="library">
-      <directory>tests</directory>
-    </testsuite>
-  </testsuites>
-  <logging/>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/latest/phpunit.xsd"
+         backupGlobals="false"
+         backupStaticAttributes="false"
+         colors="false"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         processIsolation="false"
+         stopOnFailure="false"
+         bootstrap="./vendor/autoload.php">
+    <coverage includeUncoveredFiles="true"
+              processUncoveredFiles="true"
+              ignoreDeprecatedCodeUnits="true"
+              disableCodeCoverageIgnore="true">
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+
+        <exclude>
+            <directory suffix=".php">src/Console</directory>
+            <directory suffix=".php">src/Event/Testing</directory>
+            <directory suffix=".php">src/Facades</directory>
+            <directory suffix=".php">src/Queue/Events</directory>
+            <directory suffix=".php">src/Queue/Exceptions</directory>
+            <file>src/Event/AbstractPublishableEvent.php</file>
+            <file>src/Queue/ProcessingOptions.php</file>
+            <file>src/RabbitEventsServiceProvider.php</file>
+            <file>src/helpers.php</file>
+        </exclude>
+
+        <report>
+             <text outputFile="php://stdout" showUncoveredFiles="false" showOnlySummary="true"/>
+<!--            <text outputFile="php://stdout" showUncoveredFiles="false"/>-->
+        </report>
+    </coverage>
+    <testsuites>
+        <testsuite name="library">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+    <logging/>
 </phpunit>

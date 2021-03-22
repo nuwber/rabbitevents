@@ -5,7 +5,7 @@ namespace Nuwber\Events\Console\Log;
 use Illuminate\Console\OutputStyle;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Carbon;
-use Nuwber\Events\Queue\Job;
+use Nuwber\Events\Queue\Jobs\Job;
 
 class Output extends Writer
 {
@@ -42,7 +42,7 @@ class Output extends Writer
     /**
      * Format the status output for the queue worker.
      *
-     * @param  \Nuwber\Events\Queue\Job $listener
+     * @param  \Nuwber\Events\Queue\Jobs\Job $listener
      * @param  string $status
      * @param  string $type
      * @return void

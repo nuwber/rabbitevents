@@ -1,12 +1,10 @@
 <?php
 namespace app\RabbitEvents;
 
-use Nuwber\Events\Event\Publishable;
-use Nuwber\Events\Event\ShouldPublish;
+use Nuwber\Events\Event\AbstractPublishableEvent;
 
-class UserCreated implements ShouldPublish
+class UserCreated extends AbstractPublishableEvent
 {
-    use Publishable;
 
     /**
      * @var User

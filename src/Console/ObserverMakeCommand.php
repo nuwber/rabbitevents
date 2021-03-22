@@ -54,7 +54,7 @@ class ObserverMakeCommand extends GeneratorCommand
      *
      * @return string
      */
-    protected function getStub()
+    protected function getStub(): string
     {
         return $this->option('model')
             ? __DIR__ . '/../../stubs/observer.stub'
@@ -68,7 +68,7 @@ class ObserverMakeCommand extends GeneratorCommand
      * @param  string  $model
      * @return string
      */
-    protected function replaceModel($stub, $model)
+    protected function replaceModel($stub, $model): string
     {
         $model = str_replace('/', '\\', $model);
 
@@ -101,7 +101,7 @@ class ObserverMakeCommand extends GeneratorCommand
      * @param  string  $rootNamespace
      * @return string
      */
-    protected function getDefaultNamespace($rootNamespace)
+    protected function getDefaultNamespace($rootNamespace): string
     {
         return $rootNamespace.'\Observers';
     }
