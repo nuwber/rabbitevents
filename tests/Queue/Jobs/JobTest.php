@@ -145,24 +145,6 @@ class JobTest extends TestCase
         self::assertEquals("test-app:{$this->event}", $job->getQueue());
     }
 
-    public function testDestructor()
-    {
-        $manager = new FakeManager();
-        $job = new Job(
-            m::mock(Container::class),
-            $manager,
-            $this->getMessage(),
-            'trim',
-            $this->listenerClass
-        );
-
-        self::assertFalse($manager->acknowledged);
-
-        unset($job);
-
-        self::assertTrue($manager->acknowledged);
-    }
-
     protected function getMessage(): AmqpMessage
     {
         $message = new \Interop\Amqp\Impl\AmqpMessage('{"id": 1}',);
