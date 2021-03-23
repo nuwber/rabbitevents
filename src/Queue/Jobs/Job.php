@@ -121,9 +121,4 @@ class Job extends \Illuminate\Queue\Jobs\Job implements \Illuminate\Contracts\Qu
     {
         return $this->payload()['timeoutAt'] ?? null;
     }
-
-    public function __destruct()
-    {
-        $this->queueManager->acknowledge($this->message);
-    }
 }
