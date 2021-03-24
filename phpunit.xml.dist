@@ -32,7 +32,7 @@
 
         <report>
              <text outputFile="php://stdout" showUncoveredFiles="false" showOnlySummary="true"/>
-            <clover outputFile="clover.xml"/>
+            <clover outputFile="coverage.xml"/>
         </report>
     </coverage>
     <testsuites>
