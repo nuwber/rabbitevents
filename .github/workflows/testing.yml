@@ -17,7 +17,14 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           extensions: mbstring,bcmath
           tools: phpunit,composer
+
       - name: install deps
         run: composer install -o -q
+
       - name: phpunit
         run: phpunit -c phpunit.xml.dist
+
+      - name: Upload Codecov coverage
+        uses: codecov/codecov-action@v1
+        with:
+          file: './coverage.xml'
