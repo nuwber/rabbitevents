@@ -51,7 +51,8 @@ class Worker
                 $this->stopListeningIfLostConnection($throwable);
             }
             finally {
-            $queue->acknowledge($message);
+                if(isset($message))
+                    $queue->acknowledge($message);
             }
             
             $this->stopIfNecessary($options);
