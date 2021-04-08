@@ -43,9 +43,11 @@ class Worker
         while (true) {
             try {
                 if ($message = $queue->nextMessage($options->timeout)) {
-                    $processor->process($message, $options);
-
-                    $queue->acknowledge($message);
+                    try {
+                        $processor->process($message, $options);
+                    } finally {
+                        $queue->acknowledge($message);
+                    }
                 }
             } catch (Throwable $throwable) {
                 $this->exceptions->report($throwable);
