@@ -98,7 +98,7 @@ class WorkerTest extends TestCase
         self::assertEquals(Worker::EXIT_SUCCESS, $worker->stoppedWithStatus);
     }
 
-    public function testFitallyAcknowledge()
+    public function testFinallyAcknowledge()
     {
         $exception = new \RuntimeException();
         self::expectException(\RuntimeException::class);
@@ -114,7 +114,7 @@ class WorkerTest extends TestCase
         $queueManager = m::mock(Manager::class);
         $queueManager->shouldReceive('nextMessage')
             ->andReturn($message);
-        
+
         $queueManager->shouldReceive()
             ->acknowledge($message);
 
