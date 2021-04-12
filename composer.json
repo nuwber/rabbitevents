@@ -25,8 +25,7 @@
     "illuminate/events": "^7.0 | ^8.0",
     "illuminate/queue": "^7.0 | ^8.0",
     "illuminate/support": "^7.0 | ^8.0",
-    "enqueue/amqp-lib": "^0.10",
-    "queue-interop/amqp-interop": "^0.8"
+    "enqueue/amqp-lib": "^0.10"
   },
   "require-dev": {
     "mockery/mockery": "^1.4",

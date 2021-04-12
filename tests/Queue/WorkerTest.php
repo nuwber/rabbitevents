@@ -55,7 +55,7 @@ class WorkerTest extends TestCase
         
         $processor = m::spy(Processor::class);
         
-        $queueManager = m::mock(Manager::class);
+        $queueManager = m::mock(Manager::class)->makePartial();
         $queueManager->shouldReceive()
             ->nextMessage($options->timeout)
             ->andReturn($message);
@@ -72,12 +72,11 @@ class WorkerTest extends TestCase
 
         $worker = new TestWorker($this->exceptionHandler);
 
-        $processor = m::spy(Processor::class);
-
-        $queueManager = m::mock(Manager::class);
+        $queueManager = m::mock(Manager::class)->makePartial();
         $queueManager->shouldReceive('nextMessage')
             ->andReturn(new AmqpMessage());
-        $worker->work($processor, $queueManager, $this->options(['memory' => 0]));
+
+        $worker->work(m::mock(Processor::class), $queueManager, $this->options(['memory' => 0]));
 
         self::assertEquals(Worker::EXIT_MEMORY_LIMIT, $worker->stoppedWithStatus);
     }
@@ -98,7 +97,34 @@ class WorkerTest extends TestCase
 
         self::assertEquals(Worker::EXIT_SUCCESS, $worker->stoppedWithStatus);
     }
-    
+
+    public function testFinallyAcknowledge()
+    {
+        $exception = new \RuntimeException();
+        self::expectException(\RuntimeException::class);
+
+        $worker = new TestWorker($this->exceptionHandler);
+        $worker->shouldQuit = true; //For one tick only
+
+        $processor = m::mock(Processor::class);
+        $processor->shouldReceive('process')
+            ->andThrow($exception);
+
+        $message = new AmqpMessage();
+        $queueManager = m::mock(Manager::class);
+        $queueManager->shouldReceive('nextMessage')
+            ->andReturn($message);
+
+        $queueManager->shouldReceive()
+            ->acknowledge($message);
+
+        $worker->work($processor, $queueManager, $this->options());
+
+        $this->exceptionHandler->shouldHaveReceived()->report($exception);
+
+        self::assertEquals(Worker::EXIT_SUCCESS, $worker->stoppedWithStatus);
+    }
+
     protected function options(array $overrides = [])
     {
         $options = new ProcessingOptions('test-app', 'rabbitmq');
