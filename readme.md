@@ -104,7 +104,7 @@ publish($someEvent);
 
 // Example 4. You could use helper `publish` as you used to use helper `fire`
 publish('something.happened', [$model->toArray(), $someArray, $someString]);
-publish($someEvent->publishEventName(), $someEvent->toPublish());
+publish($someEvent->publishEventKey(), $someEvent->toPublish());
 ```
 
 ## Defining Events <a name="defining-events">
