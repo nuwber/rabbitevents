@@ -29,25 +29,34 @@ class QueueFactory
         $this->service = $service;
     }
 
-    public function make(string $event): AmqpQueue
+    /**
+     * @param string[] $event
+     * @return AmqpQueue
+     * @throws Exception
+     */
+    public function make(array $events): AmqpQueue
     {
-        $queue = $this->context->createQueue($this->queueName($event));
+        $queue = $this->context->createQueue($this->queueName($events));
         $queue->addFlag(AmqpQueue::FLAG_DURABLE);
 
         $this->context->declareQueue($queue);
 
-        $this->bind($queue, $event);
+        foreach ($events as $event) {
+            $this->bind($queue, $event);
+        }
 
         return $queue;
     }
 
     /**
-     * @param string $event
+     * @param string[] $events
      * @return string
      */
-    protected function queueName(string $event): string
+    protected function queueName(array $events): string
     {
-        return "{$this->service}:$event";
+        $keys = implode(':', $events);
+
+        return "{$this->service}:{$keys}";
     }
 
     /**

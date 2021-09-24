@@ -7,6 +7,7 @@ use Interop\Amqp\AmqpQueue;
 use Nuwber\Events\Amqp\BindFactory;
 use Nuwber\Events\Amqp\QueueFactory;
 use Nuwber\Events\Console\Log;
+use Nuwber\Events\Facades\RabbitEvents;
 use Nuwber\Events\Queue\Context;
 use Nuwber\Events\Queue\Events\JobExceptionOccurred;
 use Nuwber\Events\Queue\Events\JobFailed;
@@ -26,7 +27,7 @@ class ListenCommand extends Command
      * @var string
      */
     protected $signature = 'rabbitevents:listen
-                            {event : The name of the event to listen to}
+                            {event? : The name of the event to listen to}
                             {--service= : The name of current service. Necessary to identify listeners}
                             {--connection= : The name of the queue connection to work}
                             {--memory=128 : The memory limit in megabytes}
@@ -138,6 +139,10 @@ class ListenCommand extends Command
             $options->service
         );
 
-        return $factory->make($this->argument('event'));
+        $events = $this->argument('event')
+            ? [$this->argument('event')]
+            : RabbitEvents::getEvents();
+
+        return $factory->make($events);
     }
 }

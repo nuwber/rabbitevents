@@ -326,6 +326,12 @@ To detach command from console you can run this way:
 $ php artisan rabbitevents:listen event.name > /dev/null &
 ```
 
+You can listen to all events registered with the service provider in one thread.
+
+```bash
+$ php artisan rabbitevents:listen
+```
+
 In this case you need to remember that you have organize some system such as [Supervisor](http://supervisord.org/) or [pm2](http://pm2.keymetrics.io/) which will controll your processes.
 
 If your listener crashes then the managers will rerun your listener and all messages that were sent to queue will be handled in same order as they were sent. There're known problem: as queues are separated and you have messages that affects the same entity there's no guaranty that all actions will be done in expected order. To avoid such problems you can send message time as a part of payload and handle it internally in your listeners.
