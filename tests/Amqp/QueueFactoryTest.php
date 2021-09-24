@@ -14,11 +14,11 @@ use Nuwber\Events\Tests\TestCase;
 
 class QueueFactoryTest extends TestCase
 {
-    private $event = 'item.created';
+    private $events = ['item.created', 'item-updated'];
 
     public function testMake()
     {
-        $queueName = "test-app:{$this->event}";
+        $queueName = "test-app:" . implode(":", $this->events);
 
         $amqpQueue = new ImplAmqpQueue($queueName);
         $amqpTopic = \Mockery::spy(AmqpTopic::class);
@@ -33,16 +33,17 @@ class QueueFactoryTest extends TestCase
         $context->shouldReceive('topic')
             ->andReturn($amqpTopic);
 
-        $amqpBind = new AmqpBind($amqpTopic, $amqpQueue, $this->event);
         $bind = \Mockery::mock(BindFactory::class, [$context])->makePartial();
-        $bind->shouldReceive()->make($amqpQueue, $this->event)
-            ->andReturn($amqpBind);
-
-        $context->shouldReceive()->bind($amqpBind);
+        foreach ($this->events as $event) {
+            $amqpBind = new AmqpBind($amqpTopic, $amqpQueue, $event);
+            $bind->shouldReceive()->make($amqpQueue, $event)
+                ->andReturn($amqpBind);
+            $context->shouldReceive()->bind($amqpBind);
+        }
 
         $factory = new QueueFactory($context, $bind, 'test-app');
 
-        $queue = $factory->make($this->event);
+        $queue = $factory->make($this->events);
 
         self::assertInstanceOf(AmqpQueue::class, $queue);
         self::assertEquals(AmqpQueue::FLAG_DURABLE, $queue->getFlags());
