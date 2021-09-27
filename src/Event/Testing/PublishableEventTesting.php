@@ -13,14 +13,14 @@ trait PublishableEventTesting
         Container::getInstance()->instance(Publisher::class, \Mockery::spy(Publisher::class));
     }
 
-    public static function assertPublished(string $event, array $payload): void
+    public static function assertPublished(string $event, array $payload = null): void
     {
         Container::getInstance()->get(Publisher::class)
             ->shouldHaveReceived()
             ->publish(\Mockery::on(function (ShouldPublish $object) use ($event, $payload) {
                 return $object instanceof static
                     && $object->publishEventKey() == $event
-                    && $object->toPublish() == $payload;
+                    && (is_null($payload) || $object->toPublish() == $payload);
             }))
             ->once();
     }

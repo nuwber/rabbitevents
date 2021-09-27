@@ -57,6 +57,15 @@ class PublishableTest extends TestCase
         Listener::assertPublished('something.happened', $payload);
     }
 
+    public function testFakeAssertWithoutPayload()
+    {
+        Listener::fake();
+
+        self::assertNull(Listener::publish(['whatever' => 1]));
+
+        Listener::assertPublished('something.happened');
+    }
+
     public function testFakeAssertionFailed()
     {
         $this->expectException(InvalidCountException::class);

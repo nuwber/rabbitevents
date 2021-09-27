@@ -458,27 +458,66 @@ The package also supports your application logger. To use it set config value `r
 
 # Testing <a name="testing"></a>
 
-We always write tests. Tests in our applications contains many mocks and fakes to test how events published. We've made this process a bit easier for Event classes that implements `ShouldPublish` and uses `Publishable` trait.   
+We always write tests. Tests in our applications contains many mocks and fakes to test how events published. 
+We've made this process a bit easier for Event classes that implements `ShouldPublish` and uses `Publishable` trait. 
+
+Simply use `PublishableEventTesting` trait that provides assertion methods in class that you want to test.   
+
+`Event.php`
 
 ```php
 <?php
-use \App\Listeners\Listener;
 
-Listener::fake();
+namespace App\BroadcastEvents;
 
-$payload = [
-    "key1" => 'value1',
-    "key2" => 'value2',
-];
+use Nuwber\Events\Event\Publishable;
+use Nuwber\Events\Event\ShouldPublish;
+use Nuwber\Events\Event\Testing\PublishableEventTesting;
 
-Listener::publish($payload);
+class Event implements ShouldPublish
+{
+    use Publishable;
+    use PublishableEventTesting;
 
-Listener::assertPublished('something.happened', $payload);
+    public function __construct(private array $payload) 
+    {
+    }
 
-AnotherListener::assertNotPublished();
+    public function publishEventKey(): string
+    {
+        return 'something.happened';
+    }
+
+    public function toPublish(): array
+    {
+        return $this->payload;
+    }
+}
 ```
 
-If assertion not passes `Mockery\Exception\InvalidCountException` will bw thrown. 
+`Test.php`
+
+```php
+<?php
+
+use \App\BroadcastEvents\Event;
+use \App\BroadcastEvents\AnotherEvent;
+
+Event::fake();
+
+$payload = [
+    'key1' => 'value1',
+    'key2' => 'value2',
+];
+
+Event::publish($payload);
+
+Event::assertPublished('something.happened', $payload);
+
+AnotherEvent::assertNotPublished();
+```
+
+If assertion not passes `Mockery\Exception\InvalidCountException` will bw thrown.
 Don't forget to call `\Mockery::close()` in `tearDown` or similar methods of your tests.
 
 # Non-standard use <a name="#non-standard-use">
