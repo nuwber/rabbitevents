@@ -80,6 +80,8 @@ class Connection
             'ssl_passphrase' => $sslConfig->get('passphrase'),
         ]);
 
+        $factory->setDelayStrategy($this->getDelayStrategy());
+        
         return $factory;
     }
 
