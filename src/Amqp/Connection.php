@@ -64,22 +64,26 @@ class Connection
      */
     protected function makeFactory(): AmqpConnectionFactory
     {
-        $factory = new AmqpConnectionFactory([
+        $config = [
             'dsn' => $this->config->get('dsn'),
             'host' => $this->config->get('host', '127.0.0.1'),
             'port' => $this->config->get('port', 5672),
             'user' => $this->config->get('user', 'guest'),
             'pass' => $this->config->get('pass', 'guest'),
             'vhost' => $this->config->get('vhost', '/'),
-            'ssl_on' => $this->config->get('ssl.is_enabled', false),
-            'ssl_verify' => $this->config->get('ssl.verify_peer', true),
-            'ssl_cacert' => $this->config->get('ssl.cafile'),
-            'ssl_cert' => $this->config->get('ssl.local_cert'),
-            'ssl_key' => $this->config->get('ssl.local_key'),
-            'ssl_passphrase' => $this->config->get('ssl.passphrase'),
+        ];
+
+        $sslConfig = collect($this->config->get('ssl', []));
+        $config = array_merge($config, [
+            'ssl_on' => $sslConfig->get('is_enabled', false),
+            'ssl_verify' => $sslConfig->get('verify_peer', true),
+            'ssl_cacert' => $sslConfig->get('cafile'),
+            'ssl_cert' => $sslConfig->get('local_cert'),
+            'ssl_key' => $sslConfig->get('local_key'),
+            'ssl_passphrase' => $sslConfig->get('passphrase'),
         ]);
 
-        $factory->setDelayStrategy($this->getDelayStrategy());
+        $factory = new AmqpConnectionFactory($config);
 
         return $factory;
     }
