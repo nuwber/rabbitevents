@@ -64,17 +64,14 @@ class Connection
      */
     protected function makeFactory(): AmqpConnectionFactory
     {
-        $config = [
+        $sslConfig = collect($this->config->get('ssl', []));
+        $factory = new AmqpConnectionFactory([
             'dsn' => $this->config->get('dsn'),
             'host' => $this->config->get('host', '127.0.0.1'),
             'port' => $this->config->get('port', 5672),
             'user' => $this->config->get('user', 'guest'),
             'pass' => $this->config->get('pass', 'guest'),
             'vhost' => $this->config->get('vhost', '/'),
-        ];
-
-        $sslConfig = collect($this->config->get('ssl', []));
-        $config = array_merge($config, [
             'ssl_on' => $sslConfig->get('is_enabled', false),
             'ssl_verify' => $sslConfig->get('verify_peer', true),
             'ssl_cacert' => $sslConfig->get('cafile'),
@@ -82,8 +79,6 @@ class Connection
             'ssl_key' => $sslConfig->get('local_key'),
             'ssl_passphrase' => $sslConfig->get('passphrase'),
         ]);
-
-        $factory = new AmqpConnectionFactory($config);
 
         return $factory;
     }
