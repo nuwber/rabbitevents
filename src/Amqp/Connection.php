@@ -56,7 +56,10 @@ class Connection
 
     protected function makeTopic(AmqpContext $context): Topic
     {
-        return (new TopicFactory($context))->make($this->config->get('exchange'));
+        return (new TopicFactory($context))->make(
+            $this->config->get('exchange'),
+            $this->config->get('exchange_passive')
+        );
     }
 
     /**

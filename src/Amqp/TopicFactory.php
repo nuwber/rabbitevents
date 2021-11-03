@@ -20,11 +20,15 @@ class TopicFactory
         $this->context = $context;
     }
 
-    public function make(?string $exchange = ''): Topic
+    public function make(?string $exchange = '', bool $passive = false): Topic
     {
         $topic = $this->context->createTopic($exchange ?: self::DEFAULT_EXCHANGE_NAME);
         $topic->setType(AmqpTopic::TYPE_TOPIC);
         $topic->addFlag(AmqpTopic::FLAG_DURABLE);
+        
+        if($passive) {
+            $topic->addFlag(AmqpTopic::FLAG_PASSIVE);
+        }
 
         $this->context->declareTopic($topic);
 

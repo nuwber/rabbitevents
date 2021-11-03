@@ -29,15 +29,23 @@ class QueueFactory
         $this->service = $service;
     }
 
-    public function make(string $event): AmqpQueue
+    public function make(string $event, string $queueExplicitName = null, bool $passive = false): AmqpQueue
     {
-        $queue = $this->context->createQueue($this->queueName($event));
+        $queueName = $queueExplicitName ?? $this->generateQueueName($event);
+        $queue = $this->context->createQueue($queueName);
         $queue->addFlag(AmqpQueue::FLAG_DURABLE);
+        
+        if($passive)
+        {
+            $queue->addFlag(AmqpQueue::FLAG_PASSIVE);
+        }
 
         $this->context->declareQueue($queue);
 
-        $this->bind($queue, $event);
-
+        if(!$passive)
+        {
+            $this->bind($queue, $event);
+        }
         return $queue;
     }
 
@@ -45,7 +53,7 @@ class QueueFactory
      * @param string $event
      * @return string
      */
-    protected function queueName(string $event): string
+    protected function generateQueueName(string $event): string
     {
         return "{$this->service}:$event";
     }

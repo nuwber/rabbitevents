@@ -28,4 +28,22 @@ class TopicFactoryTest extends TestCase
         self::assertEquals(AmqpTopic::TYPE_TOPIC, $topic->getType());
         self::assertEquals(AmqpTopic::FLAG_DURABLE, $topic->getFlags());
     }
+
+    public function testMakePassive()
+    {
+        $exchange = 'events';
+
+        $context = \Mockery::mock(AmqpContext::class);
+        $context->shouldReceive('createTopic')
+            ->andReturn($amqpTopic = new ImplAmqpTopic($exchange));
+        $context->shouldReceive()
+            ->declareTopic($amqpTopic);
+
+        $factory = new TopicFactory($context);
+        $topic = $factory->make($exchange, true);
+
+        self::assertSame($amqpTopic, $topic);
+        self::assertEquals(AmqpTopic::TYPE_TOPIC, $topic->getType());
+        self::assertEquals(AmqpTopic::FLAG_DURABLE | AmqpTopic::FLAG_PASSIVE, $topic->getFlags());
+    }
 }

@@ -27,7 +27,7 @@ class ListenCommand extends Command
      */
     protected $signature = 'rabbitevents:listen
                             {event : The name of the event to listen to}
-                            {--service= : The name of current service. Necessary to identify listeners}
+                            {--service= : The name of current service. Necessary to identify listeners. Defaults to config(\'app.name\').}
                             {--connection= : The name of the queue connection to work}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a child process can run}
@@ -138,6 +138,8 @@ class ListenCommand extends Command
             $options->service
         );
 
-        return $factory->make($this->argument('event'));
+        $config = $this->laravel['config']->get('rabbitevents.connections.' . $options->connectionName);
+        return $factory->make($this->argument('event'), $config['queue'] ?? null, $config['queue_passive'] ?? null);
     }
 }
+

@@ -66,6 +66,9 @@ return [
         'rabbitmq' => [
             'driver' => 'rabbitmq',
             'exchange' => env('RABBITEVENTS_EXCHANGE', 'events'),
+            'queue' => env('RABBITEVENTS_QUEUE', null),
+            'exchange_passive' => env('RABBITEVENTS_EXCHANGE_PASSIVE', false),
+            'queue_passive' => env('RABBITEVENTS_QUEUE_PASSIVE', false),
             'host' => env('RABBITEVENTS_HOST', 'localhost'),
             'port' => env('RABBITEVENTS_PORT', 5672),
             'user' => env('RABBITEVENTS_USER', 'guest'),
@@ -78,6 +81,40 @@ return [
         ],
     ],
 ];
+```
+
+The Publisher code will dispatch messages to an Exchange named "events" by default, or the value of the `RABBITEVENTS_EXCHANGE` environment variable.
+
+The Listener code will consume messages from a Queue named "`{service}:{event}`" by default, where
+- `{service}` is the application's name (`config('app.name')`) or the value of [`rabbitevents:listen` command](#command-listen)'s `--service` (optional) parameter
+- `{event}` is the value of the `event` parameter
+
+The Queue name may be set explicitely with the `RABBITEVENTS_QUEUE` environment variable.
+
+By default, the library will attempt to create an Exchange (when publishing) or an Exchange and a Queue (when listening), unless `RABBITEVENTS_EXCHANGE_PASSIVE` and/or `RABBITEVENTS_QUEUE_PASSIVE` is set to `true`. In this case, the library expects the Exchange and/or Queue to already exist.
+
+If `RABBITEVENTS_QUEUE_PASSIVE` is `true`, proper exchange/queue binding is also expected.
+
+This is useful for example if the Publisher and the Listener do not share credentials to the RabbitMQ server:
+
+```sh
+# publisher's .env
+
+RABBITEVENTS_EXCHANGE=custom-exchange   # custom exchange name
+# RABBITEVENTS_QUEUE=null               # not used by the publisher
+RABBITEVENTS_EXCHANGE_PASSIVE=false     # publisher is responsible of creating the exchange
+# RABBITEVENTS_QUEUE_PASSIVE=false      # not used by the publisher
+RABBITEVENTS_USER=publisher
+```
+
+```sh
+# listener's .env
+
+RABBITEVENTS_EXCHANGE=custom-exchange   # as specified by the publisher
+RABBITEVENTS_QUEUE=custom-queue         # will consume all events from this queue
+RABBITEVENTS_EXCHANGE_PASSIVE=true      # publisher is responsible of creating the exchange
+RABBITEVENTS_QUEUE_PASSIVE=false        # listener is responsible of creating the queue
+RABBITEVENTS_USER=listener
 ```
 
 # Events <a name="events"></a>

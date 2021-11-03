@@ -20,6 +20,9 @@ return [
         'rabbitmq' => [
             'driver' => 'rabbitmq',
             'exchange' => env('RABBITEVENTS_EXCHANGE', 'events'),
+            'queue' => env('RABBITEVENTS_QUEUE', null),
+            'exchange_passive' => env('RABBITEVENTS_EXCHANGE_PASSIVE', false),
+            'queue_passive' => env('RABBITEVENTS_QUEUE_PASSIVE', false),
             'host' => env('RABBITEVENTS_HOST', 'localhost'),
             'port' => env('RABBITEVENTS_PORT', 5672),
             'user' => env('RABBITEVENTS_USER', 'guest'),
