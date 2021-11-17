@@ -48,6 +48,7 @@ class ContextFactory
             'persisted' => Arr::get($config, 'persisted', false),
             'lazy' => Arr::get($config, 'lazy', true),
             'keepalive' => Arr::get($config, 'keepalive', false),
+            'qos_prefetch_count' => Arr::get($config, 'qos_prefetch_count', 1),
         ]);
 
         $factory->setDelayStrategy(new RabbitMqDlxDelayStrategy());
