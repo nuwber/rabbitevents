@@ -2,7 +2,7 @@
 
 class WildcardListener
 {
-    public function handler($event, $payload)
+    public function handle($event, $payload)
     {
         switch ($event) {
             case 'something.happened':

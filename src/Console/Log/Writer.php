@@ -2,10 +2,10 @@
 
 namespace Nuwber\Events\Console\Log;
 
-use Illuminate\Queue\Events\JobExceptionOccurred;
-use Illuminate\Queue\Events\JobFailed;
-use Illuminate\Queue\Events\JobProcessed;
-use Illuminate\Queue\Events\JobProcessing;
+use Nuwber\Events\Queue\Events\JobProcessing;
+use Nuwber\Events\Queue\Events\JobProcessed;
+use Nuwber\Events\Queue\Events\JobExceptionOccurred;
+use Nuwber\Events\Queue\Events\JobFailed;
 
 abstract class Writer
 {

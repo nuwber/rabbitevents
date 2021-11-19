@@ -2,119 +2,43 @@
 
 namespace Nuwber\Events\Event;
 
-use Illuminate\Support\Arr;
-use Illuminate\Support\InteractsWithTime;
-use Interop\Amqp\AmqpMessage;
-use Interop\Amqp\AmqpProducer;
-use Interop\Amqp\AmqpTopic;
-use Interop\Amqp\AmqpContext;
-use Interop\Queue\Exception;
-use Interop\Queue\Exception\DeliveryDelayNotSupportedException;
-use Interop\Queue\Exception\InvalidDestinationException;
-use Interop\Queue\Exception\InvalidMessageException;
-use ReflectionClass;
+use Interop\Amqp\Impl\AmqpMessage;
+use Nuwber\Events\Queue\Context;
+use JsonException;
+use Nuwber\Events\Queue\Message\Factory as MessageFactory;
+use Nuwber\Events\Queue\Message\Transport;
 
 class Publisher
 {
-    use InteractsWithTime;
     /**
-     * @var AmqpTopic
-     */
-    private $topic;
-
-    /**
-     * @var AmqpContext
+     * @var Context
      */
     private $context;
 
-    public function __construct(AmqpContext $context, AmqpTopic $topic)
+    public function __construct(Context $context)
     {
         $this->context = $context;
-        $this->topic = $topic;
     }
 
     /**
-     * Publishes payload
+     * Publish event to
      *
-     * @param string $event
-     * @param array $payload
-     * @return Publisher
+     * @param ShouldPublish $event
+     *
+     * @throws JsonException
      */
-    public function send(string $event, array $payload): self
+    public function publish(ShouldPublish $event): void
     {
-        $payload = json_encode($payload, JSON_UNESCAPED_UNICODE);
-
-        $message = $this->context->createMessage($payload);
-        $message->setRoutingKey($event);
-
-        return $this->sendMessage($message);
-    }
-
-    public function sendMessage(AmqpMessage $message, int $delay = 0)
-    {
-        /** @var AmqpProducer $producer */
-        $producer = $this->context->createProducer();
-
-        try {
-            $producer->setDeliveryDelay($this->secondsUntil($delay) * 1000);
-        } catch (DeliveryDelayNotSupportedException $e) {
-        }
-
-        $producer->send($this->topic, $message);
-
-        return $this;
-    }
-
-    public function publish($event, array $payload = [])
-    {
-        return $this->send(...$this->extractEventAndPayload($event, $payload));
+        $this->transport()->send(
+            MessageFactory::make($event->publishEventKey(), $event->toPublish())
+        );
     }
 
     /**
-     *  Extract event and payload and prepare them for publishing.
-     *
-     * @param $event
-     * @param array $payload
-     * @return array
-     * @throws \InvalidArgumentException
+     * @return Transport
      */
-    private function extractEventAndPayload($event, array $payload)
+    protected function transport(): Transport
     {
-        if (is_object($event) && $this->eventShouldBePublished($event)) {
-            return [$event->publishEventKey(), $this->preparePayload($event->toPublish())];
-        }
-
-        if (is_string($event)) {
-            return [$event, $this->preparePayload($payload)];
-        }
-
-        throw new \InvalidArgumentException('Event must be a string or implement `ShouldPublish` interface');
-    }
-
-    /**
-     * Prepare payload array before publishing
-     *
-     * @param array $payload
-     * @return array
-     */
-    private function preparePayload(array $payload)
-    {
-        return Arr::isAssoc($payload) ? [$payload] : Arr::wrap($payload);
-    }
-
-    /**
-     * Determine if the event handler class should be queued.
-     *
-     * @param object $event
-     * @return bool
-     */
-    protected function eventShouldBePublished($event)
-    {
-        try {
-            return (new ReflectionClass(get_class($event)))
-                ->implementsInterface(ShouldPublish::class);
-        } catch (Exception $e) {
-            return false;
-        }
+        return $this->context->transport();
     }
 }

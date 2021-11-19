@@ -1,96 +1,88 @@
 <?php
 
-namespace Nuwber\Events\Tests\Queue;
+namespace Nuwber\Events\Tests\Queue\Message;
 
 use Illuminate\Container\Container;
-use Illuminate\Contracts\Debug\ExceptionHandler;
-use Illuminate\Events\Dispatcher as Events;
 use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Queue\Events\JobExceptionOccurred;
-use Illuminate\Queue\Events\JobFailed;
-use Illuminate\Queue\Events\JobProcessed;
-use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Events\Dispatcher as Events;
+use Nuwber\Events\Queue\Events\JobExceptionOccurred;
+use Nuwber\Events\Queue\Events\JobFailed;
+use Nuwber\Events\Queue\Events\JobProcessing;
+use Nuwber\Events\Queue\Events\JobProcessed;
 use Interop\Amqp\Impl\AmqpMessage;
-use Mockery as m;
 use Nuwber\Events\Queue\Exceptions\FailedException;
-use Nuwber\Events\Queue\Job;
-use Nuwber\Events\Queue\JobsFactory;
-use Nuwber\Events\Queue\MessageProcessor;
+use Nuwber\Events\Queue\Jobs\Factory;
+use Nuwber\Events\Queue\Jobs\Job;
+use Nuwber\Events\Queue\Message\Processor;
 use Nuwber\Events\Queue\ProcessingOptions;
 use Nuwber\Events\Tests\TestCase;
+use Mockery as m;
 
-class MessageProcessorTest extends TestCase
+class ProcessorTest extends TestCase
 {
     private $message;
-    private $options;
     private $events;
-    private $exceptionHandler;
 
     public function setUp(): void
     {
         $this->events = m::spy(Events::class);
-        $this->exceptionHandler = m::spy(ExceptionHandler::class);
 
         Container::setInstance($container = new Container);
         $container->instance(Dispatcher::class, $this->events);
-        $container->instance(ExceptionHandler::class, $this->exceptionHandler);
-
-        $this->options = new ProcessingOptions(128, 60, 0, 5, 'test-app', 'interop');
 
         $this->message = new AmqpMessage();
-    }
-
-    public function testIsInitialisable()
-    {
-        $this->assertInstanceOf(MessageProcessor::class, $this->getProcessor());
     }
 
     public function testProcess()
     {
         $job = new FakeJob();
 
-        $this->getProcessor([$job])->process($this->message);
+        $processor = new Processor($this->events, $this->makeJobsFactory([$job]));
 
-        $this->assertTrue($job->fired);
+        $processor->process($this->message, $this->options());
+
+        self::assertTrue($job->fired);
     }
 
     public function testPropaginationStopped()
     {
-        $jobMock = m::mock(Job::class);
-        $jobMock->shouldReceive('fire')
-            ->andReturn(false);
+        $stoppingJob = new FakeJob(function() { return false; });
+
         $job = new FakeJob();
 
-        $this->getProcessor([$jobMock, $job])
-            ->process($this->message);
+        $jobFactory = $this->makeJobsFactory([$stoppingJob, $job]);
 
-        $this->assertFalse($job->fired);
+        $processor = new Processor($this->events, $jobFactory);
+
+        $processor->process($this->message, $this->options());
+
+        self::assertFalse($job->fired);
     }
 
     public function testProcessFail()
     {
-        $e = new FailedException();
+        $this->expectException(FailedException::class);
 
-        $job = new FakeJob(
-            function () use ($e) {
-                throw $e;
-            }
-        );
+        $job = new FakeJob(function () {
+            throw new FailedException();
+        });
 
-        $this->getProcessor([$job])->process($this->message);
+        $processor = new Processor($this->events, $this->makeJobsFactory([$job]));
 
-        $this->assertTrue($job->failed);
-        $this->assertTrue($job->deleted);
-        $this->assertFalse($job->released);
+        $processor->process($this->message, $this->options());
 
-        $this->exceptionHandler->shouldHaveReceived('report')->with($e)->once();
+        self::assertTrue($job->failed);
+        self::assertTrue($job->deleted);
+        self::assertFalse($job->released);
     }
 
     public function testRunJob()
     {
         $job = new FakeJob();
 
-        $this->getProcessor()->runJob($job);
+        $processor = new Processor($this->events, $this->makeJobsFactory([]));
+
+        $processor->runJob($job, $this->options());
 
         $this->assertTrue($job->fired);
         $this->events->shouldHaveReceived('dispatch')->with(m::type(JobProcessing::class))->once();
@@ -108,7 +100,9 @@ class MessageProcessorTest extends TestCase
             }
         );
 
-        $this->getProcessor()->runJob($job);
+        $processor = new Processor($this->events, $this->makeJobsFactory([]));
+
+        $processor->runJob($job, $this->options());
 
         $this->assertTrue($job->failed);
         $this->assertTrue($job->released);
@@ -130,29 +124,70 @@ class MessageProcessorTest extends TestCase
             }
         );
 
-        $this->getProcessor()->runJob($job);
+        $processor = new Processor($this->events, $this->makeJobsFactory([]));
+
+        $processor->runJob($job, $this->options());
 
         $this->assertTrue($job->released);
         $this->assertTrue($job->failed);
         $this->assertTrue($job->deleted);
 
-        $this->events->shouldHaveReceived('dispatch')->with(m::type(JobProcessing::class))->once();
-        $this->events->shouldHaveReceived('dispatch')->with(m::type(JobFailed::class))->once();
+        $this->events->shouldHaveReceived('dispatch')->with(m::type(JobProcessing::class));
+        $this->events->shouldHaveReceived('dispatch')->with(m::type(JobFailed::class));
         $this->events->shouldNotHaveReceived('dispatch')->with(m::type(JobProcessed::class));
     }
 
-    protected function getProcessor(array $jobs = [])
+    public function testJobIsNotReleasedIfItHasExceededMaxAttempts()
     {
-        $factory = m::mock(JobsFactory::class);
-        $factory->shouldReceive('make')
-            ->andReturn($jobs);
+        $e = new \RuntimeException;
+        self::expectException('Illuminate\Queue\MaxAttemptsExceededException');
 
-        return new MessageProcessor(
-            $this->events,
-            $this->exceptionHandler,
-            $factory,
-            $this->options
+        $job = new FakeJob(
+            function ($job) use ($e) {
+                // In normal use this would be incremented by being popped off the queue
+                $job->attempts++;
+
+                // and this exception shouldn't be thrown
+                throw $e;
+            }
         );
+        $job->attempts = 2;
+
+        $processor = new Processor($this->events, $this->makeJobsFactory([]));
+        $processor->runJob($job, $this->options(['maxTries' => 1]));
+
+        self::assertTrue($job->failed);
+        self::assertTrue($job->deleted);
+        self::assertFalse($job->released);
+        $this->events->shouldHaveReceived('dispatch')->with(m::type(JobFailed::class));
+        self::assertSame($e, $job->failedWith);
+    }
+
+    protected function options(array $overrides = [])
+    {
+        $options = new ProcessingOptions('test-app', 'rabbitmq');
+
+        foreach ($overrides as $key => $value) {
+            $options->{$key} = $value;
+        }
+
+        return $options;
+
+    }
+    
+    protected function makeJobsFactory(array $jobs)
+    {
+        $callback = static function ($jobs) {
+            foreach ((array)$jobs as $job) {
+                yield $job;
+            }
+        };
+
+        $jobFactory = m::mock(Factory::class);
+        $jobFactory->shouldReceive('makeJobs')
+            ->andReturn($callback($jobs));
+
+        return $jobFactory;
     }
 }
 
@@ -169,8 +204,9 @@ class FakeJob extends Job
     public $failedWith;
     public $failed = false;
     public $connectionName;
+    public $acknowledged = false;
 
-    public function __construct($callback = null)
+    public function __construct(callable $callback = null)
     {
         $this->callback = $callback ?: function () {
         };
@@ -179,7 +215,7 @@ class FakeJob extends Job
     public function fire()
     {
         $this->fired = true;
-        $this->callback->__invoke($this);
+        return call_user_func($this->callback, $this);
     }
 
     public function payload()
@@ -192,7 +228,7 @@ class FakeJob extends Job
         return $this->maxTries;
     }
 
-    public function timeoutAt()
+    public function timeoutAt(): ?int
     {
         return $this->timeoutAt;
     }
@@ -207,7 +243,7 @@ class FakeJob extends Job
         return $this->deleted;
     }
 
-    public function release($delay = 0)
+    public function release($delay = 0): void
     {
         $this->released = true;
         $this->releaseAfter = $delay;
@@ -218,7 +254,7 @@ class FakeJob extends Job
         return $this->released;
     }
 
-    public function attempts()
+    public function attempts(): int
     {
         return $this->attempts;
     }
@@ -228,7 +264,7 @@ class FakeJob extends Job
         $this->failed = true;
     }
 
-    public function failed($e)
+    public function failed($e): void
     {
         $this->markAsFailed();
         $this->failedWith = $e;
@@ -252,5 +288,10 @@ class FakeJob extends Job
     public function resolve($class)
     {
         return Container::getInstance()->make($class);
+    }
+
+    public function __destruct()
+    {
+        $this->acknowledged = true;
     }
 }

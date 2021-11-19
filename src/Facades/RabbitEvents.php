@@ -7,6 +7,9 @@ use Nuwber\Events\Dispatcher;
 
 /**
  * @see Dispatcher
+ * @method static array getListeners(string $event)
+ * @method static array getEvents()
+ * @method static void listen(string|array $event, mixed $listener = null)
  */
 class RabbitEvents extends Facade
 {
@@ -15,7 +18,7 @@ class RabbitEvents extends Facade
      *
      * @return string
      */
-    protected static function getFacadeAccessor()
+    protected static function getFacadeAccessor(): string
     {
         return Dispatcher::class;
     }

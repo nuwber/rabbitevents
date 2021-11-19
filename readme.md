@@ -1,6 +1,7 @@
 # Events publishing for Laravel by using RabbitMQ
 
 [![Tests Status](https://github.com/nuwber/rabbitevents/workflows/Unit%20tests/badge.svg?branch=master)](https://github.com/nuwber/rabbitevents/actions?query=branch%3Amaster+workflow%3A%22Unit+tests%22)
+[![codecov](https://codecov.io/gh/nuwber/rabbitevents/branch/master/graph/badge.svg?token=8E9CY6866R)](https://codecov.io/gh/nuwber/rabbitevents)
 [![Total Downloads](https://img.shields.io/packagist/dt/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
 [![Latest Version](https://img.shields.io/packagist/v/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
 [![License](https://img.shields.io/packagist/l/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
@@ -103,7 +104,7 @@ publish($someEvent);
 
 // Example 4. You could use helper `publish` as you used to use helper `fire`
 publish('something.happened', [$model->toArray(), $someArray, $someString]);
-publish($someEvent->publishEventName(), $someEvent->toPublish());
+publish($someEvent->publishEventKey(), $someEvent->toPublish());
 ```
 
 ## Defining Events <a name="defining-events">
@@ -457,27 +458,66 @@ The package also supports your application logger. To use it set config value `r
 
 # Testing <a name="testing"></a>
 
-We always write tests. Tests in our applications contains many mocks and fakes to test how events published. We've made this process a bit easier for Event classes that implements `ShouldPublish` and uses `Publishable` trait.   
+We always write tests. Tests in our applications contains many mocks and fakes to test how events published. 
+We've made this process a bit easier for Event classes that implements `ShouldPublish` and uses `Publishable` trait. 
+
+Simply use `PublishableEventTesting` trait that provides assertion methods in class that you want to test.   
+
+`Event.php`
 
 ```php
 <?php
-use \App\Listeners\Listener;
 
-Listener::fake();
+namespace App\BroadcastEvents;
 
-$payload = [
-    "key1" => 'value1',
-    "key2" => 'value2',
-];
+use Nuwber\Events\Event\Publishable;
+use Nuwber\Events\Event\ShouldPublish;
+use Nuwber\Events\Event\Testing\PublishableEventTesting;
 
-Listener::publish($payload);
+class Event implements ShouldPublish
+{
+    use Publishable;
+    use PublishableEventTesting;
 
-Listener::assertPublished('something.happened', $payload);
+    public function __construct(private array $payload) 
+    {
+    }
 
-AnotherListener::assertNotPublished();
+    public function publishEventKey(): string
+    {
+        return 'something.happened';
+    }
+
+    public function toPublish(): array
+    {
+        return $this->payload;
+    }
+}
 ```
 
-If assertion not passes `Mockery\Exception\InvalidCountException` will bw thrown. 
+`Test.php`
+
+```php
+<?php
+
+use \App\BroadcastEvents\Event;
+use \App\BroadcastEvents\AnotherEvent;
+
+Event::fake();
+
+$payload = [
+    'key1' => 'value1',
+    'key2' => 'value2',
+];
+
+Event::publish($payload);
+
+Event::assertPublished('something.happened', $payload);
+
+AnotherEvent::assertNotPublished();
+```
+
+If assertion not passes `Mockery\Exception\InvalidCountException` will bw thrown.
 Don't forget to call `\Mockery::close()` in `tearDown` or similar methods of your tests.
 
 # Non-standard use <a name="#non-standard-use">
