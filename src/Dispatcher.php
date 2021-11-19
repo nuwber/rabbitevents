@@ -8,7 +8,10 @@ use Illuminate\Events\Dispatcher as BaseDispatcher;
 
 class Dispatcher extends BaseDispatcher
 {
-    public function getEvents()
+    /**
+     * @return array
+     */
+    public function getEvents(): array
     {
         return array_merge(array_keys($this->listeners), array_keys($this->wildcards));
     }
@@ -20,7 +23,7 @@ class Dispatcher extends BaseDispatcher
      * @param mixed $listener
      * @return void
      */
-    public function listen($events, $listener = null)
+    public function listen($events, $listener = null): void
     {
         foreach ((array)$events as $event) {
             if (Str::contains($event, '*')) {
@@ -31,33 +34,10 @@ class Dispatcher extends BaseDispatcher
         }
     }
 
-    /**
-     * Setup a wildcard listener callback.
-     *
-     * @param string $event
-     * @param mixed $listener
-     * @return void
+    /*
+     * @inheritdoc
      */
-    protected function setupWildcardListen($event, $listener)
-    {
-        $this->wildcards[$event][$this->getListenerClass($listener)][] = $this->makeListener($listener, true);
-    }
-
-    protected function getListenerClass($listener)
-    {
-        if ($listener instanceof \Closure) {
-            return \Closure::class;
-        }
-
-        return $listener;
-    }
-
-    /**
-     * @param \Closure|string $listener
-     * @param bool $wildcard
-     * @return \Closure
-     */
-    public function makeListener($listener, $wildcard = false)
+    public function makeListener($listener, $wildcard = false): \Closure
     {
         return function ($event, $payload) use ($listener, $wildcard) {
             $throughMiddleware = $this->extractMiddleware($listener);
@@ -78,6 +58,42 @@ class Dispatcher extends BaseDispatcher
 
             return parent::makeListener($listener, $wildcard)($event, $payload);
         };
+    }
+
+    /**
+     * Setup a wildcard listener callback.
+     *
+     * @param string $event
+     * @param mixed $listener
+     * @return void
+     */
+    protected function setupWildcardListen($event, $listener): void
+    {
+        $this->wildcards[$event][$this->getListenerClass($listener)][] = $this->makeListener($listener, true);
+    }
+
+    protected function getListenerClass($listener)
+    {
+        if ($listener instanceof \Closure) {
+            return \Closure::class;
+        }
+
+        return $listener;
+    }
+
+    protected function makeListenerInstance($listener)
+    {
+        if (is_string($listener)) {
+            list($class,) = Str::parseCallback($listener);
+
+            return $this->container->instance($class, $this->container->make($class));
+        }
+
+        if (is_object($listener)) {
+            return $listener;
+        }
+
+        return null;
     }
 
     /**
@@ -103,21 +119,6 @@ class Dispatcher extends BaseDispatcher
         }
 
         return $result;
-    }
-
-    public function makeListenerInstance($listener)
-    {
-        if (is_string($listener)) {
-            list($class,) = Str::parseCallback($listener);
-
-            return $this->container->instance($class, $this->container->make($class));
-        }
-
-        if (is_object($listener)) {
-            return $listener;
-        }
-
-        return null;
     }
 
     protected function createMiddlewareCallable($mixed)

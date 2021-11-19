@@ -5,7 +5,6 @@ namespace Nuwber\Events\Tests;
 use Illuminate\Support\Arr;
 use Nuwber\Events\Dispatcher;
 use Nuwber\Events\Tests\Queue\Stubs\ListenerStub;
-use PHPUnit\Framework\TestCase;
 
 class DispatcherTest extends TestCase
 {

@@ -3,20 +3,19 @@
 namespace Nuwber\Events\Console;
 
 use Illuminate\Console\Command;
+use Interop\Amqp\AmqpQueue;
+use Nuwber\Events\Amqp\BindFactory;
+use Nuwber\Events\Amqp\QueueFactory;
 use Nuwber\Events\Console\Log;
-use Illuminate\Contracts\Debug\ExceptionHandler;
-use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Queue\Events\JobFailed;
-use Illuminate\Queue\Events\JobProcessed;
-use Illuminate\Queue\Events\JobProcessing;
-use Illuminate\Queue\Events\JobExceptionOccurred;
-use Interop\Amqp\AmqpContext;
-use Interop\Amqp\AmqpTopic;
-use Nuwber\Events\Queue\ConsumerFactory;
-use Nuwber\Events\Queue\JobsFactory;
-use Nuwber\Events\Queue\MessageProcessor;
-use Nuwber\Events\Queue\NameResolver;
+use Nuwber\Events\Queue\Context;
+use Nuwber\Events\Queue\Events\JobExceptionOccurred;
+use Nuwber\Events\Queue\Events\JobFailed;
+use Nuwber\Events\Queue\Events\JobProcessed;
+use Nuwber\Events\Queue\Events\JobProcessing;
+use Nuwber\Events\Queue\Jobs\Factory;
+use Nuwber\Events\Queue\Message\Processor;
 use Nuwber\Events\Queue\ProcessingOptions;
+use Nuwber\Events\Queue\Manager;
 use Nuwber\Events\Queue\Worker;
 
 class ListenCommand extends Command
@@ -44,78 +43,34 @@ class ListenCommand extends Command
     protected $description = 'Listen for event thrown from other services';
 
     /**
-     * @var ExceptionHandler
-     */
-    private $exceptions;
-
-    /**
      * @var array
      */
     protected $logWriters = [];
-    /**
-     * @var Dispatcher
-     */
-    private $events;
-
-    /**
-     * @var AmqpContext
-     */
-    private $context;
-
-    public function __construct(ExceptionHandler $exceptions, Dispatcher $events, AmqpContext $context)
-    {
-        parent::__construct();
-
-        $this->exceptions = $exceptions;
-        $this->events = $events;
-        $this->context = $context;
-    }
 
     /**
      * Execute the console command.
+     * @param Context $context
+     * @param Worker $worker
+     * @throws \Throwable
      */
-    public function handle()
+    public function handle(Context $context, Worker $worker): void
     {
         $options = $this->gatherProcessingOptions();
 
         $this->registerLogWriters($options->connectionName);
+
         $this->listenForEvents();
 
-        $nameResolver = new NameResolver(
-            $this->getEvent($options->connectionName),
-            $options->service
+        $queue = new Manager(
+            $context->createConsumer($this->getQueue($context, $options)),
+            $context->transport()
         );
 
-        $consumer = (new ConsumerFactory($this->context, $this->laravel[AmqpTopic::class]))
-            ->make($nameResolver);
-
-        $processor = new MessageProcessor(
-            $this->events,
-            $this->exceptions,
-            new JobsFactory($this->laravel, $this->context, $consumer),
+        $worker->work(
+            new Processor($this->laravel['events'], new Factory($this->laravel, $queue)),
+            $queue,
             $options
         );
-
-        (new Worker($consumer, $processor, $this->exceptions))->work($options);
-    }
-
-    /**
-     * Listen for the queue events in order to update the console output.
-     *
-     * @return void
-     */
-    protected function listenForEvents()
-    {
-        $callback = function ($event) {
-            foreach ($this->logWriters as $writer) {
-                $writer->log($event);
-            }
-        };
-
-        $this->events->listen(JobProcessing::class, $callback);
-        $this->events->listen(JobProcessed::class, $callback);
-        $this->events->listen(JobFailed::class, $callback);
-        $this->events->listen(JobExceptionOccurred::class, $callback);
     }
 
     /**
@@ -123,45 +78,43 @@ class ListenCommand extends Command
      *
      * @return ProcessingOptions
      */
-    protected function gatherProcessingOptions()
+    protected function gatherProcessingOptions(): ProcessingOptions
     {
         return new ProcessingOptions(
+            $this->option('service') ?: $this->laravel['config']->get("app.name"),
+            $this->option('connection') ?: $this->laravel['config']['rabbitevents.default'],
             $this->option('memory'),
             $this->option('timeout'),
             $this->option('tries'),
-            $this->option('sleep'),
-            $this->option('service') ?: $this->laravel['config']->get("app.name"),
-            $this->getConnection()
+            $this->option('sleep')
         );
     }
 
     /**
-     * @return string
+     * Listen for the queue events in order to update the console output.
+     *
+     * @return void
      */
-    protected function getConnection()
+    protected function listenForEvents(): void
     {
-        return $this->option('connection')
-            ?: $this->laravel['config']['rabbitevents.default'];
-    }
+        $callback = function ($event) {
+            foreach ($this->logWriters as $writer) {
+                $writer->log($event);
+            }
+        };
 
-    /**
-     * Get the queue name for the worker.
-     *
-     * @param  string $connection
-     *
-     * @return string
-     */
-    protected function getEvent($connection = 'rabbitmq')
-    {
-        return $this->argument('event')
-            ?: $this->laravel['config']
-                ->get("rabbitevents.connections.$connection.queue", 'default');
+        $this->laravel['events']->listen(JobProcessing::class, $callback);
+        $this->laravel['events']->listen(JobProcessed::class, $callback);
+        $this->laravel['events']->listen(JobFailed::class, $callback);
+        $this->laravel['events']->listen(JobExceptionOccurred::class, $callback);
     }
 
     /**
      * Register classes to write log output
+     *
+     * @param string $connection
      */
-    private function registerLogWriters($connection = 'rabbitmq')
+    protected function registerLogWriters(string $connection = 'rabbitmq'): void
     {
         if (!$this->option('quiet')) {
             $this->logWriters[] = new Log\Output($this->laravel, $this->output);
@@ -170,5 +123,21 @@ class ListenCommand extends Command
         if ($this->laravel['config']->get("rabbitevents.connections.$connection.logging.enabled")) {
             $this->logWriters[] = new Log\General($this->laravel);
         }
+    }
+
+    /**
+     * @param Context $context
+     * @param ProcessingOptions $options
+     * @return AmqpQueue
+     */
+    protected function getQueue(Context $context, ProcessingOptions $options): AmqpQueue
+    {
+        $factory = new QueueFactory(
+            $context,
+            new BindFactory($context),
+            $options->service
+        );
+
+        return $factory->make($this->argument('event'));
     }
 }

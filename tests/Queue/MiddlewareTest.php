@@ -2,11 +2,12 @@
 
 namespace Nuwber\Events\Tests\Queue;
 
-use Nuwber\Events\Queue\Job;
+use Illuminate\Container\Container;
+use Nuwber\Events\Queue\Jobs\Job;
 use Nuwber\Events\Dispatcher;
+use Nuwber\Events\Queue\Manager;
 use Nuwber\Events\Tests\TestCase;
 use Interop\Amqp\Impl\AmqpMessage;
-use Nuwber\Events\Tests\Queue\Stubs\ListenerStub;
 use Nuwber\Events\Tests\Queue\Stubs\ListenerStubForMiddleware;
 use Nuwber\Events\Tests\Queue\Stubs\ListenerWithMixOfMiddleware;
 use Nuwber\Events\Tests\Queue\Stubs\ListenerWithMethodMiddleware;
@@ -18,60 +19,60 @@ class MiddlewareTest extends TestCase
     {
         $message = $this->makeMessage('true');
 
-        $this->assertEquals(1, $this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddleware::class))->fire());
+        self::assertEquals(1, $this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddleware::class))->fire());
 
         // Wildcard
-        $this->assertEquals(1, $this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddleware::class, true))->fire());
+        self::assertEquals(1, $this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddleware::class, true))->fire());
     }
 
     public function testMiddlewareReturnedFalse()
     {
         $message = $this->makeMessage('false');
 
-        $this->assertNull($this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddleware::class))->fire());
+        self::assertNull($this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddleware::class))->fire());
 
         // Wildcard
-        $this->assertNull($this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddleware::class, true))->fire());
+        self::assertNull($this->makeJob($message, $this->makeCallback(ListenerWithMethodMiddleware::class, true))->fire());
     }
 
     public function testExecuteMiddlewareAsArgument()
     {
         $message = $this->makeMessage('true');
 
-        $this->assertEquals(2, $this->makeJob($message, $this->makeCallback(ListenerWithAttributeMiddleware::class))->fire());
+        self::assertEquals(2, $this->makeJob($message, $this->makeCallback(ListenerWithAttributeMiddleware::class))->fire());
 
         // Wildcard
-        $this->assertEquals(2, $this->makeJob($message, $this->makeCallback(ListenerWithAttributeMiddleware::class, true))->fire());
+        self::assertEquals(2, $this->makeJob($message, $this->makeCallback(ListenerWithAttributeMiddleware::class, true))->fire());
     }
 
     public function testMiddlewareAsArgReturnedFalse()
     {
         $message = $this->makeMessage('false');
 
-        $this->assertNull($this->makeJob($message, $this->makeCallback(ListenerWithAttributeMiddleware::class))->fire());
+        self::assertNull($this->makeJob($message, $this->makeCallback(ListenerWithAttributeMiddleware::class))->fire());
 
         // Wildcard
-        $this->assertNull($this->makeJob($message, $this->makeCallback(ListenerWithAttributeMiddleware::class, true))->fire());
+        self::assertNull($this->makeJob($message, $this->makeCallback(ListenerWithAttributeMiddleware::class, true))->fire());
     }
 
     public function testAllKindOfMiddlewareTogether()
     {
          $message = $this->makeMessage('true');
 
-        $this->assertEquals(3, $this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class))->fire());
+        self::assertEquals(3, $this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class))->fire());
 
         // Wildcard
-        $this->assertEquals(3, $this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class, true))->fire());
+        self::assertEquals(3, $this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class, true))->fire());
     }
 
     public function testAllKindOfMiddlewareTogetherReturnedFalse()
     {
         $message = $this->makeMessage('false');
 
-        $this->assertNull($this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class))->fire());
+        self::assertNull($this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class))->fire());
 
         // Wildcard
-        $this->assertNull($this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class, true))->fire());
+        self::assertNull($this->makeJob($message, $this->makeCallback(ListenerWithMixOfMiddleware::class, true))->fire());
     }
 
     /**
@@ -84,10 +85,10 @@ class MiddlewareTest extends TestCase
 
         $expectedResult = ['first' => '1'];
 
-        $this->assertEquals([$expectedResult], $this->makeJob($message, $this->makeCallback(ListenerStubForMiddleware::class))->fire());
+        self::assertEquals([$expectedResult], $this->makeJob($message, $this->makeCallback(ListenerStubForMiddleware::class))->fire());
 
         // Wildcard
-        $this->assertEquals(['event', $expectedResult], $this->makeJob($message, $this->makeCallback(ListenerStubForMiddleware::class, true))->fire());
+        self::assertEquals(['event', $expectedResult], $this->makeJob($message, $this->makeCallback(ListenerStubForMiddleware::class, true))->fire());
     }
 
     private function makeCallback($listenerClass, $wildcard = false)
@@ -107,9 +108,8 @@ class MiddlewareTest extends TestCase
     private function makeJob($message, $callback)
     {
         return new Job(
-            \Mockery::mock('Illuminate\Container\Container'),
-            \Mockery::mock('Interop\Amqp\AmqpContext'),
-            \Mockery::mock('Interop\Amqp\AmqpConsumer'),
+            new Container(),
+            \Mockery::spy(Manager::class),
             $message,
             $callback,
             __CLASS__
