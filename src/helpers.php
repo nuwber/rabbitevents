@@ -31,9 +31,9 @@ if (!function_exists('publish')) {
                 }
             };
         }
-        
+
         Container::getInstance()
-            ->get(Publisher::class)
+            ->make(Publisher::class)
             ->publish($event);
     }
 
