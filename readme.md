@@ -143,7 +143,8 @@ The `listen` property of `RabbitEventsServiceProvider` contains an array of all 
 protected $listen = [
     'item.created' => [
         'App\Listeners\SendItemCreatedNotification',
-        'App\Listeners\ChangeUserRole',
+        'App\Listeners\ChangeUserRole@process',
+        function($payload) { Log::info('Item created', $payload); },
     ],
 ];
 ```

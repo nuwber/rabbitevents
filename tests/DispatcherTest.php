@@ -50,6 +50,8 @@ class DispatcherTest extends TestCase
         self::assertEquals(['Closure'], array_keys($listeners));
 
         self::assertCount(2, $listeners['Closure']);
+
+        $dispatcher->makeListener(static function() {})(':event:', []);
     }
 
     public function testCorrectWildcardHandling()
