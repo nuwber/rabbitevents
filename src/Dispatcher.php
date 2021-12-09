@@ -89,6 +89,10 @@ class Dispatcher extends BaseDispatcher
             return $this->container->instance($class, $this->container->make($class));
         }
 
+        if ($listener instanceof \Closure) {
+            return null;
+        }
+
         if (is_object($listener)) {
             return $listener;
         }
