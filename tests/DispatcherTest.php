@@ -39,9 +39,11 @@ class DispatcherTest extends TestCase
     public function testAddedClosureListeners()
     {
         $dispatcher = new Dispatcher();
+        $closure1 = function() {};
+        $closure2 = function() {};
 
-        $dispatcher->listen('item.event', function() {});
-        $dispatcher->listen('item.event', function() {});
+        $dispatcher->listen('item.event', $closure1);
+        $dispatcher->listen('item.event', $closure2);
 
         $listeners = $dispatcher->getListeners('item.event');
 
@@ -50,6 +52,10 @@ class DispatcherTest extends TestCase
         self::assertEquals(['Closure'], array_keys($listeners));
 
         self::assertCount(2, $listeners['Closure']);
+
+        self::assertSame($closure1, $listeners['Closure'][0]);
+
+        self::assertSame($closure2, $listeners['Closure'][1]);
     }
 
     public function testCorrectWildcardHandling()
