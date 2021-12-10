@@ -29,7 +29,9 @@ class Dispatcher extends BaseDispatcher
             if (Str::contains($event, '*')) {
                 $this->setupWildcardListen($event, $listener);
             } else {
-                $this->listeners[$event][$this->getListenerClass($listener)][] = $this->makeListener($listener);
+                $this->listeners[$event][$this->getListenerClass($listener)][] = !$listener instanceof \Closure
+                    ? $this->makeListener($listener)
+                    : $listener;
             }
         }
     }
@@ -87,10 +89,6 @@ class Dispatcher extends BaseDispatcher
             list($class,) = Str::parseCallback($listener);
 
             return $this->container->instance($class, $this->container->make($class));
-        }
-
-        if ($listener instanceof \Closure) {
-            return null;
         }
 
         if (is_object($listener)) {
