@@ -71,7 +71,10 @@ class Job extends \Illuminate\Queue\Jobs\Job implements \Illuminate\Contracts\Qu
     {
         $this->markAsFailed();
 
-        if (method_exists($listener = $this->resolve($this->listenerClass), 'failed')) {
+        if (
+            $this->listenerClass !== \Closure::class
+            && method_exists($listener = $this->resolve($this->listenerClass), 'failed')
+        ) {
             $listener->failed($this->payload(), $e);
         }
     }
@@ -113,7 +116,7 @@ class Job extends \Illuminate\Queue\Jobs\Job implements \Illuminate\Contracts\Qu
     {
         return $this->getName();
     }
-    
+
     /**
      * Get the timestamp indicating when the job should timeout.
      */
