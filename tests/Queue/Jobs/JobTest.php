@@ -97,6 +97,25 @@ class JobTest extends TestCase
         self::assertEquals($message->getBody(), $listener->payload);
     }
 
+    public function testFailingClosure()
+    {
+        $exception = new \Exception("Exception in `fire` method");
+
+        $app = new Container();
+        $message = $this->getMessage();
+
+        $queueManager = m::spy(Manager::class);
+
+        $job = new Job($app, $queueManager, $message,
+            'trim',
+            \Closure::class
+        );
+
+        $job->failed($exception);
+
+        self::assertTrue($job->hasFailed());
+    }
+
     public function testGetJobId()
     {
         $job = $this->getJob();
