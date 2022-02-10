@@ -53,8 +53,8 @@ class DispatcherTest extends TestCase
 
         self::assertCount(2, $listeners);
 
-        self::assertSame($closure1, $listeners[0]);
-        self::assertSame($closure2, $listeners[1]);
+        self::assertEquals($closure1, $listeners[0]);
+        self::assertEquals($closure2, $listeners[1]);
     }
 
     public function testCorrectWildcardHandling()
