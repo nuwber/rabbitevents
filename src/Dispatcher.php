@@ -76,15 +76,6 @@ class Dispatcher extends BaseDispatcher
         $this->wildcards[$event][] = $this->makeListener($listener, true);
     }
 
-    protected function getListenerClass($listener)
-    {
-        if ($listener instanceof \Closure) {
-            return \Closure::class;
-        }
-
-        return $listener;
-    }
-
     protected function makeListenerInstance($listener)
     {
         if (is_string($listener)) {
@@ -111,6 +102,7 @@ class Dispatcher extends BaseDispatcher
         if (!$instance = $this->makeListenerInstance($listener)) {
             return $result;
         }
+
 
         if (isset($instance->middleware)) {
             foreach ((array)$instance->middleware as $middleware) {
