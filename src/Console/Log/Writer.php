@@ -9,11 +9,10 @@ use Nuwber\Events\Queue\Events\JobFailed;
 
 abstract class Writer
 {
-
-    const STATUS_PROCESSING = 'Processing';
-    const STATUS_PROCESSED = 'Processed';
-    const STATUS_EXCEPTION = 'Exception Occurred';
-    const STATUS_FAILED = 'Failed';
+    public const STATUS_PROCESSING = 'Processing';
+    public const STATUS_PROCESSED = 'Processed';
+    public const STATUS_EXCEPTION = 'Exception Occurred';
+    public const STATUS_FAILED = 'Failed';
 
     /**
      * @param JobProcessing | JobProcessed | JobFailed $event

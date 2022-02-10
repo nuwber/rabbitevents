@@ -20,7 +20,7 @@ class EventsListCommand extends Command
      * @var string
      */
     protected $description = 'List of registered broadcast events';
-    
+
     public function handle(): void
     {
         $events = RabbitEvents::getEvents();

@@ -9,7 +9,6 @@ use Nuwber\Events\Queue\Jobs\Job;
 
 class Output extends Writer
 {
-
     /**
      * @var Application
      */

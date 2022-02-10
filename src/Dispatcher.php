@@ -34,6 +34,20 @@ class Dispatcher extends BaseDispatcher
         }
     }
 
+    public function getListeners($eventName)
+    {
+        $listeners = $this->listeners[$eventName] ?? [];
+
+        $listeners = array_merge(
+            $listeners,
+            $this->wildcardsCache[$eventName] ?? $this->getWildcardListeners($eventName)
+        );
+
+        return class_exists($eventName, false)
+            ? $this->addInterfaceListeners($eventName, $listeners)
+            : $listeners;
+    }
+
     /*
      * @inheritdoc
      */
@@ -62,6 +76,19 @@ class Dispatcher extends BaseDispatcher
 
             return parent::makeListener($listener, $wildcard)($event, $payload);
         };
+    }
+
+    protected function getWildcardListeners($eventName)
+    {
+        $wildcards = [];
+
+        foreach ($this->wildcards as $key => $listeners) {
+            if (Str::is($key, $eventName)) {
+                $wildcards = array_merge($wildcards, $listeners);
+            }
+        }
+
+        return $this->wildcardsCache[$eventName] = $wildcards;
     }
 
     /**
