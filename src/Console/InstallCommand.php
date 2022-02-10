@@ -56,7 +56,7 @@ class InstallCommand extends Command
                 $appConfig
             )
         );
-        
+
         file_put_contents($this->laravel->path('Providers/RabbitEventsServiceProvider.php'), str_replace(
             "namespace App\Providers;",
             "namespace {$namespace}\Providers;",

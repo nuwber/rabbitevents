@@ -81,7 +81,7 @@ class Connection
         ]);
 
         $factory->setDelayStrategy($this->getDelayStrategy());
-        
+
         return $factory;
     }
 

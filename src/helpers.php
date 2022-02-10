@@ -10,7 +10,7 @@ if (!function_exists('publish')) {
     function publish($event, array $payload = [])
     {
         if (is_string($event)) {
-            $event = new class($event, $payload) implements ShouldPublish {
+            $event = new class ($event, $payload) implements ShouldPublish {
                 private $event;
                 private $payload;
 
