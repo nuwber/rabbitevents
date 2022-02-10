@@ -47,15 +47,14 @@ class DispatcherTest extends TestCase
 
         $listeners = $dispatcher->getListeners('item.event');
 
-        self::assertCount(1, $listeners);
+        self::assertCount(2, $listeners);
 
-        self::assertEquals(['Closure'], array_keys($listeners));
+        self::assertEquals(['Closure', 'Closure'], array_map('get_class', $listeners));
 
-        self::assertCount(2, $listeners['Closure']);
+        self::assertCount(2, $listeners);
 
-        self::assertSame($closure1, $listeners['Closure'][0]);
-
-        self::assertSame($closure2, $listeners['Closure'][1]);
+        self::assertSame($closure1, $listeners[0]);
+        self::assertSame($closure2, $listeners[1]);
     }
 
     public function testCorrectWildcardHandling()
@@ -65,8 +64,7 @@ class DispatcherTest extends TestCase
 
         self::assertCount(1, $listeners);
 
-
-        self::assertEquals(['Listeners/Class4'], array_keys($listeners));
+        self::assertEquals(['Listeners/Class4'], $this->getListenersClasses($listeners));
     }
 
     public function testListenersAddedWithNameAsKey()
@@ -77,7 +75,10 @@ class DispatcherTest extends TestCase
         // Expected 3 because 'item.created' + 'item.*'
         self::assertCount(3, $listeners);
 
-        self::assertEquals(['Listeners/Class1', 'Listeners/Class2', 'Listeners/Class4'], array_keys($listeners));
+        self::assertEquals(
+            ['Listeners/Class1', 'Listeners/Class2', 'Listeners/Class4'],
+            $this->getListenersClasses($listeners),
+        );
     }
 
     public function testSimpleListenerCallWithAssocArrayAsPayload()
@@ -87,7 +88,7 @@ class DispatcherTest extends TestCase
         $dispatcher = new Dispatcher();
         $dispatcher->listen('simple', ListenerStub::class);
         $listeners = $dispatcher->getListeners('simple');
-        $closure = Arr::first(Arr::get($listeners, ListenerStub::class));
+        $closure = Arr::first($listeners);
 
         //array is because listener returns func_get_args
         $this->assertEquals([$payload], $closure('simple', $payload));
@@ -100,7 +101,7 @@ class DispatcherTest extends TestCase
         $dispatcher = new Dispatcher();
         $dispatcher->listen('wildcard.*', ListenerStub::class);
         $listeners = $dispatcher->getListeners('wildcard.*');
-        $closure = Arr::first(Arr::get($listeners, ListenerStub::class));
+        $closure = Arr::first($listeners);
 
         //array is because listener returns func_get_args
         $this->assertEquals(['wildcard.event', $payload], $closure('wildcard.event', $payload));
@@ -117,5 +118,12 @@ class DispatcherTest extends TestCase
         }
 
         return $dispatcher;
+    }
+
+    private function getListenersClasses($listeners)
+    {
+        return array_map(function ($listener) {
+            return Arr::get((new \ReflectionFunction($listener))->getStaticVariables(), 'listener');
+        }, $listeners);
     }
 }

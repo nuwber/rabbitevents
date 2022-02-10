@@ -29,7 +29,7 @@ class Dispatcher extends BaseDispatcher
             if (Str::contains($event, '*')) {
                 $this->setupWildcardListen($event, $listener);
             } else {
-                $this->listeners[$event][$this->getListenerClass($listener)][] = $this->makeListener($listener);
+                $this->listeners[$event][] = $listener;
             }
         }
     }
@@ -73,7 +73,7 @@ class Dispatcher extends BaseDispatcher
      */
     protected function setupWildcardListen($event, $listener): void
     {
-        $this->wildcards[$event][$this->getListenerClass($listener)][] = $this->makeListener($listener, true);
+        $this->wildcards[$event][] = $listener;
     }
 
     protected function getListenerClass($listener)
