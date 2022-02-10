@@ -29,9 +29,23 @@ class Dispatcher extends BaseDispatcher
             if (Str::contains($event, '*')) {
                 $this->setupWildcardListen($event, $listener);
             } else {
-                $this->listeners[$event][] = $this->makeListener($listener);
+                $this->listeners[$event][$this->getListenerClass($listener)][] = $this->makeListener($listener);
             }
         }
+    }
+
+    public function getListeners($eventName)
+    {
+        $listeners = $this->listeners[$eventName] ?? [];
+
+        $listeners = array_merge(
+            $listeners,
+            $this->wildcardsCache[$eventName] ?? $this->getWildcardListeners($eventName)
+        );
+
+        return class_exists($eventName, false)
+            ? $this->addInterfaceListeners($eventName, $listeners)
+            : $listeners;
     }
 
     /*
@@ -64,6 +78,19 @@ class Dispatcher extends BaseDispatcher
         };
     }
 
+    protected function getWildcardListeners($eventName)
+    {
+        $wildcards = [];
+
+        foreach ($this->wildcards as $key => $listeners) {
+            if (Str::is($key, $eventName)) {
+                $wildcards = array_merge($wildcards, $listeners);
+            }
+        }
+
+        return $this->wildcardsCache[$eventName] = $wildcards;
+    }
+
     /**
      * Setup a wildcard listener callback.
      *
@@ -73,7 +100,16 @@ class Dispatcher extends BaseDispatcher
      */
     protected function setupWildcardListen($event, $listener): void
     {
-        $this->wildcards[$event][] = $this->makeListener($listener, true);
+        $this->wildcards[$event][$this->getListenerClass($listener)][] = $this->makeListener($listener, true);
+    }
+
+    protected function getListenerClass($listener)
+    {
+        if ($listener instanceof \Closure) {
+            return \Closure::class;
+        }
+
+        return $listener;
     }
 
     protected function makeListenerInstance($listener)
