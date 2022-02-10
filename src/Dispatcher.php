@@ -139,7 +139,6 @@ class Dispatcher extends BaseDispatcher
             return $result;
         }
 
-
         if (isset($instance->middleware)) {
             foreach ((array)$instance->middleware as $middleware) {
                 $result[] = $this->createMiddlewareCallable($middleware);
