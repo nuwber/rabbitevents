@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   static-code-analysis:
-    container: zdenekdrahos/phpqa:v1.23.3
+    container: ghcr.io/nuwber/phpqa-docker:php8.1
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
