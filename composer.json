@@ -1,14 +1,7 @@
 {
   "name": "nuwber/rabbitevents",
-  "description": "Laravel back-to-back broadcasting events. It uses RabbitMQ as the transport.",
-  "keywords": [
-    "queue",
-    "laravel",
-    "rabbitmq",
-    "events",
-    "event bus",
-    "bus"
-  ],
+  "description": "The RabbitEvents package",
+  "keywords": ["laravel", "rabbitmq", "events", "broadcast", "publish", "pub", "sub"],
   "type": "library",
   "license": "MIT",
   "authors": [
@@ -18,37 +11,53 @@
     }
   ],
   "require": {
-    "php": "^7.3|^8.0",
-    "ext-bcmath": "*",
-    "ext-pcntl": "*",
+    "php": "^8.0",
     "ext-json": "*",
-    "illuminate/events": "^7.0 | ^8.0",
-    "illuminate/queue": "^7.0 | ^8.0",
-    "illuminate/support": "^7.0 | ^8.0",
-    "enqueue/amqp-lib": "^0.10"
+    "enqueue/amqp-lib": "^0.10",
+    "illuminate/support": "^8.0|^9.0",
+    "illuminate/events": "^8.0|^9.0",
+    "illuminate/console": "^8.0|^9.0",
+    "illuminate/container": "^8.0|^9.0"
+  },
+  "replace": {
+    "rabbitevents/foundation": "self.version",
+    "rabbitevents/publisher": "self.version",
+    "rabbitevents/listener": "self.version"
   },
   "require-dev": {
     "mockery/mockery": "^1.4",
-    "phpunit/phpunit": "^9.0"
+    "phpunit/phpunit": "^9.0",
+    "vlucas/phpdotenv": "^v5.4.1"
   },
   "autoload": {
     "psr-4": {
-      "Nuwber\\Events\\": "src/"
+      "RabbitEvents\\": "src/RabbitEvents"
     },
     "files": [
-      "src/helpers.php"
+      "src/RabbitEvents/Publisher/functions.php"
     ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "RabbitEvents\\Tests\\": "tests/"
+    }
   },
   "extra": {
     "laravel": {
       "providers": [
-        "Nuwber\\Events\\RabbitEventsServiceProvider"
-      ]
+        "RabbitEvents\\Publisher\\EventServiceProvider",
+        "RabbitEvents\\Foundation\\RabbitEventsServiceProvider",
+        "RabbitEvents\\Foundation\\ListenerServiceProvider"
+      ],
+      "aliases": {
+        "RabbitEvents": "RabbitEvents\\Listener\\Facades\\RabbitEvents"
+      }
     }
   },
-  "autoload-dev": {
-    "psr-4": {
-      "Nuwber\\Events\\Tests\\": "tests/"
-    }
+  "suggest": {
+    "vlucas/phpdotenv": "Loads environment variables from .env to getenv(), $_ENV and $_SERVER automagically."
+  },
+  "config": {
+    "sort-packages": true
   }
 }

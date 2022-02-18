@@ -4,9 +4,9 @@ on: [push]
 
 jobs:
   static-code-analysis:
-    container: zdenekdrahos/phpqa:v1.23.3
+    container: ghcr.io/nuwber/phpqa-docker:php8.1
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: phpqa
-        run: phpqa --analyzedDirs src --output cli --tools phpcs:0,phpmd,phpcpd:0,phpmetrics:0,phploc,pdepend
+        run: phpqa
