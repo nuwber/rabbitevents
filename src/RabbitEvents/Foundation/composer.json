@@ -1,0 +1,42 @@
+{
+  "name": "rabbitevents/foundation",
+  "description": "Laravel back-to-back broadcasting events. It uses RabbitMQ as the transport.",
+  "keywords": ["laravel", "rabbitmq", "events", "broadcast"],
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Eugene Kirdzei",
+      "email": "masterjus@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^8.0",
+    "ext-bcmath": "*",
+    "ext-json": "*",
+    "illuminate/support": "^8.0|^9.0",
+    "illuminate/console": "^8.0|^9.0",
+    "illuminate/container": "^8.0|^9.0",
+    "enqueue/amqp-lib": "^0.10"
+  },
+  "require-dev": {
+    "mockery/mockery": "^1.4",
+    "phpunit/phpunit": "^9.0",
+    "vlucas/phpdotenv": "^5.4.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "RabbitEvents\\Foundation\\": ""
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "RabbitEvents\\Foundation\\RabbitEventsServiceProvider"
+      ],
+    }
+  },
+  "suggest": {
+    "vlucas/phpdotenv": "Required to use all features of the worker."
+  }
+}

@@ -1,0 +1,13 @@
+phpqa:
+  analyzedDirs: ./src
+  ignoredDirs: vendor
+  execution: parallel
+  output: cli
+  tools: phpcs:0,phpmd,phpmetrics:0,phploc,pdepend,phpcpd
+  verbose: false
+  extensions:
+    - php
+
+phpcs:
+  standard: PSR12
+  ignoreWarnings: false
