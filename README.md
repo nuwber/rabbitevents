@@ -6,15 +6,11 @@
 [![Latest Version](https://img.shields.io/packagist/v/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
 [![License](https://img.shields.io/packagist/l/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
 
-Nuwber's events provides a simple observer implementation, allowing you to listen for various events that occur in your current and another applications. For example if you need to react to some event published from another API.
+Nuwber's RabbitEvents provides a simple observer implementation, allowing you to listen for various events that occur in your applications. For example if you need to react to some event published from another API.
 
 Do not confuse this package with Laravel's broadcast. This package was made to communicate a backend to backend.
 
-It's actually a compilation of Laravel's [events](https://laravel.com/docs/events) and [queues](https://laravel.com/docs/queues) with some improvements, such as [middleware](#middleware).
-
 Listener classes are typically stored in the `app/Listeners` folder. You may use Laravel's artisan command to generate them as it described in the [official documentation](https://laravel.com/docs/events).
-
-All RabbitMQ calls are done by using [Laravel queue package](https://github.com/php-enqueue/laravel-queue) as an example. So for better understanding read their documentation first.
 
 # Table of contents
 1. [Installation](#installation)

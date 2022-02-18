@@ -47,7 +47,7 @@
       "providers": [
         "RabbitEvents\\Publisher\\EventServiceProvider",
         "RabbitEvents\\Foundation\\RabbitEventsServiceProvider",
-        "RabbitEvents\\Foundation\\ListenerServiceProvider"
+        "RabbitEvents\\Listener\\ListenerServiceProvider"
       ],
       "aliases": {
         "RabbitEvents": "RabbitEvents\\Listener\\Facades\\RabbitEvents"
