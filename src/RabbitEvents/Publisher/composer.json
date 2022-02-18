@@ -1,5 +1,5 @@
 {
-  "name": "rabbitevents/event",
+  "name": "rabbitevents/publisher",
   "description": "The RabbitEvents Event package",
   "keywords": ["laravel", "rabbitmq", "events", "broadcast", "publish", "pub"],
   "type": "library",

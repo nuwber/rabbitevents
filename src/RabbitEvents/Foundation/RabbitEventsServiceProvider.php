@@ -5,8 +5,6 @@ namespace RabbitEvents\Foundation;
 use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use RabbitEvents\Foundation\Commands\InstallCommand;
-use RabbitEvents\Foundation\Contracts\Transport;
-use RabbitEvents\Foundation\Support\Sender;
 
 class RabbitEventsServiceProvider extends ServiceProvider
 {
