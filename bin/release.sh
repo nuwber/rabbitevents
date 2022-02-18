@@ -54,8 +54,8 @@ then
 fi
 
 # Tag Framework
-git tag $VERSION
-git push origin --tags
+#git tag $VERSION
+#git push origin --tags
 
 # Tag Components
 for REMOTE in publisher listener foundation
