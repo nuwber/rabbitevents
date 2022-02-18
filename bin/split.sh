@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+##############
+# This is the full copy of Laravel Framework's scrypt.
+# I hope this copying does not violate any rights
+##############
+
 set -e
 set -x
 
