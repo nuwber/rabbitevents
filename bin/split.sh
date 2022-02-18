@@ -19,7 +19,7 @@ function remote()
 git pull origin $CURRENT_BRANCH
 
 remote foundation git@github.com:rabbitevents/foundation.git
-remote event git@github.com:rabbitevents/publisher.git
+remote publisher git@github.com:rabbitevents/publisher.git
 remote listener git@github.com:rabbitevents/listener.git
 
 split 'src/RabbitEvents/Foundation' foundation
