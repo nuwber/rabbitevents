@@ -10,7 +10,7 @@
          stopOnFailure="false"
          bootstrap="./vendor/autoload.php">
     <coverage includeUncoveredFiles="false"
-              processUncoveredFiles="true"
+              processUncoveredFiles="false"
               ignoreDeprecatedCodeUnits="true">
         <include>
             <directory suffix=".php">src</directory>
