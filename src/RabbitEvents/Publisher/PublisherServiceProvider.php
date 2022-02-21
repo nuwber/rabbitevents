@@ -8,7 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use RabbitEvents\Publisher\Commands\ObserverMakeCommand;
 use RabbitEvents\Foundation\Context;
 
-class EventServiceProvider extends ServiceProvider
+class PublisherServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {

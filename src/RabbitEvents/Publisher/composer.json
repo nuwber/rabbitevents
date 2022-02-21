@@ -1,6 +1,6 @@
 {
   "name": "rabbitevents/publisher",
-  "description": "The RabbitEvents Event package",
+  "description": "The Publisher part of the RabbitEvents package.",
   "keywords": ["laravel", "rabbitmq", "events", "broadcast", "publish", "pub"],
   "type": "library",
   "license": "MIT",
@@ -15,7 +15,7 @@
     "ext-json": "*",
     "illuminate/console": "^8.0|^9.0",
     "illuminate/events": "^8.0|^9.0",
-    "illuminate/container": "^9.0",
+    "illuminate/container": "^8.0|^9.0",
     "rabbitevents/foundation": "7.x-dev"
   },
   "require-dev": {
@@ -33,7 +33,7 @@
   "extra": {
     "laravel": {
       "providers": [
-        "RabbitEvents\\Event\\EventServiceProvider"
+        "RabbitEvents\\Publisher\\PublisherServiceProvider"
       ]
     }
   }

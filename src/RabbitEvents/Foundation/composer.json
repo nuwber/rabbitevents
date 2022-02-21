@@ -1,6 +1,6 @@
 {
   "name": "rabbitevents/foundation",
-  "description": "Laravel back-to-back broadcasting events. It uses RabbitMQ as the transport.",
+  "description": " ",
   "keywords": ["laravel", "rabbitmq", "events", "broadcast"],
   "type": "library",
   "license": "MIT",

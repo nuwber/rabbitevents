@@ -40,5 +40,4 @@ return [
             ],
         ],
     ],
-    'publish_on_dispatch' => false,
 ];

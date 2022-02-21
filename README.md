@@ -15,25 +15,26 @@ Listener classes are typically stored in the `app/Listeners` folder. You may use
 # Table of contents
 1. [Installation](#installation)
    - [Configuration](#configuration)
-1. [Events](#events)
+2. Upgrade from 6.x to 7.x
+3. [Publishing](#publishing)
    - [Defining Events](#defining-events")
    - [Retrying Failed Events](#retry-failed-events)
-1. [Listeners](#listeners)
+4. [Listeners](#listeners)
    - [Register a Listener](#register-regular-listener)
       - [Wildcard Listeners](#register-wildcard-listeners)
    - [Defining Listeners](#defining-listeners)
       - [Listeners for wildcard events](#defining-wildcard-listeners)
    - [Middleware](#listener-middleware)
    - [Stopping The Propagation](#stopping-propagination)
-1. [Console commands](#commands)
+5. [Console commands](#commands)
    - [rabbitevents:install](#command-install) - install package assets
    - [rabbitevents:listen](#command-listen) - listen to an event
    - [rabbitevents:list](#command-list) - display list of registered events
    - [rabbitevents:make:observer](#command-make-observer) - make an Eloquent model events observer
-1. [Logging](#logging)
-1. [Testing](#testing)
-1. [Examples](/examples)
-1. [Non-standard use](#non-standard-use)
+6. [Logging](#logging)
+7. [Testing](#testing)
+8. [Examples](/examples)
+9. [Non-standard use](#non-standard-use)
 
 # Installation <a name="installation"></a>
 You may use Composer to install RabbitEvents into your Laravel project:
@@ -49,10 +50,10 @@ $ php artisan rabbitevents:install
 ```
 
 ## Configuration <a name="configuration"></a>
-After publishing assets, its primary configuration file will be located at `config/rabbitevents.php`.
-This configuration file allows you to configure your connection and logging options.
+After publishing assets, the primary configuration file will be located at `config/rabbitevents.php`.
+This configuration file allows you to configure the connection and logging options.
 
-It's very similar to queue connection but now you'll never be confused if you have another connection to RabbitMQ.
+It's very similar to queue connection, but now you'll never be confused if you have another connection to RabbitMQ.
 
 ```php
 <?php
@@ -76,7 +77,7 @@ return [
 ];
 ```
 
-# Events <a name="events"></a>
+# Publishing <a name="publishing"></a>
 
 This is the example how to publish your event and payload:
 
@@ -105,7 +106,7 @@ publish($someEvent->publishEventKey(), $someEvent->toPublish());
 
 ## Defining Events <a name="defining-events">
 
-If you want to make your event class publishable you should implement interface `ShouldPublish`.
+If you want to make your Event class publishable you should implement interface `ShouldPublish`.
 Example of such class you could see [here](https://github.com/nuwber/rabbitevents/issues/29#issuecomment-531859944).
 If you'll try to publish an event without implementation,
 the exception `InvalidArgumentException('Event must be a string or implement "ShouldPublish" interface')` will be thrown.

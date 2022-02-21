@@ -45,7 +45,7 @@
   "extra": {
     "laravel": {
       "providers": [
-        "RabbitEvents\\Publisher\\EventServiceProvider",
+        "PublisherServiceProvider",
         "RabbitEvents\\Foundation\\RabbitEventsServiceProvider",
         "RabbitEvents\\Listener\\ListenerServiceProvider"
       ],

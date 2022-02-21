@@ -1,6 +1,6 @@
 {
   "name": "rabbitevents/listener",
-  "description": "The RabbitEvents Listener package",
+  "description": "The Listener part of the RabbitEvents package.",
   "keywords": ["laravel", "rabbitmq", "events", "listener", "sub"],
   "type": "library",
   "license": "MIT",
