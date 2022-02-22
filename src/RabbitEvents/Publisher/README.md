@@ -1,21 +1,17 @@
 # RabbitEvents Publisher
 The RabbitEvents Publisher component provides an API to publish events across the application structure. More information is available in the [Nuwber's RabbitEvents documentation](https://github.com/nuwber/rabbitevents).
 
-Once again, the RabbitEvents library helps you to publish an event and handle it in another app. No sense to use it in the same app, because  Laravel's Events works for this better.
-
-Let's imagine a use case: The user made a payment. You need to register this user, send him emails, send analytics data to your analysis system, and so on. The modern infrastructure requires you to create microservices that are doing their specific job and only it: one is for the user management, one is the mailing system, one is for the analysis. How to let all of them know that a payment succeeded? The answer is "To use RabbitEvents". By the way the [answer](https://github.com/rabbitevents/listener) to the question "How to handle these events?" is the same.
-
 The RabbitEvents Publisher is the part that lets all other microservices know that a payment succeeded. 
 
 ## Table of contents
-1. [Installation](#installation)
+1. [Installation via Composer](#installation)
 2. [Configuration](#configuration)
-3. [How to publish an Event](#howto_publish)
+3. [Publishing](#howto_publish)
 4. [Testing](#testing)
 
-## Installation<a name="installation"></a>
+## Installation via Composer<a name="installation"></a>
 
-You could use the RabbitEvents Publisher separately from the main library. 
+If you need just to publish events, you could use the RabbitEvents `Publisher` separately from the main library. 
 
 To get it you should add it to your Laravel application by Composer:
 
@@ -26,47 +22,16 @@ $ composer require rabbitevents/publisher
 ## Configuration <a name="configuration"></a>
 The command `php artisan rabbitevents:install` installs the config file at `config/rabbitevents.php`.
 
-It's very similar to queue connection, but now you'll never be confused if you have another connection to RabbitMQ.
+More information is available in the main library [documentation](https://github.com/nuwber/rabbitevents#configuration).
 
-```php
-<?php
-use Enqueue\AmqpTools\RabbitMqDlxDelayStrategy;
+## Publishing<a name="howto_publish"></a>
 
-return [
-    'default' => env('RABBITEVENTS_CONNECTION', 'rabbitmq'),
-    'connections' => [
-        'rabbitmq' => [
-            'driver' => 'rabbitmq',
-            'exchange' => env('RABBITEVENTS_EXCHANGE', 'events'),
-            'host' => env('RABBITEVENTS_HOST', 'localhost'),
-            'port' => env('RABBITEVENTS_PORT', 5672),
-            'user' => env('RABBITEVENTS_USER', 'guest'),
-            'pass' => env('RABBITEVENTS_PASSWORD', 'guest'),
-            'vhost' => env('RABBITEVENTS_VHOST', 'events'),
-            'logging' => [
-                'enabled' => env('RABBITEVENTS_LOG_ENABLED', false),
-                'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
-            ],
-            'delay_strategy' => env('RABBITEVENTS_DELAY_STRATEGY', RabbitMqDlxDelayStrategy::class),
-            'ssl' => [
-                'is_enabled' => env('RABBITEVENTS_SSL_ENABLED', false),
-                'verify_peer' => env('RABBITEVENTS_SSL_VERIFY_PEER', true),
-                'cafile' => env('RABBITEVENTS_SSL_CAFILE'),
-                'local_cert' => env('RABBITEVENTS_SSL_LOCAL_CERT'),
-                'local_key' => env('RABBITEVENTS_SSL_LOCAL_KEY'),
-                'passphrase' => env('RABBITEVENTS_SSL_PASSPHRASE', ''),
-            ],
-        ],
-    ],
-];
-```
-
-## How to publish an Event?<a name="howto_publish"></a>
-
-### 1. Event class
+### By using an Event class
 This is an example event class:
 
 ```php
+<?php
+
 use App\Payment;
 use App\User;
 use RabbitEvents\Publisher\ShouldPublish;
@@ -98,9 +63,11 @@ The only requirement for event classes is to implement the `\RabbitEvents\Publis
 
 As an alternative, you could extend `\RabbitEvents\Publisher\Support\AbstractPublishableEvent`. This class was made just to simplify event classes creation.
 
-**To publish** this event you just need to call the `publish` method of the event class and pass here all necessary data.
+To **publish** this event you just need to call the `publish` method of the event class and pass here all necessary data.
 
 ```php
+<?php
+
 $payment = new Payment(...);
 
 ...
@@ -110,11 +77,13 @@ PaymentSucceededRabbitEvent::publish($request->user(), $payment);
 
 The method `publish` is provided by the trait `Publishable`.
 
-### 2. Helper function
+### By using the `publish` function
 
 Sometimes easier is to use the helper function `publish` with an event key and payload.
 
 ```php
+<?php
+
 publish(
 	'payment.succeeded', 
 	[
@@ -124,12 +93,16 @@ publish(
 );
 ```
 
-### 3. Helper function and Event class
+### Publish an Event object with the `publish` function
 
 You also could use the combination of two previous methods.
 
 ```php
-publish(new PaymentSucceededRabbitEvent($request->user(), $payment));
+<?php
+$event = new PaymentSucceededEvent($request->user(), $payment);
+
+event($event)
+publish($event);
 ```
 
 ## Testing <a name="testing"></a>
@@ -138,7 +111,7 @@ We always write tests. Tests in our applications contain many mocks and fakes to
 
 There is the `PublishableEventTesting` trait that provides assertion methods in an Event class that you want to test.
 
-`Event.php`
+**Event.php**
 
 ```php
 <?php
@@ -170,13 +143,13 @@ class Event implements ShouldPublish
 }
 ```
 
-`Test.php`
+**Test.php**
 
 ```php
 <?php
 
-use \App\BroadcastEvents\Event;
-use \App\BroadcastEvents\AnotherEvent;
+use \App\RabbitEvents\Event;
+use \App\RabbitEvents\AnotherEvent;
 
 Event::fake();
 

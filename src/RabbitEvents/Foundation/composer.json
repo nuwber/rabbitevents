@@ -37,6 +37,6 @@
     }
   },
   "suggest": {
-    "vlucas/phpdotenv": "Required to use all features of the worker."
+    "vlucas/phpdotenv": "Required to use env funciton."
   }
 }

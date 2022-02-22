@@ -1,6 +1,6 @@
 {
   "name": "rabbitevents/listener",
-  "description": "The Listener part of the RabbitEvents package.",
+  "description": "The Listener part of the RabbitEvents library.",
   "keywords": ["laravel", "rabbitmq", "events", "listener", "sub"],
   "type": "library",
   "license": "MIT",
@@ -14,19 +14,12 @@
   "require": {
     "php": "^8.0",
     "ext-json": "*",
-    "illuminate/console": "^8.0|^9.0",
     "illuminate/events": "^8.0|^9.0",
-    "illuminate/support": "^8.0|^9.0",
-    "enqueue/amqp-lib": "^0.10",
     "rabbitevents/foundation": "7.x-dev"
-  },
-  "require-dev": {
-    "mockery/mockery": "^1.4",
-    "phpunit/phpunit": "^9.5"
   },
   "autoload": {
     "psr-4": {
-      "RabbitEvents\\Listener\\": "src"
+      "RabbitEvents\\Listener\\": ""
     }
   },
   "extra": {
@@ -41,10 +34,5 @@
   },
   "suggest": {
     "ext-pcntl": "Required to use all features of the worker."
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "RabbitEvents\\Listener\\Tests\\": "tests/"
-    }
   }
 }

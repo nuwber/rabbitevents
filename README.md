@@ -283,7 +283,7 @@ class PaymentListener
     ];      
 
     /** 
-     * @param string $event Publisher Name. Passing only for wildcard events
+     * @param string $event Event Name. Passing only for wildcard events
      * @param array $payload
      */
     public function middleware([$event, ]$payload)
