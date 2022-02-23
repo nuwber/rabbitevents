@@ -1,7 +1,9 @@
 <?php
+declare(strict_types=1);
+
 namespace app\RabbitEvents;
 
-use Nuwber\Events\Event\AbstractPublishableEvent;
+use RabbitEvents\Publisher\Support\AbstractPublishableEvent;
 
 class UserCreated extends AbstractPublishableEvent
 {

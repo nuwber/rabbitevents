@@ -1,0 +1,38 @@
+{
+  "name": "rabbitevents/listener",
+  "description": "The Listener part of the RabbitEvents library.",
+  "keywords": ["laravel", "rabbitmq", "events", "listener", "sub"],
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Eugene Kirdzei",
+      "email": "masterjus@gmail.com"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require": {
+    "php": "^8.0",
+    "ext-json": "*",
+    "illuminate/events": "^8.0|^9.0",
+    "rabbitevents/foundation": "7.x-dev"
+  },
+  "autoload": {
+    "psr-4": {
+      "RabbitEvents\\Listener\\": ""
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "ListenerServiceProvider"
+      ],
+      "aliases": {
+        "RabbitEvents": "RabbitEvents\\Listener\\Facades\\RabbitEvents"
+      }
+    }
+  },
+  "suggest": {
+    "ext-pcntl": "Required to use all features of the worker."
+  }
+}
