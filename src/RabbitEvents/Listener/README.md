@@ -1,27 +1,35 @@
 # RabbitEvents Listener
 The RabbitEvents Listener component provides an API to handle events that were published across the application structure. More information is available in the [Nuwber's RabbitEvents documentation](https://github.com/nuwber/rabbitevents).
 
-## Table of contents
-1. [Installation via Composer](#installation)
-2. [Configuration](#configuration)
-3. 
-
-## Installation via Composer<a name="installation"></a>
-
 If you need just to handle events, you could use the RabbitEvents `Listener` separately from the main library. 
 
-To get it you should add it to your Laravel application by Composer:
+## Table of contents
+1. [Installation via Composer](#installation)
+1. [Configuration](#configuration)
+1. [Register a Listener](#register)
+1. [Defining Listeners](#defining-listeners)
+1. [Middleware](#listener-middleware)
+1. [Stopping The Propagation Of An Event](#stopping-propagination)
+1. [Console commands](#commands)
+1. [Logging](#ligging)
+
+## Installation via Composer<a name="installation"></a>
+RabbitEvents Listener may be installed via the Composer package manager:
 
 ```bash
-$ composer require rabbitevents/listener
+composer require rabbitevents/listener
+```
+
+After installing Listener, you may execute the `rabbitevents:install` Artisan command, which will install the RabbitEvents configuration file and `RabbitEventsServiceProvider` into your application:
+
+```bash
+php artisan rabbitevents:install
 ```
 
 ## Configuration <a name="configuration"></a>
-The command `php artisan rabbitevents:install` installs the config file at `config/rabbitevents.php` and the Service Provider file at `app/providers/RabbitEventsServiceProvider.php`.
+Details about the configuration are described in the library [documentation](https://github.com/nuwber/rabbitevents#configuration).
 
-More information is available in the main library [documentation](https://github.com/nuwber/rabbitevents#configuration).
-
-## Register a Listener <a name="register-regular-listener"></a>
+## Register a Listener <a name="register"></a>
 
 The `listen` property of `RabbitEventsServiceProvider` contains an array of all events (keys) and their listeners (values). Of course, you may add as many events to this array as your application requires.
 
@@ -167,13 +175,13 @@ This is just an illustration of how you could pass middleware to the listener. Y
 
 Sometimes, you may wish to stop the propagation of an event to other listeners. You may do so by returning `false` from your listener's handle method.
 
-# RabbitEvents Listener specific console commands <a name='commands'></a>
+# Console commands <a name='commands'></a>
 ## Command `rabbitevents:listen` <a name='command-listen'></a>
 
 There is the command which is registers events in RabbitMQ:
 
 ```bash
-$ php artisan rabbitevents:listen event.name --memory=512 --tries=3 --sleep=5
+php artisan rabbitevents:listen event.name --memory=512 --tries=3 --sleep=5
 ```
 
 This command registers a separate queue in RabbitMQ bound to an event. As the only `rabbitevents:listen` registers a queue, you should run this command before you start to publish your events. Nothing will happen if you publish an event first, but it will not be handled by a Listener without the first run.
@@ -187,5 +195,11 @@ If your listener crashes, then managers will rerun your listener and all message
 To get the list of all registered events please use the command `rabbitevents:list`.
 
 ```bash
-$ php artisan rabbitevents:list
+php artisan rabbitevents:list
 ```
+
+# Logging <a name='logging'></a>
+
+The package provides 2 ways to see what happens to your listener. By default, it writes `processing`, `processed`, and `failed` messages to `/php/stdout`. The message includes service, event, and listener name. If you want to turn this feature off, just run listener with the `--quiet` option.
+
+The package also supports your application logger. To use it set config value `rabbitevents.logging.enabled` to `true` and choose log level.

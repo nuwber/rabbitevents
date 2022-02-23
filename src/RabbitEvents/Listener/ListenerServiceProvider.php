@@ -31,7 +31,6 @@ class ListenerServiceProvider extends BaseServiceProvider
         }
 
         $this->commands([
-            RegisterCommand::class,
             ListenCommand::class,
             EventsListCommand::class,
         ]);
@@ -49,7 +48,7 @@ class ListenerServiceProvider extends BaseServiceProvider
     }
 
     /**
-     * Setup the resource publishing groups for RabbitEvents.
+     * Set up the resource publishing groups for RabbitEvents.
      *
      * @return void
      */

@@ -10,19 +10,20 @@ The RabbitEvents Publisher is the part that lets all other microservices know th
 4. [Testing](#testing)
 
 ## Installation via Composer<a name="installation"></a>
-
-If you need just to publish events, you could use the RabbitEvents `Publisher` separately from the main library. 
-
-To get it you should add it to your Laravel application by Composer:
+RabbitEvents Publisher may be installed via the Composer package manager:
 
 ```bash
-$ composer require rabbitevents/publisher
+composer require rabbitevents/publisher
+```
+
+After installing Publisher, you may execute the `rabbitevents:install` Artisan command, which will install the RabbitEvents configuration file into your application:
+
+```bash
+php artisan rabbitevents:install
 ```
 
 ## Configuration <a name="configuration"></a>
-The command `php artisan rabbitevents:install` installs the config file at `config/rabbitevents.php`.
-
-More information is available in the main library [documentation](https://github.com/nuwber/rabbitevents#configuration).
+Details about the configuration are described in the library [documentation](https://github.com/nuwber/rabbitevents#configuration).
 
 ## Publishing<a name="howto_publish"></a>
 

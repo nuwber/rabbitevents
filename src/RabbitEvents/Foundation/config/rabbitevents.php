@@ -25,10 +25,6 @@ return [
             'user' => env('RABBITEVENTS_USER', 'guest'),
             'pass' => env('RABBITEVENTS_PASSWORD', 'guest'),
             'vhost' => env('RABBITEVENTS_VHOST', 'events'),
-            'logging' => [
-                'enabled' => env('RABBITEVENTS_LOG_ENABLED', false),
-                'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
-            ],
             'delay_strategy' => env('RABBITEVENTS_DELAY_STRATEGY', RabbitMqDlxDelayStrategy::class),
             'ssl' => [
                 'is_enabled' => env('RABBITEVENTS_SSL_ENABLED', false),
@@ -39,5 +35,9 @@ return [
                 'passphrase' => env('RABBITEVENTS_SSL_PASSPHRASE', ''),
             ],
         ],
+    ],
+    'logging' => [
+        'enabled' => env('RABBITEVENTS_LOG_ENABLED', false),
+        'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
     ],
 ];

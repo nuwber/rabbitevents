@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Arr;
 use RabbitEvents\Foundation\Context;
 use RabbitEvents\Foundation\Support\QueueName;
 use RabbitEvents\Listener\Events\HandlerExceptionOccurred;
@@ -115,8 +116,20 @@ class ListenCommand extends Command
             $this->logWriters[] = new Log\Output($this->laravel, $this->output);
         }
 
-        if ($this->laravel['config']->get("rabbitevents.connections.$connection.logging.enabled")) {
+        if ($this->isLoggingEnabled($connection)) {
             $this->logWriters[] = new Log\General($this->laravel);
         }
+    }
+
+    private function isLoggingEnabled(string $connection = 'rabbitmq'): bool
+    {
+        $config = $this->laravel['config']->get('rabbitevents');
+
+        if (Arr::has($config, 'logging')) {
+            return Arr::get($config, 'logging.enabled', false);
+        }
+
+        // TODO: In the next releases this part of config will be deleted
+        return Arr::get($config, "connections.$connection.logging.enabled", false);
     }
 }
