@@ -1,4 +1,11 @@
 # RabbitEvents
+
+[![Tests Status](https://github.com/nuwber/rabbitevents/workflows/Unit%20tests/badge.svg?branch=master)](https://github.com/nuwber/rabbitevents/actions?query=branch%3Amaster+workflow%3A%22Unit+tests%22)
+[![codecov](https://codecov.io/gh/nuwber/rabbitevents/branch/master/graph/badge.svg?token=8E9CY6866R)](https://codecov.io/gh/nuwber/rabbitevents)
+[![Total Downloads](https://img.shields.io/packagist/dt/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
+[![Latest Version](https://img.shields.io/packagist/v/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
+[![License](https://img.shields.io/packagist/l/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
+
 Let's imagine a use case: the User made a payment. You need to handle this payment, register the user, send him emails, send analytics data to your analysis system, and so on. The modern infrastructure requires you to create microservices that are doing their specific job and only it: one handles payments, one is for the user management, one is the mailing system, one is for the analysis. How to let all of them know that a payment succeeded and handle this message? The answer is "To use RabbitEvents".
 
 Once again, the RabbitEvents library helps you to publish an event and handle it in another app. No sense to use it in the same app, because  Laravel's Events works for this better.
