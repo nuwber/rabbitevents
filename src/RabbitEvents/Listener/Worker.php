@@ -37,7 +37,6 @@ class Worker
         while (true) {
             try {
                 if ($message = $consumer->nextMessage(1000)) {
-
                     if ($supportsAsyncSignals) {
                         $this->registerTimeoutHandler($options);
                     }
