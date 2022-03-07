@@ -1,14 +1,12 @@
 <?php
 
-declare(strict_types=1);
-
 namespace RabbitEvents\Listener\Events;
 
-use RabbitEvents\Listener\Message\Handler;
+use RabbitEvents\Foundation\Message;
 
 class MessageProcessingFailed
 {
-    public function __construct(public Handler $handler, public \Throwable $exception)
+    public function __construct(public Message $message, public \Throwable $exception)
     {
     }
 }

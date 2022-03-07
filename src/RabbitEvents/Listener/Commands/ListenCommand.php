@@ -8,10 +8,11 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use RabbitEvents\Foundation\Context;
 use RabbitEvents\Foundation\Support\QueueName;
-use RabbitEvents\Listener\Events\HandlerExceptionOccurred;
+use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
+use RabbitEvents\Listener\Events\ListenerHandleFailed;
+use RabbitEvents\Listener\Events\ListenerHandled;
+use RabbitEvents\Listener\Events\ListenerHandling;
 use RabbitEvents\Listener\Events\MessageProcessingFailed;
-use RabbitEvents\Listener\Events\MessageProcessed;
-use RabbitEvents\Listener\Events\MessageProcessing;
 use RabbitEvents\Listener\Message\HandlerFactory;
 use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Listener\Message\ProcessingOptions;
@@ -51,8 +52,9 @@ class ListenCommand extends Command
      * @param Context $context
      * @param Worker $worker
      * @throws \Throwable
+     * @retur ?int
      */
-    public function handle(Context $context, Worker $worker): void
+    public function handle(Context $context, Worker $worker)
     {
         $options = $this->gatherProcessingOptions();
 
@@ -60,7 +62,7 @@ class ListenCommand extends Command
 
         $this->listenForEvents();
 
-        $worker->work(
+        return $worker->work(
             new Processor(new HandlerFactory($this->laravel), $this->laravel['events']),
             $context->createConsumer(
                 new QueueName($options->service, $this->argument('event')),
@@ -73,7 +75,7 @@ class ListenCommand extends Command
     /**
      * Gather all the queue worker options as a single object.
      *
-     * @return \RabbitEvents\Listener\Message\ProcessingOptions
+     * @return ProcessingOptions
      */
     protected function gatherProcessingOptions(): ProcessingOptions
     {
@@ -82,6 +84,7 @@ class ListenCommand extends Command
             $this->option('connection') ?: $this->laravel['config']['rabbitevents.default'],
             (int) $this->option('memory'),
             (int) $this->option('tries'),
+            (int) $this->option('timeout'),
             (int) $this->option('sleep')
         );
     }
@@ -99,10 +102,11 @@ class ListenCommand extends Command
             }
         };
 
-        $this->laravel['events']->listen(MessageProcessing::class, $callback);
-        $this->laravel['events']->listen(MessageProcessed::class, $callback);
+        $this->laravel['events']->listen(ListenerHandling::class, $callback);
+        $this->laravel['events']->listen(ListenerHandled::class, $callback);
+        $this->laravel['events']->listen(ListenerHandleFailed::class, $callback);
+        $this->laravel['events']->listen(ListenerHandlerExceptionOccurred::class, $callback);
         $this->laravel['events']->listen(MessageProcessingFailed::class, $callback);
-        $this->laravel['events']->listen(HandlerExceptionOccurred::class, $callback);
     }
 
     /**

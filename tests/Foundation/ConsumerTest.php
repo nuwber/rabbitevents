@@ -26,6 +26,7 @@ class ConsumerTest extends TestCase
         $amqpMessage = new ImplAmqpMessage();
         $amqpMessage->setRoutingKey($event);
         $amqpMessage->setBody($payload);
+        $amqpMessage->setProperty('x-attempts', 2);
 
         $amqpConsumer = m::mock(AmqpConsumer::class);
         $amqpConsumer->shouldReceive('receive')
@@ -37,6 +38,7 @@ class ConsumerTest extends TestCase
         self::assertInstanceOf(Message::class, $message);
         self::assertEquals($event, $message->event());
         self::assertEquals($payload, $message->payload()->jsonSerialize());
+        self::assertEquals(3, $message->attempts());
     }
 
     public function testNoMessage()
