@@ -6,6 +6,9 @@ namespace RabbitEvents\Foundation;
 
 use Illuminate\Support\Carbon;
 use Interop\Amqp\AmqpConsumer;
+use Interop\Amqp\AmqpMessage;
+use PhpAmqpLib\Exception\AMQPRuntimeException;
+use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
 
 /**
  * @mixin AmqpConsumer
@@ -23,20 +26,30 @@ class Consumer
 
     /**
      * Receives a Message from the queue and returns Message object
-     *
-     * @param int $timeout
-     * @return ?Message
      */
     public function nextMessage(int $timeout = 0): ?Message
     {
-        if (!$amqpMessage = $this->amqpConsumer->receive($timeout)) {
+        if (!$amqpMessage = $this->receiveMessage($timeout)) {
             return null;
         }
 
-        $amqpMessage->setTimestamp(Carbon::now()->timestamp);
+        // Set timestamp only if this message was not released before
+        if (!$amqpMessage->getTimestamp()) {
+            $amqpMessage->setTimestamp(Carbon::now()->getTimestamp());
+        }
 
         return Message::createFromAmqpMessage($amqpMessage, $this->context->getTransport())
-            ->setAmqpMessage($amqpMessage);
+            ->setAmqpMessage($amqpMessage)
+            ->increaseAttempts();
+    }
+
+    protected function receiveMessage(int $timeout = 0): ?AmqpMessage
+    {
+        try {
+            return  $this->amqpConsumer->receive($timeout);
+        } catch (AMQPRuntimeException $exception) {
+            throw new ConnectionLostException($exception);
+        }
     }
 
     public function acknowledge(Message $message): void

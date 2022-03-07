@@ -2,9 +2,10 @@
 
 namespace RabbitEvents\Listener\Commands\Log;
 
-use RabbitEvents\Listener\Events\HandlerExceptionOccurred;
-use RabbitEvents\Listener\Events\MessageProcessed;
-use RabbitEvents\Listener\Events\MessageProcessing;
+use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
+use RabbitEvents\Listener\Events\ListenerHandled;
+use RabbitEvents\Listener\Events\ListenerHandling;
+use RabbitEvents\Listener\Events\ListenerHandleFailed;
 use RabbitEvents\Listener\Events\MessageProcessingFailed;
 
 abstract class Writer
@@ -15,20 +16,21 @@ abstract class Writer
     public const STATUS_FAILED = 'Failed';
 
     /**
-     * @param HandlerExceptionOccurred | MessageProcessing | MessageProcessed | MessageProcessingFailed $event
+     * @param ListenerHandlerExceptionOccurred | ListenerHandling | ListenerHandled | ListenerHandleFailed $event
      */
     abstract public function log($event): void;
 
     /**
-     * @param HandlerExceptionOccurred | MessageProcessing | MessageProcessed | MessageProcessingFailed $event
+     * @param ListenerHandlerExceptionOccurred | ListenerHandling | ListenerHandled | ListenerHandleFailed $event
      * @return string
      */
     protected function getStatus($event): string
     {
         return match (get_class($event)) {
-            MessageProcessing::class => self::STATUS_PROCESSING,
-            MessageProcessed::class => self::STATUS_PROCESSED,
-            HandlerExceptionOccurred::class => self::STATUS_EXCEPTION,
+            ListenerHandling::class => self::STATUS_PROCESSING,
+            ListenerHandled::class => self::STATUS_PROCESSED,
+            ListenerHandlerExceptionOccurred::class => self::STATUS_EXCEPTION,
+            ListenerHandleFailed::class => self::STATUS_FAILED,
             MessageProcessingFailed::class => self::STATUS_FAILED,
         };
     }

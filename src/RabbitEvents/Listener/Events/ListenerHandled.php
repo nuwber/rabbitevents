@@ -6,7 +6,7 @@ namespace RabbitEvents\Listener\Events;
 
 use RabbitEvents\Listener\Message\Handler;
 
-class MessageProcessed
+class ListenerHandled
 {
     public function __construct(public Handler $handler)
     {

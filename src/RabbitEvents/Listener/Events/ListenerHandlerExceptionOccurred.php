@@ -6,9 +6,9 @@ namespace RabbitEvents\Listener\Events;
 
 use RabbitEvents\Listener\Message\Handler;
 
-class MessageProcessing
+class ListenerHandlerExceptionOccurred
 {
-    public function __construct(public Handler $handler)
+    public function __construct(public Handler $handler, public \Throwable $exception)
     {
     }
 }
