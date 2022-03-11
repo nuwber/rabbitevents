@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Listener;
 
+use Illuminate\Contracts\Events\Dispatcher as EventsDispatcher;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
+use RabbitEvents\Foundation\Message;
+use RabbitEvents\Listener\Events\MessageProcessingFailed;
+use RabbitEvents\Listener\Events\WorkerStopping;
+use RabbitEvents\Listener\Exceptions\MaxAttemptsExceededException;
 use RabbitEvents\Listener\Message\ProcessingOptions;
 use RabbitEvents\Listener\Message\Processor;
 use Throwable;
@@ -24,7 +29,7 @@ class Worker
      */
     public $shouldQuit;
 
-    public function __construct(private ExceptionHandler $exceptions)
+    public function __construct(private ExceptionHandler $exceptions, private EventsDispatcher $events)
     {
     }
 
@@ -37,6 +42,8 @@ class Worker
         while (true) {
             try {
                 if ($message = $consumer->nextMessage(1000)) {
+                    $this->throwExceptionIfAlreadyExceedsMaxAttempts($message, $options);
+
                     if ($supportsAsyncSignals) {
                         $this->registerTimeoutHandler($options);
                     }
@@ -59,8 +66,8 @@ class Worker
 
             $status = $this->stopIfNecessary($options);
 
-            if (! is_null($status)) {
-                return $status;
+            if (!is_null($status)) {
+                return $this->stop($status);
             }
         }
     }
@@ -76,6 +83,25 @@ class Worker
         pcntl_signal(SIGALRM, fn() => $this->kill(static::EXIT_ERROR));
 
         pcntl_alarm(max($options->timeout, 0));
+    }
+
+
+    /**
+     * Mark the given job as failed if it has exceeded the maximum allowed attempts.
+     *
+     * This will likely be because the job previously exceeded a timeout.
+     */
+    protected function throwExceptionIfAlreadyExceedsMaxAttempts(Message $message, ProcessingOptions $options): void
+    {
+        if ($options->maxTries === 0 || $message->attempts() <= $options->maxTries) {
+            return;
+        }
+
+        $this->events->dispatch(new MessageProcessingFailed($message, $e = new MaxAttemptsExceededException(
+            'The Message handle tries has been attempted too many times.'
+        )));
+
+        throw $e;
     }
 
     /**
@@ -134,13 +160,28 @@ class Worker
     }
 
     /**
-     * Kill the process.
+     * Stop listening and bail out of the script.
      *
      * @param  int  $status
+     * @return int
+     */
+    public function stop(int $status = 0)
+    {
+        $this->events->dispatch(new WorkerStopping($status));
+
+        return $status;
+    }
+
+    /**
+     * Kill the process.
+     *
+     * @param int $status
      * @return never
      */
     public function kill($status = 0)
     {
+        $this->events->dispatch(new WorkerStopping($status));
+
         if (extension_loaded('posix')) {
             posix_kill(getmypid(), SIGKILL);
         }

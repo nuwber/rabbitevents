@@ -10,9 +10,7 @@ use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Events\ListenerHandleFailed;
 use RabbitEvents\Listener\Events\ListenerHandled;
 use RabbitEvents\Listener\Events\ListenerHandling;
-use RabbitEvents\Listener\Events\MessageProcessingFailed;
 use RabbitEvents\Listener\Exceptions\FailedException;
-use RabbitEvents\Listener\Exceptions\MaxAttemptsExceededException;
 use RabbitEvents\Listener\Facades\RabbitEvents;
 use Throwable;
 
@@ -29,8 +27,6 @@ class Processor
      */
     public function process(Message $message, ProcessingOptions $options): void
     {
-        $this->raiseExceptionIfAlreadyExceedsMaxAttempts($message, $options);
-
         foreach (RabbitEvents::getListeners($message->event()) as $listener) {
             [$class, $callback] = $listener;
 
@@ -69,24 +65,6 @@ class Processor
         } catch (Throwable $e) {
             $this->handleException($handler, $options, $e);
         }
-    }
-
-    /**
-     * Mark the given job as failed if it has exceeded the maximum allowed attempts.
-     *
-     * This will likely be because the job previously exceeded a timeout.
-     */
-    protected function raiseExceptionIfAlreadyExceedsMaxAttempts(Message $message, ProcessingOptions $options): void
-    {
-        if ($options->maxTries === 0 || $message->attempts() <= $options->maxTries) {
-            return;
-        }
-
-        $this->raiseMessageProcessingFailedEvent($message, $e = new MaxAttemptsExceededException(
-            'The Message handle tries has been attempted too many times.'
-        ));
-
-        throw $e;
     }
 
     /**
@@ -181,11 +159,6 @@ class Processor
     protected function raiseExceptionOccurredEvent(Handler $handler, Throwable $exception): void
     {
         $this->events->dispatch(new ListenerHandlerExceptionOccurred($handler, $exception));
-    }
-
-    protected function raiseMessageProcessingFailedEvent(Message $message, Throwable $throwable): void
-    {
-        $this->events->dispatch(new MessageProcessingFailed($message, $throwable));
     }
 
     /**

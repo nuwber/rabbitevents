@@ -10,9 +10,17 @@ use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Listener\Dispatcher;
+use RabbitEvents\Listener\Events\ListenerHandled;
+use RabbitEvents\Listener\Events\ListenerHandleFailed;
+use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
+use RabbitEvents\Listener\Events\ListenerHandling;
+use RabbitEvents\Listener\Events\MessageProcessingFailed;
+use RabbitEvents\Listener\Events\WorkerStopping;
+use RabbitEvents\Listener\Exceptions\MaxAttemptsExceededException;
 use RabbitEvents\Listener\Message\ProcessingOptions;
 use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Listener\Worker;
+use RabbitEvents\Tests\Listener\Message\FakeHandlerFactory;
 
 class WorkerTest extends TestCase
 {
@@ -39,14 +47,14 @@ class WorkerTest extends TestCase
 
     public function testInstantiable(): void
     {
-        self::assertInstanceOf(Worker::class, new Worker($this->exceptionHandler));
+        self::assertInstanceOf(Worker::class, new Worker($this->exceptionHandler, $this->events));
     }
 
     public function testWork(): void
     {
         $options = $this->options();
 
-        $worker = new TestWorker($this->exceptionHandler);
+        $worker = new Worker($this->exceptionHandler, $this->events);
         $worker->shouldQuit = true; //For one tick only
         
         $processor = m::spy(Processor::class);
@@ -58,13 +66,15 @@ class WorkerTest extends TestCase
 
         $status = $worker->work($processor, $consumer, $options);
 
-        $processor->shouldHaveReceived()->process($message, $options);
         self::assertEquals(Worker::EXIT_SUCCESS, $status);
+
+        $processor->shouldHaveReceived()->process($message, $options);
+        $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
     }
 
     public function testStopIfMemoryLimitExceeded(): void
     {
-        $worker = new TestWorker($this->exceptionHandler);
+        $worker = new Worker($this->exceptionHandler, $this->events);
 
         $consumer = m::mock(Consumer::class)->makePartial();
         $consumer->shouldReceive('nextMessage')
@@ -73,29 +83,32 @@ class WorkerTest extends TestCase
         $status = $worker->work(m::mock(Processor::class), $consumer, $this->options(['memory' => 0]));
 
         self::assertEquals(Worker::EXIT_MEMORY_LIMIT, $status);
+        $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
     }
 
     public function testStopListeningIfLostConnection(): void
     {
         $exception = new ConnectionLostException();
 
-        $worker = new TestWorker($this->exceptionHandler);
+        $worker = new Worker($this->exceptionHandler, $this->events);
 
         $consumer = m::mock(Consumer::class);
         $consumer->shouldReceive('nextMessage')
             ->andThrow($exception);
 
         $status = $worker->work(m::mock(Processor::class), $consumer, $this->options());
-        $this->exceptionHandler->shouldHaveReceived()->report($exception);
 
         self::assertEquals(Worker::EXIT_SUCCESS, $status);
+
+        $this->exceptionHandler->shouldHaveReceived()->report($exception);
+        $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
     }
 
     public function testFinallyAcknowledge(): void
     {
         $exception = new \RuntimeException();
 
-        $worker = new TestWorker($this->exceptionHandler);
+        $worker = new Worker($this->exceptionHandler, $this->events);
         $worker->shouldQuit = true; //For one tick only
 
         $processor = m::mock(Processor::class);
@@ -112,9 +125,33 @@ class WorkerTest extends TestCase
 
         $status = $worker->work($processor, $consumer, $this->options());
 
-        $this->exceptionHandler->shouldHaveReceived()->report($exception);
-
         self::assertEquals(Worker::EXIT_SUCCESS, $status);
+
+        $this->exceptionHandler->shouldHaveReceived()->report($exception);
+        $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
+    }
+
+    public function testProcessNotStartedIfExceededMaxAttempts()
+    {
+        $message = m::mock(Message::class);
+        $message->shouldReceive('attempts')
+            ->andReturn(3);
+
+        $consumer = m::mock(Consumer::class);
+        $consumer->shouldReceive()
+            ->nextMessage(1000)
+            ->andReturn($message);
+
+        $processor = m::mock(Processor::class);
+        $processor->shouldNotReceive('process');
+
+        $worker = new Worker($this->exceptionHandler, $this->events);
+        $worker->shouldQuit = true; //one tick
+
+        $worker->work($processor, $consumer, $this->options(['maxTries' => 2]));
+
+        $this->exceptionHandler->shouldHaveReceived()->report(m::type(MaxAttemptsExceededException::class));
+        $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessingFailed::class))->once();
     }
 
     protected function options(array $overrides = []): ProcessingOptions
@@ -127,15 +164,5 @@ class WorkerTest extends TestCase
 
         return $options;
 
-    }
-}
-
-class TestWorker extends Worker
-{
-    public $stoppedWithStatus;
-
-    protected function stop(int $status = 0): int
-    {
-        return 0;
     }
 }

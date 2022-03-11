@@ -129,22 +129,6 @@ class ProcessorTest extends TestCase
         $this->events->shouldNotHaveReceived()->dispatch(m::type(ListenerHandleFailed::class))->once();
     }
 
-    public function testHandlerIsNotReleasedIfItHasExceededMaxAttempts()
-    {
-        $this->expectException(MaxAttemptsExceededException::class);
-
-        $message = clone $this->message;
-        $message->setProperty('x-attempts', 3);
-
-        $processor = new Processor(new FakeHandlerFactory(), $this->events);
-        $processor->process($message, $this->options(['maxTries' => 2]));
-
-        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandling::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandlerExceptionOccurred::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandled::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandleFailed::class))->once();
-    }
-
     public function testDonNotReleaseIfLastAttempt()
     {
         $this->expectException(\RuntimeException::class);
