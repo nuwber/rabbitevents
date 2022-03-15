@@ -27,9 +27,7 @@ abstract class Writer
             ListenerHandling::class => self::STATUS_PROCESSING,
             ListenerHandled::class => self::STATUS_PROCESSED,
             ListenerHandlerExceptionOccurred::class => self::STATUS_EXCEPTION,
-            ListenerHandleFailed::class => self::STATUS_FAILED,
-            MessageProcessingFailed::class => self::STATUS_FAILED,
-            WorkerStopping::class => self::STATUS_FAILED,
+            default => self::STATUS_FAILED
         };
     }
 }
