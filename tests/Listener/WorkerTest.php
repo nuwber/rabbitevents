@@ -162,7 +162,7 @@ class WorkerTest extends TestCase
         $consumer->shouldReceive('nextMessage')
             ->andReturn(m::mock(Message::class));
 
-        $consumer->shouldReceive('acknowledge')->once();
+        $consumer->shouldReceive('acknowledge')->twice(); //The second is because of $shouldQuite === true
 
         $processor = m::mock(Processor::class);
         $processor->shouldReceive('process')

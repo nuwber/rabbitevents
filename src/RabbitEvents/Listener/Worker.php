@@ -43,8 +43,9 @@ class Worker
                 if ($message = $consumer->nextMessage(1000)) {
                     try {
                         $this->skipIfAlreadyExceedsMaxAttempts($message, $options);
+
                         if ($supportsAsyncSignals) {
-                            $this->registerTimeoutHandler($options);
+                            $this->registerTimeoutHandler($message, $consumer, $options);
                         }
 
                         $processor->process($message, $options);
@@ -73,12 +74,14 @@ class Worker
     /**
      * Register the worker timeout handler.
      */
-    protected function registerTimeoutHandler(ProcessingOptions $options)
+    protected function registerTimeoutHandler(Message $message, Consumer $consumer, ProcessingOptions $options)
     {
         // We will register a signal handler for the alarm signal so that we can kill this
         // process if it is running too long because it has frozen. This uses the async
         // signals supported in recent versions of PHP to accomplish it conveniently.
-        pcntl_signal(SIGALRM, function () {
+        pcntl_signal(SIGALRM, function () use ($message, $consumer) {
+            $consumer->acknowledge($message);
+
             $this->kill(static::EXIT_ERROR);
         });
 
