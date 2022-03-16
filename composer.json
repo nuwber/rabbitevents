@@ -55,6 +55,7 @@
     }
   },
   "suggest": {
+    "ext-pcntl": "Required to use all features of the worker.",
     "vlucas/phpdotenv": "Loads environment variables from .env to getenv(), $_ENV and $_SERVER automagically."
   },
   "config": {

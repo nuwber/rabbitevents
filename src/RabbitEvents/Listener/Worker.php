@@ -38,24 +38,23 @@ class Worker
         if ($supportsAsyncSignals = $this->supportsAsyncSignals()) {
             $this->listenForSignals();
         }
-
         while (true) {
             try {
                 if ($message = $consumer->nextMessage(1000)) {
-                    $this->throwExceptionIfAlreadyExceedsMaxAttempts($message, $options);
-
-                    if ($supportsAsyncSignals) {
-                        $this->registerTimeoutHandler($options);
-                    }
-
                     try {
+                        $this->skipIfAlreadyExceedsMaxAttempts($message, $options);
+
+                        if ($supportsAsyncSignals) {
+                            $this->registerTimeoutHandler($message, $consumer, $options);
+                        }
+
                         $processor->process($message, $options);
+
+                        if ($supportsAsyncSignals) {
+                            $this->resetTimeoutHandler();
+                        }
                     } finally {
                         $consumer->acknowledge($message);
-                    }
-
-                    if ($supportsAsyncSignals) {
-                        $this->resetTimeoutHandler();
                     }
                 }
             } catch (Throwable $throwable) {
@@ -75,23 +74,21 @@ class Worker
     /**
      * Register the worker timeout handler.
      */
-    protected function registerTimeoutHandler(ProcessingOptions $options)
+    protected function registerTimeoutHandler(Message $message, Consumer $consumer, ProcessingOptions $options)
     {
         // We will register a signal handler for the alarm signal so that we can kill this
         // process if it is running too long because it has frozen. This uses the async
         // signals supported in recent versions of PHP to accomplish it conveniently.
-        pcntl_signal(SIGALRM, fn() => $this->kill(static::EXIT_ERROR));
+        pcntl_signal(SIGALRM, function () use ($message, $consumer) {
+            $consumer->acknowledge($message);
+
+            $this->kill(static::EXIT_ERROR);
+        });
 
         pcntl_alarm(max($options->timeout, 0));
     }
 
-
-    /**
-     * Mark the given job as failed if it has exceeded the maximum allowed attempts.
-     *
-     * This will likely be because the job previously exceeded a timeout.
-     */
-    protected function throwExceptionIfAlreadyExceedsMaxAttempts(Message $message, ProcessingOptions $options): void
+    protected function skipIfAlreadyExceedsMaxAttempts(Message $message, ProcessingOptions $options): void
     {
         if ($options->maxTries === 0 || $message->attempts() <= $options->maxTries) {
             return;
@@ -162,7 +159,7 @@ class Worker
     /**
      * Stop listening and bail out of the script.
      *
-     * @param  int  $status
+     * @param int $status
      * @return int
      */
     public function stop(int $status = 0)
@@ -198,10 +195,12 @@ class Worker
     {
         pcntl_async_signals(true);
 
-        foreach ([SIGINT, SIGTERM] as $signal) {
-            pcntl_signal($signal, function () {
-                $this->shouldQuit = true;
-            });
-        }
+        pcntl_signal(SIGINT, function () {
+            $this->kill(self::EXIT_SUCCESS);
+        });
+
+        pcntl_signal(SIGTERM, function () {
+            $this->shouldQuit = true;
+        });
     }
 }

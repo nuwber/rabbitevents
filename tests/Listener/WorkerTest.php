@@ -76,11 +76,12 @@ class WorkerTest extends TestCase
     {
         $worker = new Worker($this->exceptionHandler, $this->events);
 
-        $consumer = m::mock(Consumer::class)->makePartial();
+        $consumer = m::mock(Consumer::class);
         $consumer->shouldReceive('nextMessage')
             ->andReturn(m::mock(Message::class));
+        $consumer->shouldReceive('acknowledge')->once();
 
-        $status = $worker->work(m::mock(Processor::class), $consumer, $this->options(['memory' => 0]));
+        $status = $worker->work(m::spy(Processor::class), $consumer, $this->options(['memory' => 0]));
 
         self::assertEquals(Worker::EXIT_MEMORY_LIMIT, $status);
         $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
@@ -141,17 +142,41 @@ class WorkerTest extends TestCase
         $consumer->shouldReceive()
             ->nextMessage(1000)
             ->andReturn($message);
+        $consumer->shouldReceive('acknowledge')->once();
 
-        $processor = m::mock(Processor::class);
-        $processor->shouldNotReceive('process');
+        $processor = m::spy(Processor::class);
 
         $worker = new Worker($this->exceptionHandler, $this->events);
         $worker->shouldQuit = true; //one tick
 
         $worker->work($processor, $consumer, $this->options(['maxTries' => 2]));
 
-        $this->exceptionHandler->shouldHaveReceived()->report(m::type(MaxAttemptsExceededException::class));
+        $processor->shouldNotHaveReceived('process');
+
         $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessingFailed::class))->once();
+    }
+
+    public function testExitIfTimedOut()
+    {
+        $consumer = m::mock(Consumer::class);
+        $consumer->shouldReceive('nextMessage')
+            ->andReturn(m::mock(Message::class));
+
+        $consumer->shouldReceive('acknowledge')->twice(); //The second is because of $shouldQuite === true
+
+        $processor = m::mock(Processor::class);
+        $processor->shouldReceive('process')
+            ->andReturnUsing(function () {
+                sleep(2);
+
+                return true;
+            });
+
+        $worker = new TestWorker($this->exceptionHandler, $this->events);
+        $worker->shouldQuit = true;
+        $worker->work($processor, $consumer, $this->options(['timeout' => 1]));
+
+        self::assertEquals(Worker::EXIT_ERROR, $worker->exitStatus);
     }
 
     protected function options(array $overrides = []): ProcessingOptions
@@ -164,5 +189,16 @@ class WorkerTest extends TestCase
 
         return $options;
 
+    }
+}
+
+
+class TestWorker extends Worker
+{
+    public $exitStatus;
+
+    public function kill($status = 0)
+    {
+        $this->exitStatus = $status;
     }
 }

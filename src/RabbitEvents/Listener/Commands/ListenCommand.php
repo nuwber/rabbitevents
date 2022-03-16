@@ -13,6 +13,7 @@ use RabbitEvents\Listener\Events\ListenerHandleFailed;
 use RabbitEvents\Listener\Events\ListenerHandled;
 use RabbitEvents\Listener\Events\ListenerHandling;
 use RabbitEvents\Listener\Events\MessageProcessingFailed;
+use RabbitEvents\Listener\Events\WorkerStopping;
 use RabbitEvents\Listener\Message\HandlerFactory;
 use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Listener\Message\ProcessingOptions;
@@ -107,6 +108,9 @@ class ListenCommand extends Command
         $this->laravel['events']->listen(ListenerHandleFailed::class, $callback);
         $this->laravel['events']->listen(ListenerHandlerExceptionOccurred::class, $callback);
         $this->laravel['events']->listen(MessageProcessingFailed::class, $callback);
+        $this->laravel['events']->listen(WorkerStopping::class, function ($event) {
+            $this->output->info('Worker has been stopped with the status code ' . $event->status);
+        });
     }
 
     /**
