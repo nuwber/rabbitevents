@@ -76,6 +76,26 @@ class ProcessorTest extends TestCase
         self::assertFalse($job->released);
     }
 
+    public function testDoNotRunHandlerThatWasRanBefore()
+    {
+        $job1 = new FakeJob(static function () {
+            throw new \RuntimeException("This exception shouldn't be thrown because the Job was passed before.");
+        });
+        $job1->listenerClass = 'TheFirstListenerClass';
+        $job2 = new FakeJob();
+        $job2->listenerClass = 'TheSecondListenerClass';
+
+        $this->message->setProperty(Processor::HANDLERS_PASSED_PROPERTY, ['TheFirstListenerClass']);
+
+        self::assertEquals(['TheFirstListenerClass'], $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY));
+
+        $processor = new Processor($this->events, $this->makeJobsFactory([$job1, $job2]));
+
+        $processor->process($this->message, $this->options());
+
+        self::assertEquals(['TheFirstListenerClass', 'TheSecondListenerClass'], $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY));
+    }
+
     public function testRunJob()
     {
         $job = new FakeJob();
@@ -124,7 +144,7 @@ class ProcessorTest extends TestCase
             }
         );
 
-        $processor = new Processor($this->events, $this->makeJobsFactory([]));
+        $processor = new Processor($this->events, $this->makeJobsFactory([$job]));
 
         $processor->runJob($job, $this->options());
 
@@ -205,6 +225,7 @@ class FakeJob extends Job
     public $failed = false;
     public $connectionName;
     public $acknowledged = false;
+    public $listenerClass = '';
 
     public function __construct(callable $callback = null)
     {
@@ -293,5 +314,10 @@ class FakeJob extends Job
     public function __destruct()
     {
         $this->acknowledged = true;
+    }
+
+    public function getListenerClass(): string
+    {
+        return $this->listenerClass;
     }
 }
