@@ -18,6 +18,8 @@ use Throwable;
 
 class Processor
 {
+    public const HANDLERS_PASSED_PROPERTY = 'handlers-passed';
+
     /**
      * @var EventsDispatcher
      */
@@ -44,7 +46,13 @@ class Processor
     public function process(AmqpMessage $message, ProcessingOptions $options): void
     {
         foreach ($this->jobsFactory->makeJobs($message) as $job) {
+            if (!$this->shouldBeFired($message, $job)) {
+                continue;
+            }
+
             $response = $this->runJob($job, $options);
+
+            $this->markJobAsPassed($message, $job);
 
             // If a boolean false is returned from a listener, we will stop propagating
             // the event to any further listeners down in the chain, else we keep on
@@ -78,6 +86,24 @@ class Processor
         } catch (Throwable $e) {
             $this->handleJobException($job, $options, $e);
         }
+    }
+
+    private function shouldBeFired(AmqpMessage $message, Job $job): bool
+    {
+        if (!$handlersPassed = $message->getProperty(self::HANDLERS_PASSED_PROPERTY)) {
+            return true;
+        }
+
+        return !in_array($job->getListenerClass(), $handlersPassed, true);
+    }
+
+    private function markJobAsPassed(AmqpMessage $message, Job $job): void
+    {
+        $handlersPassed = $message->getProperty(self::HANDLERS_PASSED_PROPERTY, []);
+
+        $handlersPassed[] = $job->getListenerClass();
+
+        $message->setProperty(self::HANDLERS_PASSED_PROPERTY, array_unique($handlersPassed, SORT_STRING));
     }
 
     /**

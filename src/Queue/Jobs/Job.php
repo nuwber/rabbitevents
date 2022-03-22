@@ -117,6 +117,11 @@ class Job extends \Illuminate\Queue\Jobs\Job implements \Illuminate\Contracts\Qu
         return $this->getName();
     }
 
+    public function getListenerClass(): string
+    {
+        return $this->listenerClass;
+    }
+
     /**
      * Get the timestamp indicating when the job should timeout.
      */
