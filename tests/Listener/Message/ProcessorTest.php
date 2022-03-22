@@ -20,6 +20,7 @@ use RabbitEvents\Listener\Message\ProcessingOptions;
 use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Tests\Listener\Payload;
 use RabbitEvents\Tests\Listener\TestCase;
+use Symfony\Component\Process\Process;
 
 class ProcessorTest extends TestCase
 {
@@ -38,7 +39,7 @@ class ProcessorTest extends TestCase
     {
         $this->mockListeners([
             [\Closure::class, static fn() => true],
-            [\Closure::class, static fn() => true]
+            [FakeHandler::class, static fn() => true]
         ]);
 
         $processor = new Processor($handlerFactory = new FakeHandlerFactory(), $this->events);
@@ -60,6 +61,37 @@ class ProcessorTest extends TestCase
             ->twice();
     }
 
+    public function testDoNotRunHandlerThatWasRanBefore()
+    {
+        $this->mockListeners([
+            [\Closure::class, static function () {
+                throw new \RuntimeException("This exception shouldn't be thrown because the Closure was passed before.");
+            }],
+            [FakeHandler::class, static fn() => true],
+        ]);
+
+        $this->message->setProperty(Processor::HANDLERS_PASSED_PROPERTY, [\Closure::class]);
+
+        self::assertEquals([\Closure::class], $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY));
+
+        $processor = new Processor(new FakeHandlerFactory(), $this->events);
+        $processor->process($this->message, $this->options());
+
+        self::assertEquals([\Closure::class, FakeHandler::class], $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY));
+    }
+
+    public function testHandlerMarkedAsPassed()
+    {
+        $this->mockListeners([
+            [FakeHandler::class, static fn() => true],
+        ]);
+
+        $processor = new Processor(new FakeHandlerFactory(), $this->events);
+        $processor->process($this->message, $this->options());
+
+        self::assertTrue(in_array(FakeHandler::class, $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY)));
+    }
+    
     public function testPropagationStopped(): void
     {
         $this->mockListeners([
