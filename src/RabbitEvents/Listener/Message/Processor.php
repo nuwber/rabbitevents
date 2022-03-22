@@ -16,6 +16,8 @@ use Throwable;
 
 class Processor
 {
+    public const HANDLERS_PASSED_PROPERTY = 'handlers-passed';
+
     public function __construct(private HandlerFactory $handlerFactory, private EventsDispatcher $events)
     {
     }
@@ -30,10 +32,16 @@ class Processor
         foreach (RabbitEvents::getListeners($message->event()) as $listener) {
             [$class, $callback] = $listener;
 
+            if (!$this->shouldBeHandled($message, $class)) {
+                continue;
+            }
+
             $response = $this->runHandler(
                 $this->handlerFactory->make($message, $callback, $class),
                 $options
             );
+
+            $this->markHandlerAsPassed($message, $class);
 
             // If a boolean false is returned from a listener, we will stop propagating
             // the event to any further listeners down in the chain, else we keep on
@@ -65,6 +73,24 @@ class Processor
         } catch (Throwable $e) {
             $this->handleException($handler, $options, $e);
         }
+    }
+
+    private function shouldBeHandled(Message $message, string $className): bool
+    {
+        if (!$handlersPassed = $message->getProperty(self::HANDLERS_PASSED_PROPERTY)) {
+            return true;
+        }
+
+        return !in_array($className, $handlersPassed, true);
+    }
+
+    private function markHandlerAsPassed(Message $message, string $className): void
+    {
+        $handlersPassed = $message->getProperty(self::HANDLERS_PASSED_PROPERTY, []);
+
+        $handlersPassed[] = $className;
+
+        $message->setProperty(self::HANDLERS_PASSED_PROPERTY, array_unique($handlersPassed, SORT_STRING));
     }
 
     /**

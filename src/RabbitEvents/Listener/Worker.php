@@ -38,6 +38,7 @@ class Worker
         if ($supportsAsyncSignals = $this->supportsAsyncSignals()) {
             $this->listenForSignals();
         }
+
         while (true) {
             try {
                 if ($message = $consumer->nextMessage(1000)) {
