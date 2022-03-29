@@ -13,7 +13,7 @@
   "require": {
     "php": "^8.0",
     "ext-json": "*",
-    "rabbitevents/foundation": "7.x-dev"
+    "rabbitevents/foundation": "self.version"
   },
   "autoload": {
     "psr-4": {
