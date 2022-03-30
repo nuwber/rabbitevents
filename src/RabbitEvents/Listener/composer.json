@@ -25,7 +25,7 @@
   "extra": {
     "laravel": {
       "providers": [
-        "ListenerServiceProvider"
+        "RabbitEvents\\Listener\\ListenerServiceProvider"
       ],
       "aliases": {
         "RabbitEvents": "RabbitEvents\\Listener\\Facades\\RabbitEvents"
