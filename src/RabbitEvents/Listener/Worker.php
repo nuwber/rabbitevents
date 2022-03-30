@@ -40,28 +40,18 @@ class Worker
         }
 
         while (true) {
-            try {
-                if ($message = $consumer->nextMessage(1000)) {
-                    try {
-                        $this->skipIfAlreadyExceedsMaxAttempts($message, $options);
-
-                        if ($supportsAsyncSignals) {
-                            $this->registerTimeoutHandler($message, $consumer, $options);
-                        }
-
-                        $processor->process($message, $options);
-
-                        if ($supportsAsyncSignals) {
-                            $this->resetTimeoutHandler();
-                        }
-                    } finally {
-                        $consumer->acknowledge($message);
-                    }
+            if ($message = $this->getNextMessage($consumer)) {
+                if ($supportsAsyncSignals) {
+                    $this->registerTimeoutHandler($message, $consumer, $options);
                 }
-            } catch (Throwable $throwable) {
-                $this->exceptions->report($throwable);
 
-                $this->stopListeningIfLostConnection($throwable);
+                $this->processMessage($processor, $message, $options);
+
+                if ($supportsAsyncSignals) {
+                    $this->resetTimeoutHandler();
+                }
+
+                $consumer->acknowledge($message);
             }
 
             $status = $this->stopIfNecessary($options);
@@ -73,9 +63,42 @@ class Worker
     }
 
     /**
+     * @param Consumer $consumer
+     * @return Message|void|null
+     */
+    protected function getNextMessage(Consumer $consumer)
+    {
+        try {
+            return $consumer->nextMessage(1000);
+        } catch (Throwable $throwable) {
+            $this->exceptions->report($throwable);
+
+            $this->stopListeningIfLostConnection($throwable);
+        }
+    }
+
+    /**
+     * @param Processor $processor
+     * @param Message $message
+     * @param ProcessingOptions $options
+     * @return void
+     * @throws Throwable
+     */
+    private function processMessage(Processor $processor, Message $message, ProcessingOptions $options): void
+    {
+        try {
+            $this->skipIfAlreadyExceedsMaxAttempts($message, $options);
+
+            $processor->process($message, $options);
+        } catch (\Throwable $throwable) {
+            $this->exceptions->report($throwable);
+        }
+    }
+
+    /**
      * Register the worker timeout handler.
      */
-    protected function registerTimeoutHandler(Message $message, Consumer $consumer, ProcessingOptions $options)
+    protected function registerTimeoutHandler(Message $message, Consumer $consumer, ProcessingOptions $options): void
     {
         // We will register a signal handler for the alarm signal so that we can kill this
         // process if it is running too long because it has frozen. This uses the async

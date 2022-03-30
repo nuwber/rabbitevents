@@ -179,6 +179,25 @@ class WorkerTest extends TestCase
         self::assertEquals(Worker::EXIT_ERROR, $worker->exitStatus);
     }
 
+    public function testTimeoutResetIfProcessEndedWithException()
+    {
+        $consumer = m::mock(Consumer::class);
+        $consumer->shouldReceive('nextMessage')
+            ->andReturn(m::mock(Message::class));
+
+        $consumer->shouldReceive('acknowledge')->once();
+
+        $processor = m::mock(Processor::class);
+        $processor->shouldReceive('process')
+            ->andThrow(new \RuntimeException('Stopped unexpectedly'));
+
+        $worker = new TestWorker($this->exceptionHandler, $this->events);
+        $worker->shouldQuit = true;
+        $worker->work($processor, $consumer, $this->options(['timeout' => 1]));
+
+        self::assertTrue($worker->resetTimeoutHandler);
+    }
+
     protected function options(array $overrides = []): ProcessingOptions
     {
         $options = new ProcessingOptions('test-app', 'rabbitmq');
@@ -196,9 +215,15 @@ class WorkerTest extends TestCase
 class TestWorker extends Worker
 {
     public $exitStatus;
+    public $resetTimeoutHandler = false;
 
     public function kill($status = 0)
     {
         $this->exitStatus = $status;
+    }
+
+    protected function resetTimeoutHandler()
+    {
+        $this->resetTimeoutHandler = true;
     }
 }
