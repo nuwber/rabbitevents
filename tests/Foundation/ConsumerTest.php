@@ -5,10 +5,12 @@ namespace RabbitEvents\Tests\Foundation;
 use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\Impl\AmqpMessage as ImplAmqpMessage;
+use PhpAmqpLib\Exception\AMQPRuntimeException;
 use RabbitEvents\Foundation\Connection;
 use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Context;
 use RabbitEvents\Foundation\Contracts\Transport;
+use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
 use RabbitEvents\Foundation\Message;
 use \Mockery as m;
 
@@ -26,6 +28,7 @@ class ConsumerTest extends TestCase
         $amqpMessage = new ImplAmqpMessage();
         $amqpMessage->setRoutingKey($event);
         $amqpMessage->setBody($payload);
+        $amqpMessage->setProperty('x-attempts', 2);
 
         $amqpConsumer = m::mock(AmqpConsumer::class);
         $amqpConsumer->shouldReceive('receive')
@@ -37,6 +40,7 @@ class ConsumerTest extends TestCase
         self::assertInstanceOf(Message::class, $message);
         self::assertEquals($event, $message->event());
         self::assertEquals($payload, $message->payload()->jsonSerialize());
+        self::assertEquals(3, $message->attempts());
     }
 
     public function testNoMessage()
@@ -60,5 +64,18 @@ class ConsumerTest extends TestCase
 
         $consumer = new Consumer($amqpConsumer, m::mock(Context::class));
         $consumer->acknowledge($message);
+    }
+
+    public function testConnectionLostCatch()
+    {
+        $this->expectException(ConnectionLostException::class);
+
+        $amqpConsumer = m::mock(AmqpConsumer::class);
+        $amqpConsumer->shouldReceive()
+            ->receive(123)
+            ->andThrow(AMQPRuntimeException::class);
+
+        $consumer = new Consumer($amqpConsumer, m::mock(Context::class));
+        $consumer->nextMessage(123);
     }
 }

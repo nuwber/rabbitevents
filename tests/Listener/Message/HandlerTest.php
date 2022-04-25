@@ -112,6 +112,18 @@ class HandlerTest extends TestCase
         self::assertTrue($handler->isReleased());
     }
 
+    public function testGetAttempts()
+    {
+        $handler = new Handler(
+            m::mock(Container::class),
+            $this->getMessage()->increaseAttempts(),
+            'trim',
+            $this->listenerClass
+        );
+
+        self::assertEquals(1, $handler->attempts());
+    }
+
     protected function getMessage(): Message
     {
         return new Message($this->event, new Payload(['id' => 1]), m::mock(Transport::class));

@@ -7,10 +7,10 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Mockery as m;
 use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Message;
-use RabbitEvents\Listener\Events\HandlerExceptionOccurred;
-use RabbitEvents\Listener\Events\MessageProcessed;
-use RabbitEvents\Listener\Events\MessageProcessing;
-use RabbitEvents\Listener\Events\MessageProcessingFailed;
+use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
+use RabbitEvents\Listener\Events\ListenerHandled;
+use RabbitEvents\Listener\Events\ListenerHandling;
+use RabbitEvents\Listener\Events\ListenerHandleFailed;
 use RabbitEvents\Listener\Exceptions\FailedException;
 use RabbitEvents\Listener\Exceptions\MaxAttemptsExceededException;
 use RabbitEvents\Listener\Facades\RabbitEvents;
@@ -20,6 +20,7 @@ use RabbitEvents\Listener\Message\ProcessingOptions;
 use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Tests\Listener\Payload;
 use RabbitEvents\Tests\Listener\TestCase;
+use Symfony\Component\Process\Process;
 
 class ProcessorTest extends TestCase
 {
@@ -38,12 +39,10 @@ class ProcessorTest extends TestCase
     {
         $this->mockListeners([
             [\Closure::class, static fn() => true],
-            [\Closure::class, static fn() => true]
+            [FakeHandler::class, static fn() => true]
         ]);
 
         $processor = new Processor($handlerFactory = new FakeHandlerFactory(), $this->events);
-
-        $this->message->setProperty('x-attempts', 2);
 
         $processor->process($this->message, $this->options());
 
@@ -54,16 +53,45 @@ class ProcessorTest extends TestCase
         }
 
         $this->events->shouldHaveReceived()
-            ->dispatch(m::type(MessageProcessing::class))
+            ->dispatch(m::type(ListenerHandling::class))
             ->twice();
 
         $this->events->shouldHaveReceived()
-            ->dispatch(m::type(MessageProcessed::class))
+            ->dispatch(m::type(ListenerHandled::class))
             ->twice();
-
-        self::assertEquals(3, $this->message->attempts());
     }
 
+    public function testDoNotRunHandlerThatWasRanBefore()
+    {
+        $this->mockListeners([
+            [\Closure::class, static function () {
+                throw new \RuntimeException("This exception shouldn't be thrown because the Closure was passed before.");
+            }],
+            [FakeHandler::class, static fn() => true],
+        ]);
+
+        $this->message->setProperty(Processor::HANDLERS_PASSED_PROPERTY, [\Closure::class]);
+
+        self::assertEquals([\Closure::class], $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY));
+
+        $processor = new Processor(new FakeHandlerFactory(), $this->events);
+        $processor->process($this->message, $this->options());
+
+        self::assertEquals([\Closure::class, FakeHandler::class], $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY));
+    }
+
+    public function testHandlerMarkedAsPassed()
+    {
+        $this->mockListeners([
+            [FakeHandler::class, static fn() => true],
+        ]);
+
+        $processor = new Processor(new FakeHandlerFactory(), $this->events);
+        $processor->process($this->message, $this->options());
+
+        self::assertTrue(in_array(FakeHandler::class, $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY)));
+    }
+    
     public function testPropagationStopped(): void
     {
         $this->mockListeners([
@@ -103,10 +131,10 @@ class ProcessorTest extends TestCase
         self::assertTrue($handler->fired && $handler->failed);
         self::assertFalse($handler->released);
 
-        $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessing::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(HandlerExceptionOccurred::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessingFailed::class))->once();
-        $this->events->shouldNotHaveReceived()->dispatch(m::type(MessageProcessed::class))->once();
+        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandling::class))->once();
+        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandlerExceptionOccurred::class))->once();
+        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandleFailed::class))->once();
+        $this->events->shouldNotHaveReceived()->dispatch(m::type(ListenerHandled::class))->once();
     }
 
     public function testRegularExceptionThenRelease()
@@ -127,43 +155,22 @@ class ProcessorTest extends TestCase
 
         self::assertTrue($handler->fired && $handler->failed && $handler->released);
 
-        $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessing::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(HandlerExceptionOccurred::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessed::class))->once();
-        $this->events->shouldNotHaveReceived()->dispatch(m::type(MessageProcessingFailed::class))->once();
-    }
-
-    public function testHandlerIsNotReleasedIfItHasExceededMaxAttempts()
-    {
-        $this->expectException(MaxAttemptsExceededException::class);
-        $handlerFired = false;
-
-        $message = clone $this->message;
-        $message->setProperty('x-attempts', 2);
-        $handler = new Handler(m::mock(Container::class), $message, static fn() => $handlerFired = true, \Closure::class);
-
-        $processor = new Processor(new FakeHandlerFactory(), $this->events);
-        $processor->runHandler($handler, $this->options(['maxTries' => 1]));
-
-        self::assertTrue($handler->hasFailed());
-        self::assertFalse($handlerFired);
-
-        $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessing::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(HandlerExceptionOccurred::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessed::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessingFailed::class))->once();
+        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandling::class))->once();
+        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandlerExceptionOccurred::class))->once();
+        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandled::class))->once();
+        $this->events->shouldNotHaveReceived()->dispatch(m::type(ListenerHandleFailed::class))->once();
     }
 
     public function testDonNotReleaseIfLastAttempt()
     {
         $this->expectException(\RuntimeException::class);
 
-        $message = clone $this->message;
-        $message->setProperty('x-attempts', 2);
         $handler = new FakeHandler(
             $this->message,
             function () {throw new \RuntimeException();}
         );
+
+        $handler->attempts = 3;
 
         $processor = new Processor(new FakeHandlerFactory(), $this->events);
 
@@ -172,10 +179,10 @@ class ProcessorTest extends TestCase
         self::assertTrue($handler->hasFailed());
         self::assertFalse($handler->isReleased());
 
-        $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessing::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(HandlerExceptionOccurred::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessed::class))->once();
-        $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessingFailed::class))->once();
+        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandling::class))->once();
+        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandlerExceptionOccurred::class))->once();
+        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandled::class))->once();
+        $this->events->shouldHaveReceived()->dispatch(m::type(ListenerHandleFailed::class))->once();
     }
 
     protected function options(array $overrides = [])

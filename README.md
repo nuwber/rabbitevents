@@ -105,7 +105,8 @@ The logging configuration part was moved from a connection to the first level of
 
 ### `\Illuminate\Queue` is not the requirement anymore
 
-If you've been using this package on your fork or extension you should add this package in your `composer.json` as a requirement.
+To avoid confusion from `Illuminate\Queue` component, the dependency from this package was removed. If you've been using this package on your fork or extension you should add this package in your `composer.json` as a requirement.
+In terms of this avoidance, the `Job` class was renamed to `Handler`. If you are listening to Events from the previous version please replace them to new ones. Now the list of events is: `ListenerHandling`, `ListenerHandled`, `ListenerHandleFailed`, `ListenerHandlerExceptionOccurred` and `MessageProcessingFailed`.
 
 ## RabbitEvents Publisher<a name="publisher"></a>
 
@@ -129,6 +130,16 @@ This command registers a separate queue in RabbitMQ bound to an event. As the on
 You could start listening to an event only by using `rabbitevents:listen` command, so you have to use some system such as [Supervisor](http://supervisord.org/) or [pm2](http://pm2.keymetrics.io/) to control your listeners.
 
 If your listener crashes, then managers will rerun your listener and all messages sent to a queue will be handled in the same order as they were sent. There is the known problem: as queues are separated and you have messages that affect the same entity there's no guarantee that all actions will be done in an expected order. To avoid such problems you can send message time as a part of the payload and handle it internally in your listeners.
+
+
+#### Options<a name="listen-options"></a>
+- **--service=**. When a queue starts the name of the service becomes a part of a queue name: `service:event.name`. By default, service is the APP_NAME from your `.env`. You could override the first part of a queue name by this option.
+- **--connection=**. The name of connection specified in the `config/rabbitevents.php` config file. Default: `rabbitmq`.
+- **--memory=128**. The memory limit in megabytes. The RabbitEvents have restarting a worker if limit exceeded.
+- **--timeout=60**. The number of seconds a massage could be handled. 
+- **--tries=1**. Number of times to attempt to handle a Message before logging it failed.
+- **--sleep=5**. Sleep time in seconds before handling failed message next time.
+- **--quiet**. No console output
 
 ### Command `rabbitevents:list` <a name='command-list'></a>
 

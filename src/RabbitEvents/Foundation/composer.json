@@ -33,7 +33,7 @@
     "laravel": {
       "providers": [
         "RabbitEvents\\Foundation\\RabbitEventsServiceProvider"
-      ],
+      ]
     }
   },
   "suggest": {

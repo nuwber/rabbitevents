@@ -6,17 +6,18 @@ namespace RabbitEvents\Listener\Message;
 
 use Illuminate\Contracts\Events\Dispatcher as EventsDispatcher;
 use RabbitEvents\Foundation\Message;
-use RabbitEvents\Listener\Events\HandlerExceptionOccurred;
-use RabbitEvents\Listener\Events\MessageProcessingFailed;
-use RabbitEvents\Listener\Events\MessageProcessed;
-use RabbitEvents\Listener\Events\MessageProcessing;
+use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
+use RabbitEvents\Listener\Events\ListenerHandleFailed;
+use RabbitEvents\Listener\Events\ListenerHandled;
+use RabbitEvents\Listener\Events\ListenerHandling;
 use RabbitEvents\Listener\Exceptions\FailedException;
-use RabbitEvents\Listener\Exceptions\MaxAttemptsExceededException;
 use RabbitEvents\Listener\Facades\RabbitEvents;
 use Throwable;
 
 class Processor
 {
+    public const HANDLERS_PASSED_PROPERTY = 'handlers-passed';
+
     public function __construct(private HandlerFactory $handlerFactory, private EventsDispatcher $events)
     {
     }
@@ -24,21 +25,23 @@ class Processor
     /**
      * Fire an event and call the listeners.
      *
-     * @param Message $message
-     * @param ProcessingOptions $options
      * @throws Throwable
      */
     public function process(Message $message, ProcessingOptions $options): void
     {
-        $message->increaseAttempts();
-
         foreach (RabbitEvents::getListeners($message->event()) as $listener) {
             [$class, $callback] = $listener;
+
+            if (!$this->shouldBeHandled($message, $class)) {
+                continue;
+            }
 
             $response = $this->runHandler(
                 $this->handlerFactory->make($message, $callback, $class),
                 $options
             );
+
+            $this->markHandlerAsPassed($message, $class);
 
             // If a boolean false is returned from a listener, we will stop propagating
             // the event to any further listeners down in the chain, else we keep on
@@ -62,8 +65,6 @@ class Processor
         try {
             $this->raiseBeforeEvent($handler);
 
-            $this->markAsFailedIfAlreadyExceedsMaxAttempts($handler, $options);
-
             $response = $handler->handle();
 
             $this->raiseAfterEvent($handler);
@@ -74,28 +75,22 @@ class Processor
         }
     }
 
-    /**
-     * Mark the given job as failed if it has exceeded the maximum allowed attempts.
-     *
-     * This will likely be because the job previously exceeded a timeout.
-     *
-     * @param Handler $handler
-     * @param ProcessingOptions $options
-     * @return void
-     */
-    protected function markAsFailedIfAlreadyExceedsMaxAttempts(Handler $handler, ProcessingOptions $options): void
+    private function shouldBeHandled(Message $message, string $className): bool
     {
-        if ($options->maxTries === 0 || $handler->attempts() <= $options->maxTries) {
-            return;
+        if (!$handlersPassed = $message->getProperty(self::HANDLERS_PASSED_PROPERTY)) {
+            return true;
         }
 
-        $this->handleFail($handler, $e = new MaxAttemptsExceededException(
-            'The Message handle tries has been attempted too many times.'
-        ));
+        return !in_array($className, $handlersPassed, true);
+    }
 
-        $this->raiseAfterEvent($handler);
+    private function markHandlerAsPassed(Message $message, string $className): void
+    {
+        $handlersPassed = $message->getProperty(self::HANDLERS_PASSED_PROPERTY, []);
 
-        throw $e;
+        $handlersPassed[] = $className;
+
+        $message->setProperty(self::HANDLERS_PASSED_PROPERTY, array_unique($handlersPassed, SORT_STRING));
     }
 
     /**
@@ -127,12 +122,17 @@ class Processor
             // If we catch an exception, we will attempt to release the job back onto the queue
             // so it is not lost entirely. This'll let the job be retried at a later time by
             // another listener (or this same one). We will re-throw this exception after.
-            if (!$handler->isReleased() && !$handler->hasFailed()) {
+            if ($this->couldBeReleased($handler)) {
                 $handler->release($options->sleep);
             }
         }
 
         throw $exception;
+    }
+
+    protected function couldBeReleased(Handler $handler)
+    {
+        return !$handler->isReleased() && !$handler->hasFailed();
     }
 
     /**
@@ -161,24 +161,18 @@ class Processor
 
     /**
      * Raise the before queue job event.
-     *
-     * @param Handler $handler
-     * @return void
      */
     protected function raiseBeforeEvent(Handler $handler): void
     {
-        $this->events->dispatch(new MessageProcessing($handler));
+        $this->events->dispatch(new ListenerHandling($handler));
     }
 
     /**
      * Raise the after queue job event.
-     *
-     * @param Handler $handler
-     * @return void
      */
     protected function raiseAfterEvent(Handler $handler): void
     {
-        $this->events->dispatch(new MessageProcessed($handler));
+        $this->events->dispatch(new ListenerHandled($handler));
     }
 
     /**
@@ -190,18 +184,14 @@ class Processor
      */
     protected function raiseExceptionOccurredEvent(Handler $handler, Throwable $exception): void
     {
-        $this->events->dispatch(new HandlerExceptionOccurred($handler, $exception));
+        $this->events->dispatch(new ListenerHandlerExceptionOccurred($handler, $exception));
     }
 
     /**
      * Raise the failed queue job event.
-     *
-     * @param Handler $handler
-     * @param Throwable $exception
-     * @return void
      */
     protected function raiseFailedHandleEvent(Handler $handler, Throwable $exception): void
     {
-        $this->events->dispatch(new MessageProcessingFailed($handler, $exception));
+        $this->events->dispatch(new ListenerHandleFailed($handler, $exception));
     }
 }
