@@ -1,12 +1,10 @@
 <?php
 
-declare(strict_types=1);
-
 namespace RabbitEvents\Publisher\Support;
 
-use function publish;
-
 use Illuminate\Container\Container;
+use RabbitEvents\Publisher\Publisher;
+use RabbitEvents\Publisher\ShouldPublish;
 
 trait Publishable
 {
@@ -49,4 +47,3 @@ trait Publishable
             );
     }
 }
-
