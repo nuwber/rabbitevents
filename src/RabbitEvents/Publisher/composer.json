@@ -1,0 +1,33 @@
+{
+  "name": "rabbitevents/publisher",
+  "description": "The Publisher part of the RabbitEvents package.",
+  "keywords": ["laravel", "rabbitmq", "events", "broadcast", "publish", "pub"],
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Eugene Kirdzei",
+      "email": "masterjus@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^8.0",
+    "ext-json": "*",
+    "rabbitevents/foundation": "self.version"
+  },
+  "autoload": {
+    "psr-4": {
+      "RabbitEvents\\Publisher\\": ""
+    },
+    "files": [
+      "functions.php"
+    ]
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "RabbitEvents\\Publisher\\PublisherServiceProvider"
+      ]
+    }
+  }
+}

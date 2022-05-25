@@ -1,9 +1,11 @@
 <?php
 namespace app\Providers;
 
-class RabbitEventsServiceProvider extends \Nuwber\Events\RabbitEventsServiceProvider
+use RabbitEvents\Listener\ListenerServiceProvider;
+
+class RabbitEventsServiceProvider extends ListenerServiceProvider
 {
-    protected $listen = [
+    protected array $listen = [
         'some.event' => [
             Listener::class
         ],
