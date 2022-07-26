@@ -34,6 +34,7 @@ return [
                 'local_key' => env('RABBITEVENTS_SSL_LOCAL_KEY'),
                 'passphrase' => env('RABBITEVENTS_SSL_PASSPHRASE', ''),
             ],
+            'heartbeat' => 0,
         ],
     ],
     'logging' => [

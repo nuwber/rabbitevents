@@ -101,6 +101,7 @@ class Connection
             'ssl_cert' => $this->getConfig('ssl.local_cert'),
             'ssl_key' => $this->getConfig('ssl.local_key'),
             'ssl_passphrase' => $this->getConfig('ssl.passphrase'),
+            'heartbeat' => $this->getConfig('heartbeat', 0),
         ]);
 
         $factory->setDelayStrategy($this->getDelayStrategy());
