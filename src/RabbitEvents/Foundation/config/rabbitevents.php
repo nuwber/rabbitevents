@@ -34,6 +34,17 @@ return [
                 'local_key' => env('RABBITEVENTS_SSL_LOCAL_KEY'),
                 'passphrase' => env('RABBITEVENTS_SSL_PASSPHRASE', ''),
             ],
+            'read_timeout' => env('RABBITEVENTS_READ_TIMEOUT', 3.),
+            'write_timeout' => env('RABBITEVENTS_WRITE_TIMEOUT', 3.),
+            'connection_timeout' => env('RABBITEVENTS_CONNECTION_TIMEOUT', 3.),
+            'heartbeat' => env('RABBITEVENTS_HEARTBEAT', 0),
+            'persisted' => env('RABBITEVENTS_PERSISTED', false),
+            'lazy' => env('RABBITEVENTS_LAZY', true),
+            'qos' => [
+                'global' => env('RABBITEVENTS_QOS_GLOBAL', false),
+                'prefetch_size' => env('RABBITEVENTS_QOS_PREFETCH_SIZE', 0),
+                'prefetch_count' => env('RABBITEVENTS_QOS_PREFETCH_COUNT', 1),
+            ]
         ],
     ],
     'logging' => [

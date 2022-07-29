@@ -101,6 +101,15 @@ class Connection
             'ssl_cert' => $this->getConfig('ssl.local_cert'),
             'ssl_key' => $this->getConfig('ssl.local_key'),
             'ssl_passphrase' => $this->getConfig('ssl.passphrase'),
+            'read_timeout' => $this->getConfig('read_timeout', 3.),
+            'write_timeout' => $this->getConfig('write_timeout', 3.),
+            'connection_timeout' => $this->getConfig('connection_timeout', 3.),
+            'heartbeat' => $this->getConfig('heartbeat', 0),
+            'persisted' => $this->getConfig('persisted', false),
+            'lazy' => $this->getConfig('lazy', true),
+            'qos_global' => $this->getConfig('qos.global', false),
+            'qos_prefetch_size' => $this->getConfig('qos.prefetch_size', 0),
+            'qos_prefetch_count' => $this->getConfig('qos.prefetch_count', 1),
         ]);
 
         $factory->setDelayStrategy($this->getDelayStrategy());
