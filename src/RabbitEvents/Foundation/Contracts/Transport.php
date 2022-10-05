@@ -10,7 +10,6 @@ interface Transport
 {
     /**
      * @param Message $message
-     * @param int $delay
      */
-    public function send(Message $message, int $delay = 0): void;
+    public function send(Message $message): void;
 }

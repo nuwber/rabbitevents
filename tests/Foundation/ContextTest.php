@@ -68,7 +68,7 @@ class ContextTest extends TestCase
 
         $context = new Context($connection);
 
-        $consumer = $context->createConsumer($queueName, 'item.created');
+        $consumer = $context->makeConsumer($queueName, 'item.created');
 
         self::assertInstanceOf(Consumer::class, $consumer);
 

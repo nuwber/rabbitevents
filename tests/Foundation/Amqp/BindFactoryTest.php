@@ -16,7 +16,7 @@ class BindFactoryTest extends TestCase
         $topic  = \Mockery::mock(AmqpTopic::class);
 
         $context = \Mockery::mock(Context::class);
-        $context->shouldReceive('destination')
+        $context->shouldReceive('topic')
             ->andReturn($topic);
         $queue = \Mockery::mock(AmqpQueue::class);
 

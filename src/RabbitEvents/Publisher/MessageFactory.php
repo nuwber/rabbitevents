@@ -11,7 +11,7 @@ use RabbitEvents\Foundation\Message;
 
 class MessageFactory
 {
-    public function __construct(private Transport $transport)
+    public function __construct()
     {
     }
 
@@ -23,7 +23,7 @@ class MessageFactory
             $payload = new Payload($payload);
         }
 
-        $message = new Message($event->publishEventKey(), $payload, $this->transport);
+        $message = new Message($event->publishEventKey(), $payload);
         $message->setTimestamp(Carbon::now()->getTimestamp());
 
         return $message;

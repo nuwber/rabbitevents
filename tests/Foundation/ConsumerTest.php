@@ -20,7 +20,7 @@ class ConsumerTest extends TestCase
     public function testNextMessage(): void
     {
         $context = new Context(m::mock(Connection::class));
-        $context->setTransport(m::mock(Transport::class));
+        $context->setSender(m::mock(Transport::class));
 
         $event = 'item.created';
         $payload = '{"pay":"load"}';

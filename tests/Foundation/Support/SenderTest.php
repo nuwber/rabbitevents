@@ -41,7 +41,7 @@ class SenderTest extends TestCase
             ->send($this->topic, $this->message->amqpMessage())
             ->once();
 
-        $this->context->shouldReceive('destination')
+        $this->context->shouldReceive('topic')
             ->andReturn($this->topic);
         $this->context->shouldReceive()
             ->createProducer()

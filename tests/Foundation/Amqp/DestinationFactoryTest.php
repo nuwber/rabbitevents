@@ -5,7 +5,7 @@ namespace RabbitEvents\Tests\Foundation\Amqp;
 use Interop\Amqp\AmqpDestination;
 use Interop\Amqp\AmqpTopic;
 use Interop\Amqp\Impl\AmqpTopic as ImplAmqpTopic;
-use RabbitEvents\Foundation\Amqp\DestinationFactory;
+use RabbitEvents\Foundation\Amqp\TopicDestinationFactory;
 use RabbitEvents\Foundation\Context;
 use RabbitEvents\Tests\Foundation\TestCase;
 
@@ -22,7 +22,7 @@ class DestinationFactoryTest extends TestCase
         $context->shouldReceive()
             ->declareTopic($amqpTopic);
 
-        $factory = new DestinationFactory($context);
+        $factory = new TopicDestinationFactory($context);
         $topic = $factory->make($exchange);
 
         self::assertSame($amqpTopic, $topic);

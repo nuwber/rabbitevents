@@ -61,37 +61,6 @@ class ProcessorTest extends TestCase
             ->twice();
     }
 
-    public function testDoNotRunHandlerThatWasRanBefore()
-    {
-        $this->mockListeners([
-            [\Closure::class, static function () {
-                throw new \RuntimeException("This exception shouldn't be thrown because the Closure was passed before.");
-            }],
-            [FakeHandler::class, static fn() => true],
-        ]);
-
-        $this->message->setProperty(Processor::HANDLERS_PASSED_PROPERTY, [\Closure::class]);
-
-        self::assertEquals([\Closure::class], $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY));
-
-        $processor = new Processor(new FakeHandlerFactory(), $this->events);
-        $processor->process($this->message, $this->options());
-
-        self::assertEquals([\Closure::class, FakeHandler::class], $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY));
-    }
-
-    public function testHandlerMarkedAsPassed()
-    {
-        $this->mockListeners([
-            [FakeHandler::class, static fn() => true],
-        ]);
-
-        $processor = new Processor(new FakeHandlerFactory(), $this->events);
-        $processor->process($this->message, $this->options());
-
-        self::assertTrue(in_array(FakeHandler::class, $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY)));
-    }
-    
     public function testPropagationStopped(): void
     {
         $this->mockListeners([
