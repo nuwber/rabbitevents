@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation;
 
-use Interop\Amqp\AmqpDestination;
 use Interop\Amqp\AmqpQueue;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpTopic;
@@ -13,7 +12,6 @@ use RabbitEvents\Foundation\Amqp\TopicDestinationFactory;
 use RabbitEvents\Foundation\Amqp\QueueFactory;
 use RabbitEvents\Foundation\Contracts\QueueName;
 use RabbitEvents\Foundation\Contracts\Transport;
-use RabbitEvents\Foundation\Support\Sender;
 
 /**
  * @mixin \Enqueue\AmqpLib\AmqpContext

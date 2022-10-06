@@ -6,7 +6,6 @@ namespace RabbitEvents\Publisher;
 
 use Illuminate\Support\Carbon;
 use RabbitEvents\Foundation\Support\Payload;
-use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Message;
 
 class MessageFactory

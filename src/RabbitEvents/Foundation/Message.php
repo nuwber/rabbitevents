@@ -17,7 +17,7 @@ use RabbitEvents\Foundation\Support\Payload;
  */
 class Message
 {
-    private ?AmqpMessage $amqpMessage;
+    private $amqpMessage;
 
     public function __construct(
         private string $event,
@@ -35,7 +35,7 @@ class Message
     public static function createFromAmqpMessage(AmqpMessage $amqpMessage): self
     {
         return (new static(
-            $amqpMessage->getRoutingKey(),
+            $amqpMessage->getProperty('event') ?: $amqpMessage->getRoutingKey(),
             Payload::createFromJson($amqpMessage->getBody()),
             $amqpMessage->getProperties()
         ))->setAmqpMessage($amqpMessage);

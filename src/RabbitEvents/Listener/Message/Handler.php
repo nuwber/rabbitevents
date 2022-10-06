@@ -107,11 +107,9 @@ class Handler
             $this->transport->setDelay($delay);
         }
 
-        $this->transport->send(new Message(
-            $this->message->getRoutingKey(),
-            $this->message->payload(),
-            $this->message->getProperties()
-        ));
+        $this->transport->send(
+            Message::createFromAmqpMessage($this->message->amqpMessage())
+        );
 
         $this->released = true;
     }
