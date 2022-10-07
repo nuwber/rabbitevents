@@ -6,8 +6,10 @@ namespace RabbitEvents\Listener\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
+use RabbitEvents\Foundation\Amqp\TopicDestinationFactory;
 use RabbitEvents\Foundation\Context;
 use RabbitEvents\Foundation\Support\QueueName;
+use RabbitEvents\Foundation\Support\Releaser;
 use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Events\ListenerHandleFailed;
 use RabbitEvents\Listener\Events\ListenerHandled;
@@ -63,12 +65,16 @@ class ListenCommand extends Command
 
         $this->listenForEvents();
 
+        $queue = $context->makeQueue(new QueueName($options->service, $this->argument('event')));
+
+        $handlerFactory = new HandlerFactory(
+            $this->laravel,
+            new Releaser($queue, $context->createProducer())
+        );
+
         return $worker->work(
-            new Processor(new HandlerFactory($this->laravel), $this->laravel['events']),
-            $context->createConsumer(
-                new QueueName($options->service, $this->argument('event')),
-                $this->argument('event')
-            ),
+            new Processor($handlerFactory, $this->laravel['events']),
+            $context->makeConsumer($queue, $this->argument('event')),
             $options
         );
     }

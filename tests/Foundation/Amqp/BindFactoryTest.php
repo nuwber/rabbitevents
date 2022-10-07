@@ -15,13 +15,10 @@ class BindFactoryTest extends TestCase
     {
         $topic  = \Mockery::mock(AmqpTopic::class);
 
-        $context = \Mockery::mock(Context::class);
-        $context->shouldReceive('destination')
-            ->andReturn($topic);
         $queue = \Mockery::mock(AmqpQueue::class);
 
-        $factory = new BindFactory($context);
-        $bind = $factory->make($queue, 'item.created');
+        $factory = new BindFactory();
+        $bind = $factory->make($topic, $queue, 'item.created');
 
         self::assertInstanceOf(AmqpBind::class, $bind);
 

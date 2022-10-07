@@ -6,16 +6,14 @@ namespace RabbitEvents\Listener\Message;
 
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Arr;
+use RabbitEvents\Foundation\Context;
+use RabbitEvents\Foundation\Contracts\DelaysDelivery;
+use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Message;
 use Throwable;
 
 class Handler
 {
-    /**
-     * @var callable
-     */
-    private $listener;
-
     /**
      * Indicates if the handler has been released.
      *
@@ -31,12 +29,12 @@ class Handler
     protected bool $failed = false;
 
     public function __construct(
-        protected Container $container,
+        protected Container $app,
         private Message $message,
-        callable $listener,
-        private string $listenerClass
+        private \Closure $listener,
+        private string $listenerClass,
+        private Transport $transport
     ) {
-        $this->listener = $listener;
     }
 
     public function handle()
@@ -76,7 +74,7 @@ class Handler
         // to allow every developer to better keep monitor of their failed handling attempts.
         if (
             $this->listenerClass !== \Closure::class
-            && method_exists($listener = $this->container->make($this->listenerClass), 'failed')
+            && method_exists($listener = $this->app->make($this->listenerClass), 'failed')
         ) {
             $listener->failed($this->payload(), $exception);
         }
@@ -105,7 +103,13 @@ class Handler
      */
     public function release(int $delay = 0): void
     {
-        $this->message->release($delay);
+        if ($this->transport instanceof DelaysDelivery) {
+            $this->transport->setDelay($delay);
+        }
+
+        $this->transport->send(
+            Message::createFromAmqpMessage($this->message->amqpMessage())
+        );
 
         $this->released = true;
     }

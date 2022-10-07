@@ -32,7 +32,7 @@ class ProcessorTest extends TestCase
         parent::setUp();
 
         $this->events = m::spy(Dispatcher::class);
-        $this->message = new Message('test.event', new Payload(['test' => 'payload']), m::mock(Transport::class));
+        $this->message = new Message('test.event', new Payload(['test' => 'payload']));
     }
 
     public function testProcess()
@@ -61,37 +61,6 @@ class ProcessorTest extends TestCase
             ->twice();
     }
 
-    public function testDoNotRunHandlerThatWasRanBefore()
-    {
-        $this->mockListeners([
-            [\Closure::class, static function () {
-                throw new \RuntimeException("This exception shouldn't be thrown because the Closure was passed before.");
-            }],
-            [FakeHandler::class, static fn() => true],
-        ]);
-
-        $this->message->setProperty(Processor::HANDLERS_PASSED_PROPERTY, [\Closure::class]);
-
-        self::assertEquals([\Closure::class], $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY));
-
-        $processor = new Processor(new FakeHandlerFactory(), $this->events);
-        $processor->process($this->message, $this->options());
-
-        self::assertEquals([\Closure::class, FakeHandler::class], $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY));
-    }
-
-    public function testHandlerMarkedAsPassed()
-    {
-        $this->mockListeners([
-            [FakeHandler::class, static fn() => true],
-        ]);
-
-        $processor = new Processor(new FakeHandlerFactory(), $this->events);
-        $processor->process($this->message, $this->options());
-
-        self::assertTrue(in_array(FakeHandler::class, $this->message->getProperty(Processor::HANDLERS_PASSED_PROPERTY)));
-    }
-    
     public function testPropagationStopped(): void
     {
         $this->mockListeners([
@@ -249,12 +218,14 @@ class FakeHandler extends Handler
     public $failedWith;
     public bool $failed = false;
     public $acknowledged = false;
+    public $transport;
 
-    public function __construct(?Message $message = null, callable $callback = null, string $listener = null)
+    public function __construct(?Message $message = null, callable $callback = null, string $listener = null, Transport $transport = null)
     {
         $this->message = $message;
         $this->callback = $callback ?: fn() => true;
         $this->listener = $listener;
+        $this->transport = $transport;
     }
 
     public function handle()

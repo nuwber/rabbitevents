@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpMessage;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
+use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
 
 /**
@@ -15,7 +16,7 @@ use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
  */
 class Consumer
 {
-    public function __construct(private AmqpConsumer $amqpConsumer, private Context $context)
+    public function __construct(private AmqpConsumer $amqpConsumer)
     {
     }
 
@@ -26,6 +27,7 @@ class Consumer
 
     /**
      * Receives a Message from the queue and returns Message object
+     * @throws \JsonException
      */
     public function nextMessage(int $timeout = 0): ?Message
     {
@@ -38,15 +40,17 @@ class Consumer
             $amqpMessage->setTimestamp(Carbon::now()->getTimestamp());
         }
 
-        return Message::createFromAmqpMessage($amqpMessage, $this->context->getTransport())
-            ->setAmqpMessage($amqpMessage)
-            ->increaseAttempts();
+        if (!$amqpMessage->getProperty('event')) {
+            $amqpMessage->setProperty('event', $amqpMessage->getRoutingKey());
+        }
+
+        return Message::createFromAmqpMessage($amqpMessage)->increaseAttempts();
     }
 
     protected function receiveMessage(int $timeout = 0): ?AmqpMessage
     {
         try {
-            return  $this->amqpConsumer->receive($timeout);
+            return $this->amqpConsumer->receive($timeout);
         } catch (AMQPRuntimeException $exception) {
             throw new ConnectionLostException($exception);
         }

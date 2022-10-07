@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RabbitEvents\Foundation;
 
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Interop\Amqp\AmqpMessage;
 use JsonSerializable;
 use RabbitEvents\Foundation\Amqp\MessageFactory;
@@ -24,37 +25,22 @@ class Message
     public function __construct(
         private string $event,
         private JsonSerializable $payload,
-        private Transport $transport,
         private array $properties = []
     ) {
     }
 
     /**
      * @param AmqpMessage $amqpMessage
-     * @param Transport|null $transport
      * @return static
-     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      * @throws \JsonException
      */
-    public static function createFromAmqpMessage(AmqpMessage $amqpMessage, ?Transport $transport = null): self
+    public static function createFromAmqpMessage(AmqpMessage $amqpMessage): self
     {
-        $message = new static(
-            $amqpMessage->getRoutingKey(),
+        return (new static(
+            $amqpMessage->getProperty('event') ?: $amqpMessage->getRoutingKey(),
             Payload::createFromJson($amqpMessage->getBody()),
-            $transport ?: Container::getInstance()->make(Context::class)->getTransport(),
             $amqpMessage->getProperties()
-        );
-        $message->setAmqpMessage($amqpMessage);
-
-        return $message;
-    }
-
-    /**
-     * @param int $delay
-     */
-    public function send(int $delay = 0): void
-    {
-        $this->transport->send($this, $delay);
+        ))->setAmqpMessage($amqpMessage);
     }
 
     /**
@@ -86,28 +72,19 @@ class Message
 
     public function attempts(): int
     {
-        return $this->amqpMessage()->getProperty('x-attempts', 0);
+        return $this->getProperty('x-attempts', 0);
     }
 
     public function increaseAttempts(): self
     {
-        $this->amqpMessage()->setProperty('x-attempts', $this->attempts() + 1);
+        $this->setProperty('x-attempts', $this->attempts() + 1);
 
         return $this;
     }
 
     /**
-     * @param int $delay
-     */
-    public function release(int $delay = 0): void
-    {
-        $this->amqpMessage = clone $this->amqpMessage();
-
-        $this->send($delay);
-    }
-
-    /**
      * @param AmqpMessage $amqpMessage
+     * @return Message
      */
     public function setAmqpMessage(AmqpMessage $amqpMessage): self
     {

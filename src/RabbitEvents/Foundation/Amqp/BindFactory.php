@@ -4,23 +4,19 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation\Amqp;
 
+use Interop\Amqp\AmqpDestination;
 use Interop\Amqp\AmqpQueue;
 use Interop\Amqp\Impl\AmqpBind;
-use RabbitEvents\Foundation\Context;
 
 class BindFactory
 {
-    public function __construct(private Context $context)
-    {
-    }
-
     /**
      * @param AmqpQueue $queue
      * @param string $event
      * @return AmqpBind
      */
-    public function make(AmqpQueue $queue, string $event): AmqpBind
+    public function make(AmqpDestination $destination, AmqpQueue $queue, string $event): AmqpBind
     {
-        return new AmqpBind($this->context->destination(), $queue, $event);
+        return new AmqpBind($destination, $queue, $event);
     }
 }

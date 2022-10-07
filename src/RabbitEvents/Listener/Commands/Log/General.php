@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Listener\Commands\Log;
 
-use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Container\Container;
 use RabbitEvents\Listener\Message\Handler;
 
 class General extends Writer
 {
-    public function __construct(protected Application $app)
+    public function __construct(protected Container $app)
     {
     }
 

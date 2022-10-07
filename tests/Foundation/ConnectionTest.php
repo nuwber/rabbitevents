@@ -35,4 +35,9 @@ class ConnectionTest extends TestCase
     {
         self::assertInstanceOf(DelayStrategy::class, $this->connection->getDelayStrategy());
     }
+
+    public function testGetConfig()
+    {
+        self::assertEquals('events', $this->connection->getConfig('exchange'));
+    }
 }

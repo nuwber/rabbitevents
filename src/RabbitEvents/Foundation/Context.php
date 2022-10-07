@@ -8,11 +8,10 @@ use Interop\Amqp\AmqpQueue;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpTopic;
 use RabbitEvents\Foundation\Amqp\BindFactory;
-use RabbitEvents\Foundation\Amqp\DestinationFactory;
+use RabbitEvents\Foundation\Amqp\TopicDestinationFactory;
 use RabbitEvents\Foundation\Amqp\QueueFactory;
 use RabbitEvents\Foundation\Contracts\QueueName;
 use RabbitEvents\Foundation\Contracts\Transport;
-use RabbitEvents\Foundation\Support\Sender;
 
 /**
  * @mixin \Enqueue\AmqpLib\AmqpContext
@@ -22,12 +21,12 @@ class Context
     /**
      * @var Transport
      */
-    private $transport;
+    private $sender;
 
     /**
      * @var AmqpTopic
      */
-    private $destination;
+    private $topic;
 
     /**
      * @param AmqpContext
@@ -40,10 +39,10 @@ class Context
 
     public function __call(string $method, ?array $args)
     {
-        return $this->getAmqpContext()->$method(...$args);
+        return $this->amqpContext()->$method(...$args);
     }
 
-    private function getAmqpContext(): AmqpContext
+    private function amqpContext(): AmqpContext
     {
         if (!$this->amqpContext) {
             $this->amqpContext = $this->connection->createContext();
@@ -52,22 +51,20 @@ class Context
         return $this->amqpContext;
     }
 
-    public function destination(): AmqpTopic
+    public function topic(): AmqpTopic
     {
-        if (!$this->destination) {
-            $this->destination = (new DestinationFactory($this))->make($this->getExchange());
+        if (!$this->topic) {
+            $this->topic = (new TopicDestinationFactory($this))->make();
         }
 
-        return $this->destination;
+        return $this->topic;
     }
 
-    public function createConsumer(QueueName $queueName, string $event): Consumer
+    public function makeConsumer(AmqpQueue $queue, string $event): Consumer
     {
-        $queue = $this->makeQueue($queueName);
-
         $this->bind($queue, $event);
 
-        return new Consumer($this->getAmqpContext()->createConsumer($queue), $this);
+        return new Consumer($this->createConsumer($queue));
     }
 
     public function makeQueue(QueueName $queueName): AmqpQueue
@@ -82,29 +79,13 @@ class Context
      */
     private function bind(AmqpQueue $queue, string $event): void
     {
-        $this->getAmqpContext()->bind(
-            (new BindFactory($this))->make($queue, $event)
+        $this->amqpContext()->bind(
+            (new BindFactory())->make($this->topic(), $queue, $event)
         );
     }
 
-    public function getTransport(): Transport
+    public function connection(): Connection
     {
-        if (!$this->transport) {
-            $this->transport = new Sender($this);
-        }
-
-        return $this->transport;
-    }
-
-    public function setTransport(Transport $transport): self
-    {
-        $this->transport = $transport;
-
-        return $this;
-    }
-
-    protected function getExchange(): string
-    {
-        return $this->connection->getConfig('exchange');
+        return $this->connection;
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RabbitEvents\Publisher;
 
 use Illuminate\Support\ServiceProvider;
+use RabbitEvents\Foundation\Support\Sender;
 use RabbitEvents\Publisher\Commands\ObserverMakeCommand;
 use RabbitEvents\Foundation\Context;
 
@@ -15,9 +16,8 @@ class PublisherServiceProvider extends ServiceProvider
         $this->app->singleton(
             Publisher::class,
             static fn($app) => new Publisher(
-                new MessageFactory(
-                    $app[Context::class]->getTransport()
-                )
+                new MessageFactory(),
+                new Sender($app[Context::class]->topic(), $app[Context::class]->createProducer())
             )
         );
     }

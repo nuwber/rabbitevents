@@ -96,12 +96,12 @@ class MiddlewareTest extends TestCase
 
     private function makeMessage(mixed $payload): Message
     {
-        return new Message('event', new Payload($payload), \Mockery::mock(Transport::class));
+        return new Message('event', new Payload($payload));
     }
 
     private function makeHandler($message, $callback): Handler
     {
-        return new Handler(new Container(), $message, $callback, __CLASS__);
+        return new Handler(new Container(), $message, $callback, __CLASS__, \Mockery::mock(Transport::class));
     }
 }
 
