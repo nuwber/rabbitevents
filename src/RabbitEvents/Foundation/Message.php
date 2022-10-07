@@ -17,6 +17,9 @@ use RabbitEvents\Foundation\Support\Payload;
  */
 class Message
 {
+    /**
+     * @var AmqpMessage
+     */
     private $amqpMessage;
 
     public function __construct(
@@ -28,7 +31,6 @@ class Message
 
     /**
      * @param AmqpMessage $amqpMessage
-     * @param Transport $transport
      * @return static
      * @throws \JsonException
      */

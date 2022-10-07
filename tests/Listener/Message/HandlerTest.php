@@ -35,8 +35,9 @@ class HandlerTest extends TestCase
         $handler = new Handler(
             m::mock(Container::class),
             $this->getMessage(),
-            'trim',
-            $this->listenerClass
+            static fn($event, $payload) => $event,
+            $this->listenerClass,
+            m::mock(Transport::class)
         );
 
         self::assertEquals("{$this->event}:{$this->listenerClass}", $handler->getName());
@@ -72,20 +73,23 @@ class HandlerTest extends TestCase
         $listener = $container->instance(FailingListener::class, new FailingListener());
 
         $message = $this->getMessage();
+        $transport = m::spy(Transport::class);
 
-        $handler = new Handler($container, $message, 'trim', FailingListener::class);
+        $handler = new Handler($container, $message, static fn($event, $payload) => $event, FailingListener::class, $transport);
 
         $handler->fail($exception);
 
         self::assertTrue($handler->hasFailed());
         self::assertEquals($message->payload(), $listener->payload);
+
+        $transport->shouldHaveReceived('send', m::type(Message::class));
     }
 
     public function testFailClosure(): void
     {
         $exception = new \Exception("Exception in `fire` method");
 
-        $handler = $this->getHandler('trim', \Closure::class);
+        $handler = $this->getHandler(static fn($event, $payload) => $event, \Closure::class);
 
         $handler->fail($exception);
 
@@ -94,20 +98,18 @@ class HandlerTest extends TestCase
 
     public function testRelease()
     {
-        $message = m::spy(Message::class);
-
         $handler = new Handler(
             m::mock(Container::class),
-            $message,
-            'trim',
-            $this->listenerClass
+            new Message('some.event', new Payload([])),
+            static fn($event, $payload) => $event,
+            $this->listenerClass,
+            $transport = m::spy(Transport::class)
         );
 
         $handler->release(10);
 
-        $message->shouldHaveReceived()
-            ->release(10)
-            ->once();
+        $transport->shouldHaveReceived()
+            ->send(m::type(Message::class));
 
         self::assertTrue($handler->isReleased());
     }
@@ -117,8 +119,9 @@ class HandlerTest extends TestCase
         $handler = new Handler(
             m::mock(Container::class),
             $this->getMessage()->increaseAttempts(),
-            'trim',
-            $this->listenerClass
+            static fn($event, $payload) => $event,
+            $this->listenerClass,
+            m::mock(Transport::class)
         );
 
         self::assertEquals(1, $handler->attempts());
@@ -126,7 +129,7 @@ class HandlerTest extends TestCase
 
     protected function getMessage(): Message
     {
-        return new Message($this->event, new Payload(['id' => 1]), m::mock(Transport::class));
+        return new Message($this->event, new Payload(['id' => 1]));
     }
 
     protected function getHandler(?callable $callback = null, ?string $listenerClass = null)
@@ -134,8 +137,9 @@ class HandlerTest extends TestCase
         return new Handler(
             m::mock(Container::class),
             $this->getMessage(),
-            $callback ?: 'trim',
-            $listenerClass ?: $this->listenerClass
+            $callback ?: static fn($event, $payload) => $event,
+            $listenerClass ?: $this->listenerClass,
+            m::spy(Transport::class)
         );
     }
 }

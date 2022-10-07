@@ -32,7 +32,7 @@ class ProcessorTest extends TestCase
         parent::setUp();
 
         $this->events = m::spy(Dispatcher::class);
-        $this->message = new Message('test.event', new Payload(['test' => 'payload']), m::mock(Transport::class));
+        $this->message = new Message('test.event', new Payload(['test' => 'payload']));
     }
 
     public function testProcess()
@@ -218,12 +218,14 @@ class FakeHandler extends Handler
     public $failedWith;
     public bool $failed = false;
     public $acknowledged = false;
+    public $transport;
 
-    public function __construct(?Message $message = null, callable $callback = null, string $listener = null)
+    public function __construct(?Message $message = null, callable $callback = null, string $listener = null, Transport $transport = null)
     {
         $this->message = $message;
         $this->callback = $callback ?: fn() => true;
         $this->listener = $listener;
+        $this->transport = $transport;
     }
 
     public function handle()

@@ -40,6 +40,10 @@ class Consumer
             $amqpMessage->setTimestamp(Carbon::now()->getTimestamp());
         }
 
+        if (!$amqpMessage->getProperty('event')) {
+            $amqpMessage->setProperty('event', $amqpMessage->getRoutingKey());
+        }
+
         return Message::createFromAmqpMessage($amqpMessage)->increaseAttempts();
     }
 

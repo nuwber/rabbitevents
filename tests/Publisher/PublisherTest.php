@@ -4,6 +4,7 @@ namespace RabbitEvents\Tests\Publisher;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Mockery as m;
+use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Publisher\MessageFactory;
 use RabbitEvents\Publisher\Publisher;
 use RabbitEvents\Publisher\Support\AbstractPublishableEvent;
@@ -23,8 +24,10 @@ class PublisherTest extends TestCase
         $messageFactory->shouldReceive()
             ->make($event)
             ->andReturn($messageMock);
+        $sender = m::mock(Transport::class);
+        $sender->shouldReceive('send');
 
-        $publisher = new Publisher($messageFactory);
+        $publisher = new Publisher($messageFactory, $sender);
         $publisher->publish($event);
     }
 }

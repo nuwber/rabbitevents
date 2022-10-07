@@ -13,13 +13,11 @@ use RabbitEvents\Tests\Listener\TestCase;
 
 class HandlerFactoryTest extends TestCase
 {
-    public function testMakeJob(): void
+    public function testMake(): void
     {
-        $transport = m::mock(Transport::class);
+        $message = new Message('item.created', new Payload([]));
 
-        $message = new Message('item.created', new Payload([]), $transport);
-
-        $factory = new HandlerFactory(m::mock(Container::class));
+        $factory = new HandlerFactory(m::mock(Container::class), m::mock(Transport::class));
         $handler = $factory->make($message, static function() {}, 'ClassName');
 
         self::assertInstanceOf(Handler::class, $handler);
