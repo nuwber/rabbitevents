@@ -54,7 +54,7 @@ class Worker
                 $consumer->acknowledge($message);
             }
 
-            $status = $this->stopIfNecessary($options);
+            $status = $this->stopIfNecessary($options, $message);
 
             if (!is_null($status)) {
                 return $this->stop($status);
@@ -148,15 +148,14 @@ class Worker
      *
      * @return null|int
      */
-    protected function stopIfNecessary(ProcessingOptions $options)
+    protected function stopIfNecessary(ProcessingOptions $options, ?Message $message): ?int
     {
-        if ($this->shouldQuit) {
-            return self::EXIT_SUCCESS;
-        }
-
-        if ($this->memoryExceeded($options->memory)) {
-            return self::EXIT_MEMORY_LIMIT;
-        }
+        return match (true) {
+           $this->shouldQuit === true,
+           $options->stopIfEmpty === true && null === $message => self::EXIT_SUCCESS,
+           $this->memoryExceeded($options->memory) => self::EXIT_MEMORY_LIMIT,
+           default => null,
+        };
     }
 
     /**

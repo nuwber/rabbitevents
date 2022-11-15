@@ -198,6 +198,30 @@ class WorkerTest extends TestCase
         self::assertTrue($worker->resetTimeoutHandler);
     }
 
+    public function testStopWhenEmptyOption()
+    {
+        $options = $this->options([
+            'stopIfEmpty' => true
+        ]);
+
+        $worker = new Worker($this->exceptionHandler, $this->events);
+
+        $processor = m::spy(Processor::class);
+        $message = m::mock(Message::class);
+        $consumer = m::mock(Consumer::class)->makePartial();
+        $consumer->shouldReceive('nextMessage')
+            ->twice()
+            ->andReturn($message, null);
+        $consumer->shouldReceive('acknowledge')->once()->with($message);
+
+        $status = $worker->work($processor, $consumer, $options);
+
+        self::assertEquals(Worker::EXIT_SUCCESS, $status);
+
+        $processor->shouldHaveReceived()->process($message, $options);
+        $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
+    }
+
     protected function options(array $overrides = []): ProcessingOptions
     {
         $options = new ProcessingOptions('test-app', 'rabbitmq');

@@ -39,7 +39,8 @@ class ListenCommand extends Command
                             {--timeout=60 : The number of seconds a massage could be handled}
                             {--tries=1 : Number of times to attempt to handle a Message before logging it failed}
                             {--sleep=5 : Sleep time in seconds before handling failed message next time}
-                            {--quiet: No console output}';
+                            {--quiet: No console output}
+                            {--stop-when-empty: Stop when no message has been retrieved}';
 
     /**
      * The console command description.
@@ -92,7 +93,8 @@ class ListenCommand extends Command
             (int) $this->option('memory'),
             (int) $this->option('tries'),
             (int) $this->option('timeout'),
-            (int) $this->option('sleep')
+            (int) $this->option('sleep'),
+            (bool) $this->option('stop-when-empty')
         );
     }
 
