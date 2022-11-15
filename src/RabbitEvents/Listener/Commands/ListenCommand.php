@@ -130,20 +130,30 @@ class ListenCommand extends Command
             $this->logWriters[] = new Log\Output($this->laravel, $this->output);
         }
 
-        if ($this->isLoggingEnabled($connection)) {
-            $this->logWriters[] = new Log\General($this->laravel);
+        [$enabled, $defaultLoglevel, $channel] = $this->parseLoggingConfiguration($connection);
+
+        if ($enabled) {
+            $this->logWriters[] = new Log\General($this->laravel, $defaultLoglevel, $channel);
         }
     }
 
-    private function isLoggingEnabled(string $connection = 'rabbitmq'): bool
+    private function parseLoggingConfiguration(string $connection = 'rabbitmq'): array
     {
         $config = $this->laravel['config']->get('rabbitevents');
 
         if (Arr::has($config, 'logging')) {
-            return Arr::get($config, 'logging.enabled', false);
+            return [
+                Arr::get($config, 'logging.enabled', false),
+                Arr::get($config, 'logging.level', 'info'),
+                Arr::get($config, 'logging.channel', null),
+            ];
         }
 
         // TODO: In the next releases this part of config will be deleted
-        return Arr::get($config, "connections.$connection.logging.enabled", false);
+        return [
+            Arr::get($config, "connections.$connection.logging.enabled", false),
+            Arr::get($config, "connections.$connection.logging.level", 'info'),
+            Arr::get($config, "connections.$connection.logging.channel", null),
+        ];
     }
 }
