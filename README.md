@@ -80,6 +80,7 @@ return [
     'logging' => [
         'enabled' => env('RABBITEVENTS_LOG_ENABLED', false),
         'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
+        'channel' => env('RABBITEVENTS_LOG_CHANNEL'),
     ],
 ];
 ```

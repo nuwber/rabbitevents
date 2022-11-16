@@ -215,3 +215,5 @@ The suprvisor configuration is similar to [Laravel Queue](https://laravel.com/do
 The package provides 2 ways to see what happens to your listener. By default, it writes `processing`, `processed`, and `failed` messages to `/php/stdout`. The message includes service, event, and listener name. If you want to turn this feature off, just run listener with the `--quiet` option.
 
 The package also supports your application logger. To use it set config value `rabbitevents.logging.enabled` to `true` and choose log level.
+
+When choosing to use the application logger you may configure the package's logging channel using the config value `rabbitevents.logging.channel` by default it will use the value from `logging.default`.
