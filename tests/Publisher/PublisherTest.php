@@ -17,15 +17,15 @@ class PublisherTest extends TestCase
         $event = new SomeEvent(new SomeModel(), ['foo' => 'bar'], 'Hello!');
 
         $messageMock = m::mock(Message::class);
-        $messageMock->shouldReceive()
-            ->send();
 
         $messageFactory = m::mock(MessageFactory::class);
         $messageFactory->shouldReceive()
             ->make($event)
             ->andReturn($messageMock);
         $sender = m::mock(Transport::class);
-        $sender->shouldReceive('send');
+        $sender->shouldReceive()
+            ->send($messageMock)
+            ->once();
 
         $publisher = new Publisher($messageFactory, $sender);
         $publisher->publish($event);

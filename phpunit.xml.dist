@@ -1,34 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         backupGlobals="false"
-         backupStaticAttributes="false"
-         colors="true"
-         convertErrorsToExceptions="true"
-         convertNoticesToExceptions="true"
-         convertWarningsToExceptions="true"
-         processIsolation="false"
-         stopOnFailure="false"
-         bootstrap="./vendor/autoload.php">
-    <coverage includeUncoveredFiles="false"
-              processUncoveredFiles="false"
-              ignoreDeprecatedCodeUnits="true">
-        <include>
-            <directory suffix=".php">src</directory>
-        </include>
-        <exclude>
-            <directory suffix="ServiceProvider.php">src</directory>
-            <directory suffix="Exception.php">src</directory>
-            <directory>src/Rabbitevents/*/Commands</directory>
-        </exclude>
-        <report>
-            <text outputFile="php://stdout" showUncoveredFiles="false" showOnlySummary="true"/>
-            <clover outputFile="coverage.xml"/>
-        </report>
-    </coverage>
-    <testsuites>
-        <testsuite name="RabbitEvents Test Suite">
-            <directory suffix="Test.php">./tests</directory>
-        </testsuite>
-    </testsuites>
-    <logging/>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" backupGlobals="false" colors="true" processIsolation="false" stopOnFailure="false" bootstrap="./vendor/autoload.php" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.0/phpunit.xsd" cacheDirectory=".phpunit.cache" backupStaticProperties="false">
+  <coverage includeUncoveredFiles="false" ignoreDeprecatedCodeUnits="true">
+    <include>
+      <directory suffix=".php">src</directory>
+    </include>
+    <exclude>
+      <directory suffix="ServiceProvider.php">src</directory>
+      <directory suffix="Exception.php">src</directory>
+      <directory>src/Rabbitevents/*/Commands</directory>
+    </exclude>
+    <report>
+      <text outputFile="php://stdout" showUncoveredFiles="false" showOnlySummary="true"/>
+      <clover outputFile="coverage.xml"/>
+    </report>
+  </coverage>
+  <testsuites>
+    <testsuite name="RabbitEvents Test Suite">
+      <directory suffix="Test.php">./tests</directory>
+    </testsuite>
+  </testsuites>
+  <logging/>
 </phpunit>
