@@ -9,8 +9,11 @@ use RabbitEvents\Listener\Message\Handler;
 
 class General extends Writer
 {
-    public function __construct(protected Container $app, protected string $defaultLogLevel = 'info', protected ?string $channel = null)
-    {
+    public function __construct(
+        protected Container $app,
+        protected string $defaultLogLevel = 'info',
+        protected ?string $channel = null
+    ) {
     }
 
     /**
