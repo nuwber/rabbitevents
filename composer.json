@@ -26,7 +26,7 @@
   },
   "require-dev": {
     "mockery/mockery": "^1.4",
-    "phpunit/phpunit": "^9.0|^10.0",
+    "phpunit/phpunit": "^10.0",
     "vlucas/phpdotenv": "^v5.4.1"
   },
   "autoload": {
