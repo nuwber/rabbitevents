@@ -34,7 +34,6 @@ class ListenCommand extends Command
     protected $signature = 'rabbitevents:listen
                             {event : The name of the event to listen to}
                             {--service= : The name of current service. Necessary to identify listeners}
-                            {--connection= : The name of the queue connection to work}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a massage could be handled}
                             {--tries=1 : Number of times to attempt to handle a Message before logging it failed}
@@ -88,7 +87,7 @@ class ListenCommand extends Command
     {
         return new ProcessingOptions(
             $this->option('service') ?: $this->laravel['config']->get("app.name"),
-            $this->option('connection') ?: $this->laravel['config']['rabbitevents.default'],
+            $this->laravel['config']['rabbitevents.default'],
             (int) $this->option('memory'),
             (int) $this->option('tries'),
             (int) $this->option('timeout'),

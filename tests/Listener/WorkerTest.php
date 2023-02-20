@@ -207,7 +207,6 @@ class WorkerTest extends TestCase
         }
 
         return $options;
-
     }
 }
 

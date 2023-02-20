@@ -163,7 +163,6 @@ class ProcessorTest extends TestCase
         }
 
         return $options;
-
     }
 
     protected function mockListeners(array $listeners)
