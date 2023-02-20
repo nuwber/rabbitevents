@@ -13,7 +13,7 @@ Once again, the RabbitEvents library helps you to publish an event and handle it
 ## Table of contents
 1. [Installation via Composer](#installation)
    * [Configuration](#configuration)
-1. [Upgrade from 6.x to 7.x](#upgrade_6.x-7.x)
+1. [Upgrade from 7.x to 8.x](#upgrade_7.x-8.x)
 1. [Publisher component](#publisher)
 1. [Listener component](#listener)
 1. [Console commands](#commands)
@@ -84,41 +84,17 @@ return [
     ],
 ];
 ```
+## Upgrade from 7.x to 8.x<a name="upgrade_7.x-8.x"></a>
 
-## Upgrade from 6.x to 7.x<a name="upgrade_6.x-7.x"></a>
-
-For better support and simplifying of RabbitEvents, it is now split into 3 Sub-Packages:
-
-- [Publisher](https://github.com/rabbitevents/publisher) - required to PUBLISH an Event;
-- [Listener](https://github.com/rabbitevents/listener) - required to HANDLE events;
-- [Foundation](https://github.com/rabbitevents/foundation) - common code for Publisher and Listener.
-
-If you've been using RabbitEvents as is, without any changes, it shouldn't impact your application.
-
-If you have extended the functionality of the library in your application, you must revise your code because there were many huge changes in terms of simplifying the code.
-
-
-### PHP 8.0 required
-Rabbitevents now requires PHP 8.0 or greater.
+### PHP 8.1 required
+RabbitEvents now requires PHP 8.1 or greater.
 
 ### Supported Laravel versions
-Rabbitevents now supports Laravel 8.0 or greater.
+RabbitEvents now supports Laravel 9.0 or greater.
 
-### Namespaces change
-The main namespace was changed from `Nuwber\Events` to `RabbitEvents`.
-
-### RabbitEventsServiceProvider changes
-The `RabbitEventsServiceProvider` now extends `\RabbitEvents\Listener\ListenerServiceProvider`.
-
-The `$listen` attribute now looks like `protected array $listen => [];`. Typehint `array` is retuired.
-
-### Logging configuration
-The logging configuration part was moved from a connection to the first level of the configuration. The old configuration is still supported but will be removed in the next releases.
-
-### `\Illuminate\Queue` is not the requirement anymore
-
-To avoid confusion from `Illuminate\Queue` component, the dependency from this package was removed. If you've been using this package on your fork or extension you should add this package in your `composer.json` as a requirement.
-In terms of this avoidance, the `Job` class was renamed to `Handler`. If you are listening to Events from the previous version please replace them to new ones. Now the list of events is: `ListenerHandling`, `ListenerHandled`, `ListenerHandleFailed`, `ListenerHandlerExceptionOccurred` and `MessageProcessingFailed`.
+### Removed `--connection` option from the `rabbitevents:listen` command
+There's an issue [#98](https://github.com/nuwber/rabbitevents/issues/98) that still need to be resolved.
+The default connection is always used instead. 
 
 ## RabbitEvents Publisher<a name="publisher"></a>
 
@@ -146,7 +122,6 @@ If your listener crashes, then managers will rerun your listener and all message
 
 #### Options<a name="listen-options"></a>
 - **--service=**. When a queue starts the name of the service becomes a part of a queue name: `service:event.name`. By default, service is the APP_NAME from your `.env`. You could override the first part of a queue name by this option.
-- **--connection=**. The name of connection specified in the `config/rabbitevents.php` config file. Default: `rabbitmq`.
 - **--memory=128**. The memory limit in megabytes. The RabbitEvents have restarting a worker if limit exceeded.
 - **--timeout=60**. The number of seconds a massage could be handled. 
 - **--tries=1**. Number of times to attempt to handle a Message before logging it failed.
