@@ -67,7 +67,7 @@ Event listeners receive the event data at the method provided in the `$listen` d
 
 class SendNotification
 {
-   public cunction handle($eventPayload) 
+   public function handle($eventPayload) 
    {
    	    Mailer::to(Arr::get($eventPayload, 'user.email'))
    	        ->subject('Payment Succeeded')
