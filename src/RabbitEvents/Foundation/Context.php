@@ -67,6 +67,16 @@ class Context
         return new Consumer($this->createConsumer($queue));
     }
 
+    public function makeMultiBindConsumer(AmqpQueue $queue, array $events): Consumer
+    {
+        foreach ($events as $event) {
+            $this->bind($queue, $event);
+        }
+
+        return new Consumer($this->createConsumer($queue));
+    }
+
+
     public function makeQueue(QueueName $queueName): AmqpQueue
     {
         return (new QueueFactory($this))->make($queueName);

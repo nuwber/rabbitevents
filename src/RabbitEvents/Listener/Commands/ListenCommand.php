@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use RabbitEvents\Foundation\Amqp\TopicDestinationFactory;
 use RabbitEvents\Foundation\Context;
-use RabbitEvents\Foundation\Support\QueueName;
+use RabbitEvents\Foundation\Support\MultiBindQueueName;
 use RabbitEvents\Foundation\Support\Releaser;
 use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Events\ListenerHandleFailed;
@@ -32,7 +32,7 @@ class ListenCommand extends Command
      * @var string
      */
     protected $signature = 'rabbitevents:listen
-                            {event : The name of the event to listen to}
+                            {events : The comma-separated list of names of the event to listen to}
                             {--service= : The name of current service. Necessary to identify listeners}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a massage could be handled}
@@ -53,7 +53,7 @@ class ListenCommand extends Command
      * Execute the console command.
      * @param Context $context
      * @param Worker $worker
-     * @throws \Throwable
+     * @return int
      * @retur ?int
      */
     public function handle(Context $context, Worker $worker)
@@ -64,7 +64,8 @@ class ListenCommand extends Command
 
         $this->listenForEvents();
 
-        $queue = $context->makeQueue(new QueueName($options->service, $this->argument('event')));
+        $events = explode(',', $this->argument('events'));
+        $queue = $context->makeQueue(new MultiBindQueueName($options->service, $events));
 
         $handlerFactory = new HandlerFactory(
             $this->laravel,
@@ -73,7 +74,7 @@ class ListenCommand extends Command
 
         return $worker->work(
             new Processor($handlerFactory, $this->laravel['events']),
-            $context->makeConsumer($queue, $this->argument('event')),
+            $context->makeMultiBindConsumer($queue, $events),
             $options
         );
     }
