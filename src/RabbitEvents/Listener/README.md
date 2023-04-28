@@ -192,7 +192,6 @@ If your listener crashes, then managers will rerun your listener and all message
 
 ### Options<a name="listen-options"></a>
 - **--service=**. When a queue starts the name of the service becomes a part of a queue name: `service:event.name`. By default, service is the APP_NAME from your `.env`. You could override the first part of a queue name by this option.
-- **--connection=**. The name of connection specified in the `config/rabbitevents.php` config file. Default: `rabbitmq`.
 - **--memory=128**. The memory limit in megabytes. The RabbitEvents have restarting a worker if limit exceeded.
 - **--timeout=60**. The length of time (in seconds) each Message should be allowed to be handled.
 - **--tries=1**. Number of times to attempt to handle a Message before logging it failed.
