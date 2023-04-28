@@ -16,10 +16,6 @@ Once again, the RabbitEvents library helps you to publish an event and handle it
 1. [Upgrade from 7.x to 8.x](#upgrade_7.x-8.x)
 1. [Publisher component](#publisher)
 1. [Listener component](#listener)
-1. [Console commands](#commands)
-   * [rabbitevents:listen](#command-listen) - listen to an event
-   * [rabbitevents:list](#command-list) - display list of registered events
-1. [Examples](/examples)
 1. [Non-standard use](#non-standard-use)
 
 ## Installation via Composer<a name="installation"></a>
