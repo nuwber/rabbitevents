@@ -125,11 +125,7 @@ class Listener implements ShouldPublish
 class AnotherListener implements ShouldPublish
 {
     use Publishable;
-    use PublishableEventTesting {
-        PublishableEventTesting::fake insteadof Publishable;
-        PublishableEventTesting::assertNotPublished insteadof Publishable;
-        PublishableEventTesting::assertPublished insteadof Publishable;
-    }
+    use PublishableEventTesting;
 
     public function publishEventKey(): string
     {
