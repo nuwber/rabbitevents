@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Publisher;
 
+use RabbitEvents\Foundation\Contracts\Transport;
+
 class Publisher
 {
-    public function __construct(private MessageFactory $messageFactory)
-    {
+    public function __construct(
+        private MessageFactory $messageFactory,
+        private Transport $transport
+    ) {
     }
 
     /**
@@ -18,6 +22,8 @@ class Publisher
      */
     public function publish(ShouldPublish $event): void
     {
-        $this->messageFactory->make($event)->send();
+        $this->transport->send(
+            $this->messageFactory->make($event)
+        );
     }
 }

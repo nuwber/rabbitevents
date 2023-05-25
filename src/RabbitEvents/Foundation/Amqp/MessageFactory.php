@@ -19,6 +19,7 @@ class MessageFactory
             ]
         );
         $message->setRoutingKey($event);
+        $message->setProperty('event', $event);
 
         return $message;
     }

@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener\Commands\Log;
 
 use Illuminate\Console\OutputStyle;
-use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Carbon;
 use RabbitEvents\Listener\Message\Handler;
 
 class Output extends Writer
 {
-    public function __construct(protected Application $app, protected OutputStyle $output)
+    public function __construct(protected Container $app, protected OutputStyle $output)
     {
     }
 

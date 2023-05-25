@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RabbitEvents\Publisher\Support;
 
 use Illuminate\Container\Container;
@@ -17,17 +19,17 @@ trait PublishableEventTesting
     {
         Container::getInstance()->get(Publisher::class)
             ->shouldHaveReceived()
-            ->publish(\Mockery::on(function (ShouldPublish $object) use ($event, $payload) {
+            ->publish(\Mockery::on(static function (ShouldPublish $object) use ($event, $payload) {
                 return $object instanceof static
-                    && $object->publishEventKey() == $event
-                    && (is_null($payload) || $object->toPublish() == $payload);
+                    && $object->publishEventKey() === $event
+                    && (is_null($payload) || $object->toPublish() === $payload);
             }))
             ->once();
     }
 
     public static function assertNotPublished(): void
     {
-        Container::getInstance()->get(Publisher::class)
+        Container::getInstance()->make(Publisher::class)
             ->shouldNotHaveReceived()
             ->publish(\Mockery::type(static::class));
     }

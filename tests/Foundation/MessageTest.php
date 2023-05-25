@@ -13,7 +13,7 @@ class MessageTest extends TestCase
 
     public function testAmqpMessage()
     {
-        $message = new Message('item.created', new Payload([]), m::mock(Transport::class));
+        $message = new Message('item.created', new Payload([]));
 
         self::assertInstanceOf(AmqpMessage::class, $message->amqpMessage());
 
@@ -28,7 +28,7 @@ class MessageTest extends TestCase
 
     public function testIncreaseAttempts()
     {
-        $message = new Message('item.created', new Payload([]), m::mock(Transport::class));
+        $message = new Message('item.created', new Payload([]));
 
         $amqpMessage = new \Interop\Amqp\Impl\AmqpMessage();
 
@@ -41,17 +41,6 @@ class MessageTest extends TestCase
         self::assertEquals(1, $message->attempts());
     }
 
-    public function testSend()
-    {
-        $transport = m::spy(Transport::class);
-
-        $message = new Message('item.created', new Payload([]), $transport);
-        $message->send(100);
-
-        $transport->shouldHaveReceived()
-            ->send($message, 100);
-    }
-
     public function testCreateFromAmqpMessage()
     {
         $payload = ['pay' => 'load'];
@@ -60,26 +49,9 @@ class MessageTest extends TestCase
         $amqpMessage->setRoutingKey($event = 'item.created');
         $amqpMessage->setBody(json_encode($payload));
 
-        $message = Message::createFromAmqpMessage($amqpMessage, m::mock(Transport::class));
+        $message = Message::createFromAmqpMessage($amqpMessage);
 
         self::assertEquals($event, $message->event());
         self::assertEquals($payload, $message->payload()->getPayload());
-    }
-
-    public function testRelease()
-    {
-        $amqpMessage = new \Interop\Amqp\Impl\AmqpMessage();
-        $transport = m::spy(Transport::class);
-
-        $message = new Message('item.created', new Payload([]), $transport);
-        $message->setAmqpMessage($amqpMessage);
-
-        self::assertSame($amqpMessage, $message->amqpMessage());
-
-        $message->release(100);
-
-        $transport->shouldHaveReceived()->send($message, 100);
-
-        self::assertNotSame($amqpMessage, $message->amqpMessage());
     }
 }

@@ -8,7 +8,11 @@
 set -e
 set -x
 
+<<<<<<< HEAD
 CURRENT_BRANCH="7.x"
+=======
+CURRENT_BRANCH="8.x"
+>>>>>>> upstream/8.x
 
 function split()
 {

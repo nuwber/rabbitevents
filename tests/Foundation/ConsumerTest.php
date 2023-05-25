@@ -20,7 +20,6 @@ class ConsumerTest extends TestCase
     public function testNextMessage(): void
     {
         $context = new Context(m::mock(Connection::class));
-        $context->setTransport(m::mock(Transport::class));
 
         $event = 'item.created';
         $payload = '{"pay":"load"}';
@@ -38,6 +37,7 @@ class ConsumerTest extends TestCase
         $message = $consumer->nextMessage();
 
         self::assertInstanceOf(Message::class, $message);
+        self::assertEquals($event, $message->getProperty('event'));
         self::assertEquals($event, $message->event());
         self::assertEquals($payload, $message->payload()->jsonSerialize());
         self::assertEquals(3, $message->attempts());

@@ -34,15 +34,13 @@ class ContextTest extends TestCase
 
     public function testCreateConsumer()
     {
-        $queueName = new QueueName('text-app', 'item.created');
-
         $amqpContext = m::mock(AmqpContext::class)->makePartial();
         $amqpContext->shouldReceive('createConsumer')
             ->andReturn(m::mock(AmqpConsumer::class));
 
         $amqpQueue = m::spy(AmqpQueue::class);
         $amqpContext->shouldReceive()
-            ->createQueue($queueName->resolve())
+            ->createQueue('text-app:item.created')
             ->andReturn($amqpQueue);
 
         $amqpContext->shouldReceive()
@@ -53,7 +51,8 @@ class ContextTest extends TestCase
             ->andReturn($topic);
 
         $amqpContext->shouldReceive()
-            ->declareTopic($topic)->once();
+            ->declareTopic($topic)
+            ->once();
 
         $amqpContext->shouldReceive()
             ->bind(m::type(AmqpBind::class));
@@ -67,10 +66,8 @@ class ContextTest extends TestCase
             ->andReturn('events');
 
         $context = new Context($connection);
-
-        $consumer = $context->createConsumer($queueName, 'item.created');
+        $consumer = $context->makeConsumer($amqpQueue, 'item.created');
 
         self::assertInstanceOf(Consumer::class, $consumer);
-
     }
 }

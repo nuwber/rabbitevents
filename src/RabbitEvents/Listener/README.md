@@ -1,7 +1,7 @@
 # RabbitEvents Listener
 The RabbitEvents Listener component provides an API to handle events that were published across the application structure. More information is available in the [Nuwber's RabbitEvents documentation](https://github.com/nuwber/rabbitevents).
 
-If you need just to handle events, you could use the RabbitEvents `Listener` separately from the main library. 
+If you need just to handle events, you could use the RabbitEvents `Listener` separately from the main library.
 
 ## Table of contents
 1. [Installation via Composer](#installation)
@@ -67,7 +67,7 @@ Event listeners receive the event data at the method provided in the `$listen` d
 
 class SendNotification
 {
-   public cunction handle($eventPayload) 
+   public function handle($eventPayload)
    {
    	    Mailer::to(Arr::get($eventPayload, 'user.email'))
    	        ->subject('Payment Succeeded')
@@ -108,13 +108,13 @@ Without middleware, you had to check an entity type in a listener handle method.
  *
  * @param array $payload
  * @return void
- */ 
-public function handle($payload) 
+ */
+public function handle($payload)
 {
     if (\Arr::get($payload, 'entity.type') !== 'mytype') {
         return;
-    }   
-    
+    }
+
     Entity::find(\Arr::get($payload, 'entity.id'))->activate();
 }
 ```
@@ -130,7 +130,7 @@ namespace App\Listeners\RabbitEvents\Middleware;
 
 class FilterEntities
 {
-    /** 
+    /**
      * @param string $event the event name. Passing only for wildcard events
      * @param array $payload
      */
@@ -155,15 +155,15 @@ class PaymentListener
     public array $middleware = [
         FilterEntities::class,
         `App\Listeners\RabbitEvents\Middleware\AnotherMiddleware@someAction`,
-    ];      
+    ];
 
-    /** 
+    /**
      * @param string $event the Event Name. Passing only for wildcard events
      * @param array $payload
      */
     public function middleware([$event, ]$payload)
     {
-        return !\Arr::get($payload, 'entity.type') == 'mytype';  
+        return !\Arr::get($payload, 'entity.type') == 'mytype';
     }
 }
 ```
@@ -192,7 +192,6 @@ If your listener crashes, then managers will rerun your listener and all message
 
 ### Options<a name="listen-options"></a>
 - **--service=**. When a queue starts the name of the service becomes a part of a queue name: `service:event.name`. By default, service is the APP_NAME from your `.env`. You could override the first part of a queue name by this option.
-- **--connection=**. The name of connection specified in the `config/rabbitevents.php` config file. Default: `rabbitmq`.
 - **--memory=128**. The memory limit in megabytes. The RabbitEvents have restarting a worker if limit exceeded.
 - **--timeout=60**. The length of time (in seconds) each Message should be allowed to be handled.
 - **--tries=1**. Number of times to attempt to handle a Message before logging it failed.
@@ -215,3 +214,5 @@ The suprvisor configuration is similar to [Laravel Queue](https://laravel.com/do
 The package provides 2 ways to see what happens to your listener. By default, it writes `processing`, `processed`, and `failed` messages to `/php/stdout`. The message includes service, event, and listener name. If you want to turn this feature off, just run listener with the `--quiet` option.
 
 The package also supports your application logger. To use it set config value `rabbitevents.logging.enabled` to `true` and choose log level.
+
+When choosing to use the application logger you may configure the package's logging channel using the config value `rabbitevents.logging.channel` by default it will use the value from `logging.default`.

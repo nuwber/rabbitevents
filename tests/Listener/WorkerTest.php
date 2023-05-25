@@ -56,7 +56,7 @@ class WorkerTest extends TestCase
 
         $worker = new Worker($this->exceptionHandler, $this->events);
         $worker->shouldQuit = true; //For one tick only
-        
+
         $processor = m::spy(Processor::class);
         $message = m::mock(Message::class);
         $consumer = m::mock(Consumer::class)->makePartial();
@@ -207,7 +207,6 @@ class WorkerTest extends TestCase
         }
 
         return $options;
-
     }
 }
 

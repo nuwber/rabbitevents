@@ -102,11 +102,7 @@ class PublishableTest extends TestCase
 class Listener implements ShouldPublish
 {
     use Publishable;
-    use PublishableEventTesting {
-        PublishableEventTesting::fake insteadof Publishable;
-        PublishableEventTesting::assertNotPublished insteadof Publishable;
-        PublishableEventTesting::assertPublished insteadof Publishable;
-    }
+    use PublishableEventTesting;
 
     private $payload = [];
 

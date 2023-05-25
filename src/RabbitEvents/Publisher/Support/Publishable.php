@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RabbitEvents\Publisher\Support;
 
 use Illuminate\Container\Container;

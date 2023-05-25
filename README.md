@@ -13,13 +13,9 @@ Once again, the RabbitEvents library helps you to publish an event and handle it
 ## Table of contents
 1. [Installation via Composer](#installation)
    * [Configuration](#configuration)
-1. [Upgrade from 6.x to 7.x](#upgrade_6.x-7.x)
+1. [Upgrade from 7.x to 8.x](#upgrade_7.x-8.x)
 1. [Publisher component](#publisher)
 1. [Listener component](#listener)
-1. [Console commands](#commands)
-   * [rabbitevents:listen](#command-listen) - listen to an event
-   * [rabbitevents:list](#command-list) - display list of registered events
-1. [Examples](/examples)
 1. [Non-standard use](#non-standard-use)
 
 ## Installation via Composer<a name="installation"></a>
@@ -64,49 +60,37 @@ return [
                 'local_key' => env('RABBITEVENTS_SSL_LOCAL_KEY'),
                 'passphrase' => env('RABBITEVENTS_SSL_PASSPHRASE', ''),
             ],
+            'read_timeout' => env('RABBITEVENTS_READ_TIMEOUT', 3.),
+            'write_timeout' => env('RABBITEVENTS_WRITE_TIMEOUT', 3.),
+            'connection_timeout' => env('RABBITEVENTS_CONNECTION_TIMEOUT', 3.),
+            'heartbeat' => env('RABBITEVENTS_HEARTBEAT', 0),
+            'persisted' => env('RABBITEVENTS_PERSISTED', false),
+            'lazy' => env('RABBITEVENTS_LAZY', true),
+            'qos' => [
+                'global' => env('RABBITEVENTS_QOS_GLOBAL', false),
+                'prefetch_size' => env('RABBITEVENTS_QOS_PREFETCH_SIZE', 0),
+                'prefetch_count' => env('RABBITEVENTS_QOS_PREFETCH_COUNT', 1),
+            ]
         ],
     ],
     'logging' => [
         'enabled' => env('RABBITEVENTS_LOG_ENABLED', false),
         'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
+        'channel' => env('RABBITEVENTS_LOG_CHANNEL'),
     ],
 ];
 ```
+## Upgrade from 7.x to 8.x<a name="upgrade_7.x-8.x"></a>
 
-## Upgrade from 6.x to 7.x<a name="upgrade_6.x-7.x"></a>
-
-For better support and simplifying of RabbitEvents, it is now split into 3 Sub-Packages:
-
-- [Publisher](https://github.com/rabbitevents/publisher) - required to PUBLISH an Event;
-- [Listener](https://github.com/rabbitevents/listener) - required to HANDLE events;
-- [Foundation](https://github.com/rabbitevents/foundation) - common code for Publisher and Listener.
-
-If you've been using RabbitEvents as is, without any changes, it shouldn't impact your application.
-
-If you have extended the functionality of the library in your application, you must revise your code because there were many huge changes in terms of simplifying the code.
-
-
-### PHP 8.0 required
-Rabbitevents now requires PHP 8.0 or greater.
+### PHP 8.1 required
+RabbitEvents now requires PHP 8.1 or greater.
 
 ### Supported Laravel versions
-Rabbitevents now supports Laravel 8.0 or greater.
+RabbitEvents now supports Laravel 9.0 or greater.
 
-### Namespaces change
-The main namespace was changed from `Nuwber\Events` to `RabbitEvents`.
-
-### RabbitEventsServiceProvider changes
-The `RabbitEventsServiceProvider` now extends `\RabbitEvents\Listener\ListenerServiceProvider`.
-
-The `$listen` attribute now looks like `protected array $listen => [];`. Typehint `array` is retuired.
-
-### Logging configuration
-The logging configuration part was moved from a connection to the first level of the configuration. The old configuration is still supported but will be removed in the next releases.
-
-### `\Illuminate\Queue` is not the requirement anymore
-
-To avoid confusion from `Illuminate\Queue` component, the dependency from this package was removed. If you've been using this package on your fork or extension you should add this package in your `composer.json` as a requirement.
-In terms of this avoidance, the `Job` class was renamed to `Handler`. If you are listening to Events from the previous version please replace them to new ones. Now the list of events is: `ListenerHandling`, `ListenerHandled`, `ListenerHandleFailed`, `ListenerHandlerExceptionOccurred` and `MessageProcessingFailed`.
+### Removed `--connection` option from the `rabbitevents:listen` command
+There's an issue [#98](https://github.com/nuwber/rabbitevents/issues/98) that still need to be resolved.
+The default connection is always used instead.
 
 ## RabbitEvents Publisher<a name="publisher"></a>
 
@@ -115,39 +99,6 @@ The RabbitEvents Publisher component provides an API to publish events across th
 ## RabbitEvents Listener<a name="listener"></a>
 
 The RabbitEvents Listener component provides an API to handle events that were published across the application structure. More information about how it works you could find on the RabbitEvents [Listener page](https://github.com/rabbitevents/listener).
-
-## Console commands <a name='commands'></a>
-### Command `rabbitevents:listen` <a name='command-listen'></a>
-
-There is the command which is registers events in RabbitMQ:
-
-```bash
-php artisan rabbitevents:listen event.name --memory=512 --tries=3 --sleep=5
-```
-
-This command registers a separate queue in RabbitMQ bound to an event. As the only `rabbitevents:listen` registers a queue, you should run this command before you start to publish your events. Nothing will happen if you publish an event first, but it will not be handled by a Listener without the first run.
-
-You could start listening to an event only by using `rabbitevents:listen` command, so you have to use some system such as [Supervisor](http://supervisord.org/) or [pm2](http://pm2.keymetrics.io/) to control your listeners.
-
-If your listener crashes, then managers will rerun your listener and all messages sent to a queue will be handled in the same order as they were sent. There is the known problem: as queues are separated and you have messages that affect the same entity there's no guarantee that all actions will be done in an expected order. To avoid such problems you can send message time as a part of the payload and handle it internally in your listeners.
-
-
-#### Options<a name="listen-options"></a>
-- **--service=**. When a queue starts the name of the service becomes a part of a queue name: `service:event.name`. By default, service is the APP_NAME from your `.env`. You could override the first part of a queue name by this option.
-- **--connection=**. The name of connection specified in the `config/rabbitevents.php` config file. Default: `rabbitmq`.
-- **--memory=128**. The memory limit in megabytes. The RabbitEvents have restarting a worker if limit exceeded.
-- **--timeout=60**. The number of seconds a massage could be handled. 
-- **--tries=1**. Number of times to attempt to handle a Message before logging it failed.
-- **--sleep=5**. Sleep time in seconds before handling failed message next time.
-- **--quiet**. No console output
-
-### Command `rabbitevents:list` <a name='command-list'></a>
-
-To get the list of all registered events please use the command `rabbitevents:list`.
-
-```bash
-php artisan rabbitevents:list
-```
 
 ## Non-standard use <a name="#non-standard-use"></a>
 
@@ -160,10 +111,10 @@ If you're using only one of parts of RabbitEvents, you should know a few things:
 ```json
 [
   {
-    "key": "value"  
+    "key": "value"
   },
   "string",
-  123 
+  123
 ]
 ```
 
