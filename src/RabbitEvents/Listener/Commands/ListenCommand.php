@@ -6,9 +6,10 @@ namespace RabbitEvents\Listener\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use RabbitEvents\Foundation\Amqp\TopicDestinationFactory;
 use RabbitEvents\Foundation\Context;
-use RabbitEvents\Foundation\Support\QueueName;
+use RabbitEvents\Foundation\Support\QueueNameInterface;
 use RabbitEvents\Foundation\Support\Releaser;
 use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Events\ListenerHandleFailed;
@@ -16,6 +17,7 @@ use RabbitEvents\Listener\Events\ListenerHandled;
 use RabbitEvents\Listener\Events\ListenerHandling;
 use RabbitEvents\Listener\Events\MessageProcessingFailed;
 use RabbitEvents\Listener\Events\WorkerStopping;
+use RabbitEvents\Listener\Facades\RabbitEvents;
 use RabbitEvents\Listener\Message\HandlerFactory;
 use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Listener\Message\ProcessingOptions;
@@ -32,7 +34,7 @@ class ListenCommand extends Command
      * @var string
      */
     protected $signature = 'rabbitevents:listen
-                            {event : The name of the event to listen to}
+                            {events? : The name of the events to listen to}
                             {--service= : The name of current service. Necessary to identify listeners}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a massage could be handled}
@@ -45,7 +47,7 @@ class ListenCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Listen for event thrown from other services';
+    protected $description = 'Listen for events thrown from other services';
 
     protected array $logWriters = [];
 
@@ -53,7 +55,7 @@ class ListenCommand extends Command
      * Execute the console command.
      * @param Context $context
      * @param Worker $worker
-     * @throws \Throwable
+     * @return int
      * @retur ?int
      */
     public function handle(Context $context, Worker $worker)
@@ -64,7 +66,9 @@ class ListenCommand extends Command
 
         $this->listenForEvents();
 
-        $queue = $context->makeQueue(new QueueName($options->service, $this->argument('event')));
+        $events = $this->getInputEventsNames();
+
+        $queue = $context->makeQueue(new QueueNameInterface($options->service, $events));
 
         $handlerFactory = new HandlerFactory(
             $this->laravel,
@@ -73,7 +77,7 @@ class ListenCommand extends Command
 
         return $worker->work(
             new Processor($handlerFactory, $this->laravel['events']),
-            $context->makeConsumer($queue, $this->argument('event')),
+            $context->makeConsumer($queue, $events),
             $options
         );
     }
@@ -154,5 +158,20 @@ class ListenCommand extends Command
             Arr::get($config, "connections.$connection.logging.level", 'info'),
             Arr::get($config, "connections.$connection.logging.channel", null),
         ];
+    }
+
+    private function getInputEventsNames(): array
+    {
+        $inputEvents = $this->argument('event');
+
+        if (is_null($inputEvents)) {
+            return RabbitEvents::getEvents();
+        }
+
+        if (Str::contains($inputEvents, ',')) {
+            return array_map('trim', explode(',', $inputEvents));
+        }
+
+        return [$inputEvents];
     }
 }

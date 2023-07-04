@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Listener;
 
+use Closure;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Events\Dispatcher as BaseDispatcher;
@@ -45,7 +46,7 @@ class Dispatcher extends BaseDispatcher
      * @param  string  $eventName
      * @return array
      */
-    public function getListeners($eventName)
+    public function getListeners($eventName): array
     {
         return array_merge(
             $this->prepareListeners($eventName),
@@ -59,7 +60,7 @@ class Dispatcher extends BaseDispatcher
      * @param  string  $eventName
      * @return array
      */
-    protected function getWildcardListeners($eventName)
+    protected function getWildcardListeners($eventName): array
     {
         $wildcards = [];
 
@@ -78,9 +79,9 @@ class Dispatcher extends BaseDispatcher
      * Prepare the listeners for a given event.
      *
      * @param  string  $eventName
-     * @return \Closure[]
+     * @return Closure[]
      */
-    protected function prepareListeners(string $eventName)
+    protected function prepareListeners(string $eventName): array
     {
         $listeners = [];
 
@@ -94,9 +95,9 @@ class Dispatcher extends BaseDispatcher
     /*
      * @inheritdoc
      */
-    public function makeListener($listener, $wildcard = false): \Closure
+    public function makeListener($listener, $wildcard = false): Closure
     {
-        if ($listener instanceof \Closure) {
+        if ($listener instanceof Closure) {
             return $listener;
         }
 
@@ -127,8 +128,8 @@ class Dispatcher extends BaseDispatcher
             return $listener;
         }
 
-        if ($listener instanceof \Closure) {
-            return \Closure::class;
+        if ($listener instanceof Closure) {
+            return Closure::class;
         }
 
         if (is_object($listener)) {

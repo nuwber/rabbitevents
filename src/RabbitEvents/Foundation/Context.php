@@ -10,7 +10,7 @@ use Interop\Amqp\AmqpTopic;
 use RabbitEvents\Foundation\Amqp\BindFactory;
 use RabbitEvents\Foundation\Amqp\TopicDestinationFactory;
 use RabbitEvents\Foundation\Amqp\QueueFactory;
-use RabbitEvents\Foundation\Contracts\QueueName;
+use RabbitEvents\Foundation\Contracts\QueueNameInterface;
 use RabbitEvents\Foundation\Contracts\Transport;
 
 /**
@@ -29,7 +29,7 @@ class Context
     private $topic;
 
     /**
-     * @param AmqpContext
+     * @var AmqpContext
      */
     private $amqpContext;
 
@@ -60,14 +60,16 @@ class Context
         return $this->topic;
     }
 
-    public function makeConsumer(AmqpQueue $queue, string $event): Consumer
+    public function makeConsumer(AmqpQueue $queue, array $events): Consumer
     {
-        $this->bind($queue, $event);
+        foreach ($events as $event) {
+            $this->bind($queue, $event);
+        }
 
         return new Consumer($this->createConsumer($queue));
     }
 
-    public function makeQueue(QueueName $queueName): AmqpQueue
+    public function makeQueue(QueueNameInterface $queueName): AmqpQueue
     {
         return (new QueueFactory($this))->make($queueName);
     }

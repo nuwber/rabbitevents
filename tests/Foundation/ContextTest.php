@@ -11,11 +11,10 @@ use RabbitEvents\Foundation\Connection;
 use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Context;
 use Mockery as m;
-use RabbitEvents\Foundation\Support\QueueName;
 
 class ContextTest extends TestCase
 {
-    public function testContextCall()
+    public function test_context_call()
     {
         $amqpContext = m::mock(AmqpContext::class);
         $amqpContext->shouldReceive()
@@ -40,7 +39,7 @@ class ContextTest extends TestCase
 
         $amqpQueue = m::spy(AmqpQueue::class);
         $amqpContext->shouldReceive()
-            ->createQueue('text-app:item.created')
+            ->createQueue('text-app:item.created,item.updated')
             ->andReturn($amqpQueue);
 
         $amqpContext->shouldReceive()
@@ -66,7 +65,7 @@ class ContextTest extends TestCase
             ->andReturn('events');
 
         $context = new Context($connection);
-        $consumer = $context->makeConsumer($amqpQueue, 'item.created');
+        $consumer = $context->makeConsumer($amqpQueue, ['item.created']);
 
         self::assertInstanceOf(Consumer::class, $consumer);
     }

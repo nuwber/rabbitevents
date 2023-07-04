@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation\Contracts;
 
-interface QueueName
+interface QueueNameInterface
 {
     /**
      * Return a queue name event bound to
