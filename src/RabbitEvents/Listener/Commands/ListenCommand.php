@@ -7,20 +7,19 @@ namespace RabbitEvents\Listener\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use RabbitEvents\Foundation\Amqp\TopicDestinationFactory;
 use RabbitEvents\Foundation\Context;
 use RabbitEvents\Foundation\Support\QueueNameInterface;
 use RabbitEvents\Foundation\Support\Releaser;
-use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
-use RabbitEvents\Listener\Events\ListenerHandleFailed;
 use RabbitEvents\Listener\Events\ListenerHandled;
+use RabbitEvents\Listener\Events\ListenerHandleFailed;
+use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Events\ListenerHandling;
 use RabbitEvents\Listener\Events\MessageProcessingFailed;
 use RabbitEvents\Listener\Events\WorkerStopping;
 use RabbitEvents\Listener\Facades\RabbitEvents;
 use RabbitEvents\Listener\Message\HandlerFactory;
-use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Listener\Message\ProcessingOptions;
+use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Listener\Worker;
 
 /**
@@ -92,10 +91,10 @@ class ListenCommand extends Command
         return new ProcessingOptions(
             $this->option('service') ?: $this->laravel['config']->get("app.name"),
             $this->laravel['config']['rabbitevents.default'],
-            (int) $this->option('memory'),
-            (int) $this->option('tries'),
-            (int) $this->option('timeout'),
-            (int) $this->option('sleep')
+            (int)$this->option('memory'),
+            (int)$this->option('tries'),
+            (int)$this->option('timeout'),
+            (int)$this->option('sleep')
         );
     }
 
@@ -125,44 +124,35 @@ class ListenCommand extends Command
     /**
      * Register classes to write log output
      *
-     * @param string $connection
+     * @param string $connectionName
      */
-    protected function registerLogWriters(string $connection = 'rabbitmq'): void
+    protected function registerLogWriters(string $connectionName): void
     {
         if (!$this->option('quiet')) {
             $this->logWriters[] = new Log\Output($this->laravel, $this->output);
         }
 
-        [$enabled, $defaultLoglevel, $channel] = $this->parseLoggingConfiguration($connection);
+        [$enabled, $defaultLoglevel, $channel] = $this->parseLoggingConfiguration($connectionName);
 
         if ($enabled) {
             $this->logWriters[] = new Log\General($this->laravel, $defaultLoglevel, $channel);
         }
     }
 
-    private function parseLoggingConfiguration(string $connection = 'rabbitmq'): array
+    private function parseLoggingConfiguration(string $connectionName): array
     {
         $config = $this->laravel['config']->get('rabbitevents');
 
-        if (Arr::has($config, 'logging')) {
-            return [
-                Arr::get($config, 'logging.enabled', false),
-                Arr::get($config, 'logging.level', 'info'),
-                Arr::get($config, 'logging.channel', null),
-            ];
-        }
-
-        // TODO: In the next releases this part of config will be deleted
         return [
-            Arr::get($config, "connections.$connection.logging.enabled", false),
-            Arr::get($config, "connections.$connection.logging.level", 'info'),
-            Arr::get($config, "connections.$connection.logging.channel", null),
+            Arr::get($config, "$connectionName.logging.enabled", false),
+            Arr::get($config, "$connectionName.logging.level", 'info'),
+            Arr::get($config, "$connectionName.logging.channel"),
         ];
     }
 
     private function getInputEventsNames(): array
     {
-        $inputEvents = $this->argument('event');
+        $inputEvents = $this->argument('events');
 
         if (is_null($inputEvents)) {
             return RabbitEvents::getEvents();
