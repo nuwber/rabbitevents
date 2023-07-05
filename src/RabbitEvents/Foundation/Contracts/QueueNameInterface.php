@@ -11,5 +11,5 @@ interface QueueNameInterface
      *
      * @return string
      */
-    public function resolve(): string;
+    public function resolveQueueName(): string;
 }

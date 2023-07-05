@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use RabbitEvents\Foundation\Context;
-use RabbitEvents\Foundation\Support\QueueNameInterface;
+use RabbitEvents\Foundation\Support\EnqueueOptions;
 use RabbitEvents\Foundation\Support\Releaser;
 use RabbitEvents\Listener\Events\ListenerHandled;
 use RabbitEvents\Listener\Events\ListenerHandleFailed;
@@ -65,9 +65,10 @@ class ListenCommand extends Command
 
         $this->listenForEvents();
 
-        $events = $this->getInputEventsNames();
-
-        $queue = $context->makeQueue(new QueueNameInterface($options->service, $events));
+        $queue = $context->makeQueue(
+            $context->makeTopic(),
+            new EnqueueOptions($options->service, $this->getInputEventsNames())
+        );
 
         $handlerFactory = new HandlerFactory(
             $this->laravel,
@@ -76,7 +77,7 @@ class ListenCommand extends Command
 
         return $worker->work(
             new Processor($handlerFactory, $this->laravel['events']),
-            $context->makeConsumer($queue, $events),
+            $context->makeConsumer($queue),
             $options
         );
     }

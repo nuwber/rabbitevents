@@ -24,7 +24,7 @@ class Worker
 
     /**
      * Indicates if the worker should exit.
-     **/
+     */
     public bool $shouldQuit = false;
 
     public function __construct(private ExceptionHandler $exceptions, private EventsDispatcher $events)

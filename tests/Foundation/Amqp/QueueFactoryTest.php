@@ -6,7 +6,7 @@ use Interop\Amqp\AmqpDestination;
 use Interop\Amqp\Impl\AmqpQueue as ImplAmqpQueue;
 use RabbitEvents\Foundation\Amqp\QueueFactory;
 use RabbitEvents\Foundation\Context;
-use RabbitEvents\Foundation\Support\QueueNameInterface;
+use RabbitEvents\Foundation\Support\EnqueueOptions;
 use RabbitEvents\Tests\Foundation\TestCase;
 
 class QueueFactoryTest extends TestCase
@@ -15,8 +15,8 @@ class QueueFactoryTest extends TestCase
 
     public function test_make_queue()
     {
-        $queueName = new QueueNameInterface('rabbitevents-app', $this->events);
-        $resolvedQueueName = $queueName->resolve();
+        $enqueueOptions = new EnqueueOptions('rabbitevents-app', $this->events);
+        $resolvedQueueName = $enqueueOptions->resolveQueueName();
 
         $amqpQueue = new ImplAmqpQueue($resolvedQueueName);
 
@@ -29,7 +29,7 @@ class QueueFactoryTest extends TestCase
 
         $factory = new QueueFactory($context);
 
-        $queue = $factory->make($queueName);
+        $queue = $factory->makeAndDeclare($enqueueOptions);
 
         self::assertInstanceOf(ImplAmqpQueue::class, $queue);
         self::assertEquals(AmqpDestination::FLAG_DURABLE, $queue->getFlags());
