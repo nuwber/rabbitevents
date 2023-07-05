@@ -17,7 +17,7 @@ class PublisherServiceProvider extends ServiceProvider
             Publisher::class,
             static fn($app) => new Publisher(
                 new MessageFactory(),
-                new Sender($app[Context::class]->topic(), $app[Context::class]->createProducer())
+                new Sender($app[Context::class]->makeTopic(), $app[Context::class]->createProducer())
             )
         );
     }
