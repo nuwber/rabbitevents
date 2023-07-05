@@ -142,7 +142,7 @@ class ListenCommand extends Command
 
     private function parseLoggingConfiguration(string $connectionName): array
     {
-        $config = $this->laravel['config']->get('rabbitevents');
+        $config = $this->laravel['config']->get('rabbitevents.connections');
 
         return [
             Arr::get($config, "$connectionName.logging.enabled", false),
