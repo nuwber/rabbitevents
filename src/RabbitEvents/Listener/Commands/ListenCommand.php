@@ -55,7 +55,6 @@ class ListenCommand extends Command
      * @param Context $context
      * @param Worker $worker
      * @return int
-     * @retur ?int
      */
     public function handle(Context $context, Worker $worker)
     {

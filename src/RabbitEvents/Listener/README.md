@@ -192,7 +192,7 @@ To start listening to all events registered in the application, you could run wi
 php artisan rabbitevents:listen
 ```
 
-or to mention events separated by coma
+or to mention events separated by comma
 
 ```bash
 php artisan rabbitevents:listen event.one,event.two,event.n
