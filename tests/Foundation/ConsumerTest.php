@@ -19,8 +19,6 @@ class ConsumerTest extends TestCase
 
     public function testNextMessage(): void
     {
-        $context = new Context(m::mock(Connection::class));
-
         $event = 'item.created';
         $payload = '{"pay":"load"}';
 
@@ -33,7 +31,7 @@ class ConsumerTest extends TestCase
         $amqpConsumer->shouldReceive('receive')
             ->andReturn($amqpMessage);
 
-        $consumer = new Consumer($amqpConsumer, $context);
+        $consumer = new Consumer($amqpConsumer);
         $message = $consumer->nextMessage();
 
         self::assertInstanceOf(Message::class, $message);

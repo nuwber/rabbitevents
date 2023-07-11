@@ -186,7 +186,19 @@ php artisan rabbitevents:listen event.name --memory=512 --tries=3 --sleep=5
 
 This command registers a separate queue in RabbitMQ bound to an event. As the only `rabbitevents:listen` registers a queue, you should run this command before you start to publish your events. Nothing will happen if you publish an event first, but it will not be handled by a Listener without the first run.
 
-You could start listening to an event only by using `rabbitevents:listen` command, so you have to use some system such as [Supervisor](http://supervisord.org/) or [pm2](http://pm2.keymetrics.io/) to control your listeners.
+To start listening to all events registered in the application, you could run without any event names
+
+```bash
+php artisan rabbitevents:listen
+```
+
+or to mention events separated by comma
+
+```bash
+php artisan rabbitevents:listen event.one,event.two,event.n
+```
+
+You could start listening to an event only by using `rabbitevents:listen` command, so you could use some system such as [Supervisor](http://supervisord.org/) or [pm2](http://pm2.keymetrics.io/) to control your listeners.
 
 If your listener crashes, then managers will rerun your listener and all messages sent to a queue will be handled in the same order as they were sent. There is the known problem: as queues are separated and you have messages that affect the same entity there's no guarantee that all actions will be done in an expected order. To avoid such problems you can send message time as a part of the payload and handle it internally in your listeners.
 

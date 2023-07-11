@@ -2,20 +2,19 @@
 
 namespace RabbitEvents\Tests\Foundation;
 
-use Interop\Amqp\AmqpBind;
 use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpContext;
-use Interop\Amqp\AmqpQueue;
+use Interop\Amqp\Impl\AmqpQueue;
 use Interop\Amqp\AmqpTopic;
 use RabbitEvents\Foundation\Connection;
 use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Context;
 use Mockery as m;
-use RabbitEvents\Foundation\Support\QueueName;
+use RabbitEvents\Foundation\Support\EnqueueOptions;
 
 class ContextTest extends TestCase
 {
-    public function testContextCall()
+    public function test_context_call()
     {
         $amqpContext = m::mock(AmqpContext::class);
         $amqpContext->shouldReceive()
@@ -32,42 +31,48 @@ class ContextTest extends TestCase
         self::assertEquals('result', $context->foo('bar'));
     }
 
-    public function testCreateConsumer()
+    public function test_create_consumer()
     {
         $amqpContext = m::mock(AmqpContext::class)->makePartial();
         $amqpContext->shouldReceive('createConsumer')
             ->andReturn(m::mock(AmqpConsumer::class));
 
-        $amqpQueue = m::spy(AmqpQueue::class);
-        $amqpContext->shouldReceive()
-            ->createQueue('text-app:item.created')
-            ->andReturn($amqpQueue);
-
-        $amqpContext->shouldReceive()
-            ->declareQueue($amqpQueue);
-
-        $topic = m::spy(AmqpTopic::class);
-        $amqpContext->shouldReceive('createTopic')
-            ->andReturn($topic);
-
-        $amqpContext->shouldReceive()
-            ->declareTopic($topic)
-            ->once();
-
-        $amqpContext->shouldReceive()
-            ->bind(m::type(AmqpBind::class));
+        $amqpQueue = new AmqpQueue('name');
 
         $connection = m::mock(Connection::class);
         $connection->shouldReceive('createContext')
             ->andReturn($amqpContext);
 
-        $connection->shouldReceive()
-            ->getConfig('exchange')
-            ->andReturn('events');
-
         $context = new Context($connection);
-        $consumer = $context->makeConsumer($amqpQueue, 'item.created');
+        $consumer = $context->makeConsumer($amqpQueue);
 
         self::assertInstanceOf(Consumer::class, $consumer);
+    }
+
+    public function test_make_queue()
+    {
+        $events = ['event.one', 'event.two'];
+        $enqueueOptions = new EnqueueOptions('test-app', $events);
+
+        $amqpContext = m::mock(AmqpContext::class);
+        $amqpContext->shouldReceive('bind')
+            ->twice();
+        $amqpContext->shouldReceive('createQueue')
+            ->andReturn($amqpQueue = new AmqpQueue($enqueueOptions->name));
+        $amqpContext->shouldReceive('declareQueue')
+            ->once();
+
+        $topic = m::mock(AmqpTopic::class);
+
+        $connection = m::mock(Connection::class);
+        $connection->shouldReceive()
+            ->createContext()
+            ->andReturn($amqpContext);
+
+
+        $context = new Context($connection);
+        $queue = $context->makeQueue($topic, $enqueueOptions);
+
+        self::assertInstanceOf(AmqpQueue::class, $queue);
     }
 }

@@ -8,17 +8,16 @@ use Interop\Amqp\AmqpDestination;
 use Interop\Amqp\AmqpTopic;
 use RabbitEvents\Foundation\Context;
 
-class TopicDestinationFactory
+class DestinationTopicFactory
 {
-    public function __construct(private Context $context)
+    public function __construct(private readonly Context $context)
     {
     }
 
-    public function make(): AmqpTopic
+    public function makeAndDeclare(string $name): AmqpTopic
     {
-        $topic = $this->context->createTopic(
-            $this->context->connection()->getConfig('exchange')
-        );
+        $topic = $this->context->createTopic($name);
+
         $topic->setType(AmqpTopic::TYPE_TOPIC);
         $topic->addFlag(AmqpDestination::FLAG_DURABLE);
 
