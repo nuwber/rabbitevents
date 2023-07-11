@@ -16,6 +16,7 @@ Once again, the RabbitEvents library helps you to publish an event and handle it
 1. [Upgrade from 7.x to 8.x](#upgrade_7.x-8.x)
 1. [Publisher component](#publisher)
 1. [Listener component](#listener)
+1. [Examples](./examples)
 1. [Non-standard use](#non-standard-use)
 
 ## Installation via Composer<a name="installation"></a>
@@ -118,5 +119,5 @@ If you're using only one of parts of RabbitEvents, you should know a few things:
 ]
 ```
 
-There'e 3 elements of an array, so 3 variables will be passed to a Listener (array, string and integer).
+There's 3 elements of an array, so 3 variables will be passed to a Listener (array, string and integer).
 If an associative array is being passed, the Dispatcher wraps this array by itself.

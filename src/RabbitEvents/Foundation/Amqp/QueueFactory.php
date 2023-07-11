@@ -7,36 +7,26 @@ namespace RabbitEvents\Foundation\Amqp;
 use Interop\Amqp\AmqpDestination;
 use Interop\Amqp\AmqpQueue;
 use RabbitEvents\Foundation\Context;
-use RabbitEvents\Foundation\Contracts\QueueName as QueueNameInterface;
-use RabbitEvents\Foundation\Support\QueueName;
+use RabbitEvents\Foundation\Support\EnqueueOptions;
 
 class QueueFactory
 {
-    public function __construct(private Context $context)
+    public function __construct(private readonly Context $context)
     {
     }
 
     /**
-     * @param QueueNameInterface|string $queueName
+     * @param EnqueueOptions $enqueueOptions
      * @return AmqpQueue
      */
-    public function make(QueueNameInterface|string $queueName): AmqpQueue
+    public function makeAndDeclare(EnqueueOptions $enqueueOptions): AmqpQueue
     {
-        $queue = $this->context->createQueue($this->resolveName($queueName));
+        $queue = $this->context->createQueue($enqueueOptions->name);
 
         $queue->addFlag(AmqpDestination::FLAG_DURABLE);
 
         $this->context->declareQueue($queue);
 
         return $queue;
-    }
-
-    protected function resolveName(QueueNameInterface|string $queueName): string
-    {
-        if (is_string($queueName)) {
-            $queueName = new QueueName(env('APP_NAME', 'rabbitevents-app'), $queueName);
-        }
-
-        return $queueName->resolve();
     }
 }

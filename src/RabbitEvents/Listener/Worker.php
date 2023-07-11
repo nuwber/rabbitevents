@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Listener;
 
-use Illuminate\Contracts\Events\Dispatcher as EventsDispatcher;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Contracts\Events\Dispatcher as EventsDispatcher;
 use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
 use RabbitEvents\Foundation\Message;
@@ -24,15 +24,16 @@ class Worker
 
     /**
      * Indicates if the worker should exit.
-     *
-     * @var bool
      */
-    public $shouldQuit;
+    public bool $shouldQuit = false;
 
     public function __construct(private ExceptionHandler $exceptions, private EventsDispatcher $events)
     {
     }
 
+    /**
+     * @throws Throwable
+     */
     public function work(Processor $processor, Consumer $consumer, ProcessingOptions $options): int
     {
         if ($supportsAsyncSignals = $this->supportsAsyncSignals()) {
