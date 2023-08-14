@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener\Commands\Log;
 
 use Illuminate\Contracts\Container\Container;
-use RabbitEvents\Listener\Message\Handler;
+use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 
 class General extends Writer
 {
@@ -23,23 +23,29 @@ class General extends Writer
     {
         $status = $this->getStatus($event);
 
-        $this->write($event->handler, $status);
-    }
-
-    protected function write(Handler $handler, string $status): void
-    {
         $this->app['log']->channel($this->channel)->log(
             $this->getLogLevel($status),
-            sprintf('Handler "%s" %s', $handler->getName(), $status),
-            [
-                'handler' => [
-                    'name' => $handler->getName(),
-                    'attempts' => $handler->attempts(),
-                    'payload' => $handler->payload(),
-                ],
-                'status' => $status,
-            ]
+            sprintf('Handler "%s" %s', $event->handler->getName(), $status),
+            $this->getPayload($event, $status),
         );
+    }
+
+    protected function getPayload($event, string $status): array
+    {
+        $payload = [
+            'handler' => [
+                'name' => $event->handler->getName(),
+                'attempts' => $event->handler->attempts(),
+                'payload' => $event->handler->payload(),
+            ],
+            'status' => $status,
+        ];
+
+        if ($event instanceof ListenerHandlerExceptionOccurred) {
+            $payload['exception'] = $event->exception;
+        }
+
+        return $payload;
     }
 
     protected function getLogLevel(string $status): string
