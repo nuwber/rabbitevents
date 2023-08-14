@@ -60,8 +60,7 @@ class ListenCommand extends Command
     {
         $options = $this->gatherProcessingOptions();
 
-        $this->registerLogWriters($options->connectionName);
-
+        $this->registerLogWriters();
         $this->listenForEvents();
 
         $queue = $context->makeQueue(
@@ -123,30 +122,28 @@ class ListenCommand extends Command
 
     /**
      * Register classes to write log output
-     *
-     * @param string $connectionName
      */
-    protected function registerLogWriters(string $connectionName): void
+    protected function registerLogWriters(): void
     {
         if (!$this->option('quiet')) {
             $this->logWriters[] = new Log\Output($this->laravel, $this->output);
         }
 
-        [$enabled, $defaultLoglevel, $channel] = $this->parseLoggingConfiguration($connectionName);
+        [$enabled, $defaultLoglevel, $channel] = $this->parseLoggingConfiguration();
 
         if ($enabled) {
             $this->logWriters[] = new Log\General($this->laravel, $defaultLoglevel, $channel);
         }
     }
 
-    private function parseLoggingConfiguration(string $connectionName): array
+    private function parseLoggingConfiguration(): array
     {
-        $config = $this->laravel['config']->get('rabbitevents.connections');
+        $config = $this->laravel['config']->get('rabbitevents');
 
         return [
-            Arr::get($config, "$connectionName.logging.enabled", false),
-            Arr::get($config, "$connectionName.logging.level", 'info'),
-            Arr::get($config, "$connectionName.logging.channel"),
+            Arr::get($config, 'logging.enabled', false),
+            Arr::get($config, 'logging.level', 'info'),
+            Arr::get($config, 'logging.channel'),
         ];
     }
 

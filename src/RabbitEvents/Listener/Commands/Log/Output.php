@@ -7,7 +7,9 @@ namespace RabbitEvents\Listener\Commands\Log;
 use Illuminate\Console\OutputStyle;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Carbon;
+use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Message\Handler;
+use Symfony\Component\Console\Application as ConsoleApplication;
 
 class Output extends Writer
 {
@@ -23,8 +25,9 @@ class Output extends Writer
         $status = $this->getStatus($event);
 
         $this->writeStatus($event->handler, $status, $this->getType($status));
-        if (isset($event->exception)) {
-            $this->output->writeln('Exception message: ' . $event->exception->getMessage());
+
+        if ($event instanceof ListenerHandlerExceptionOccurred) {
+            (new ConsoleApplication())->renderThrowable($event->exception, $this->output);
         }
     }
 
