@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation\Support;
 
-use ArrayAccess;
-use Illuminate\Support\Arr;
 use RabbitEvents\Foundation\Contracts\Payload as PayloadInterface;
 
 class Payload implements PayloadInterface
