@@ -1,34 +1,38 @@
 # RabbitEvents Publisher
-The RabbitEvents Publisher component provides an API to publish events across the application structure. More information is available in the [Nuwber's RabbitEvents documentation](https://github.com/nuwber/rabbitevents).
 
-The RabbitEvents Publisher is the part that lets all other microservices know that a payment succeeded. 
+The RabbitEvents Publisher component provides an API for publishing events across the application structure. More information is available in the [Nuwber's RabbitEvents documentation](https://github.com/nuwber/rabbitevents).
 
-## Table of contents
+The RabbitEvents Publisher is the part that informs all other microservices that a payment has succeeded.
+
+## Table of Contents
+
 1. [Installation via Composer](#installation)
 2. [Configuration](#configuration)
-3. [Publishing](#howto_publish)
+3. [Publishing](#how-to-publish)
 4. [Testing](#testing)
 
 ## Installation via Composer<a name="installation"></a>
-RabbitEvents Publisher may be installed via the Composer package manager:
+
+RabbitEvents Publisher can be installed via the Composer package manager:
 
 ```bash
 composer require rabbitevents/publisher
 ```
 
-After installing Publisher, you may execute the `rabbitevents:install` Artisan command, which will install the RabbitEvents configuration file into your application:
+After installing Publisher, you can execute the `rabbitevents:install` Artisan command, which will install the RabbitEvents configuration file into your application:
 
 ```bash
 php artisan rabbitevents:install
 ```
 
 ## Configuration <a name="configuration"></a>
+
 Details about the configuration are described in the library [documentation](https://github.com/nuwber/rabbitevents#configuration).
 
-## Publishing<a name="howto_publish"></a>
+## Publishing<a name="how-to-publish"></a>
 
-### By using an Event class
-This is an example event class:
+### Using an Event class
+Here is an example event class:
 
 ```php
 <?php
@@ -60,46 +64,48 @@ class PaymentSucceededRabbitEvent implements ShouldPublish
     }
 }
 ```
+
 The only requirement for event classes is to implement the `\RabbitEvents\Publisher\ShouldPublish` interface.
 
-As an alternative, you could extend `\RabbitEvents\Publisher\Support\AbstractPublishableEvent`. This class was made just to simplify event classes creation.
+As an alternative, you could extend `\RabbitEvents\Publisher\Support\AbstractPublishableEvent`. This class was created to simplify the creation of event classes.
 
-To **publish** this event you just need to call the `publish` method of the event class and pass here all necessary data.
+To **publish** this event, you just need to call the `publish` method of the event class and pass all the necessary data:
 
 ```php
 <?php
 
 $payment = new Payment(...);
 
-...
+// ...
 
 PaymentSucceededRabbitEvent::publish($request->user(), $payment);
 ```
 
 The method `publish` is provided by the trait `Publishable`.
 
-### By using the `publish` function
+### Using the `publish` function
 
-Sometimes easier is to use the helper function `publish` with an event key and payload.
+Sometimes, it is easier to use the helper function `publish` with an event key and payload:
 
 ```php
 <?php
 
 publish(
-	'payment.succeeded', 
-	[
-	    'user' => $request->user()->toArray(),
-	    'payment' => $payment->toArray(),
-	]
+    'payment.succeeded',
+    [
+        'user' => $request->user()->toArray(),
+        'payment' => $payment->toArray(),
+    ]
 );
 ```
 
 ### Publish an Event object with the `publish` function
 
-You also could use the combination of two previous methods.
+You can also use a combination of the two previous methods:
 
 ```php
 <?php
+
 $event = new PaymentSucceededEvent($request->user(), $payment);
 
 event($event)
@@ -166,5 +172,5 @@ Event::assertPublished('something.happened', $payload);
 AnotherEvent::assertNotPublished();
 ```
 
-If assertion does not passes `Mockery\Exception\InvalidCountException` will be thrown.
+If the assertion does not pass, `Mockery\Exception\InvalidCountException` will be thrown.\
 Don't forget to call `\Mockery::close()` in `tearDown` or similar methods of your tests.

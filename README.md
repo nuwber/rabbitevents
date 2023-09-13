@@ -6,11 +6,11 @@
 [![Latest Version](https://img.shields.io/packagist/v/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
 [![License](https://img.shields.io/packagist/l/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
 
-Let's imagine a use case: the User made a payment. You need to handle this payment, register the user, send him emails, send analytics data to your analysis system, and so on. The modern infrastructure requires you to create microservices that are doing their specific job and only it: one handles payments, one is for the user management, one is the mailing system, one is for the analysis. How to let all of them know that a payment succeeded and handle this message? The answer is "To use RabbitEvents".
+Let's imagine a use case: a User made a payment. You need to handle this payment, register the user, send him emails, send analytics data to your analysis system, and so on. The modern infrastructure requires you to create microservices that do their specific job and only it: one handles payments, one is for user management, one is the mailing system, one is for analysis. How to let all of them know that a payment succeeded and handle this message? The answer is "To use RabbitEvents".
 
-Once again, the RabbitEvents library helps you to publish an event and handle it in another app. No sense to use it in the same app, because  Laravel's Events works for this better.
+Once again, the RabbitEvents library helps you publish an event and handle it in another app. It doesn't make sense to use it in the same app because Laravel's Events work better for that.
 
-## Table of contents
+## Table of Contents
 1. [Installation via Composer](#installation)
    * [Configuration](#configuration)
 1. [Upgrade from 7.x to 8.x](#upgrade_7.x-8.x)
@@ -20,7 +20,7 @@ Once again, the RabbitEvents library helps you to publish an event and handle it
 1. [Non-standard use](#non-standard-use)
 
 ## Installation via Composer<a name="installation"></a>
-You may use Composer to install RabbitEvents into your Laravel project:
+You can use Composer to install RabbitEvents into your Laravel project:
 
 ```bash
 composer require nuwber/rabbitevents
@@ -90,25 +90,26 @@ RabbitEvents now requires PHP 8.1 or greater.
 RabbitEvents now supports Laravel 9.0 or greater.
 
 ### Removed `--connection` option from the `rabbitevents:listen` command
-There's an issue [#98](https://github.com/nuwber/rabbitevents/issues/98) that still need to be resolved.
-The default connection is always used instead. 
+There's an issue [#98](https://github.com/nuwber/rabbitevents/issues/98) that still needs to be resolved.
+The default connection is always used instead.
 
 ## RabbitEvents Publisher<a name="publisher"></a>
 
-The RabbitEvents Publisher component provides an API to publish events across the application structure. More information about how it works you could find on the RabbitEvents [Publisher page](https://github.com/rabbitevents/publisher).
+The RabbitEvents Publisher component provides an API to publish events across the application structure. More information about how it works can be found on the RabbitEvents [Publisher page](https://github.com/rabbitevents/publisher).
 
 ## RabbitEvents Listener<a name="listener"></a>
 
-The RabbitEvents Listener component provides an API to handle events that were published across the application structure. More information about how it works you could find on the RabbitEvents [Listener page](https://github.com/rabbitevents/listener).
+The RabbitEvents Listener component provides an API to handle events that were published across the application structure. More information about how it works can be found on the RabbitEvents [Listener page](https://github.com/rabbitevents/listener).
 
 ## Non-standard use <a name="#non-standard-use"></a>
 
-If you're using only one of parts of RabbitEvents, you should know a few things:
+If you're using only one part of RabbitEvents, you should know a few things:
 
-1. You remember, we're using RabbitMQ as the transport layer. In the [RabbitMQ Documentation](https://www.rabbitmq.com/tutorials/tutorial-five-python.html) you could find examples how to publish your messages using a routing key.
-   This is an event name like `something.happened` from examples above.
+1. You remember, we're using RabbitMQ as the transport layer. In the [RabbitMQ Documentation](https://www.rabbitmq.com/tutorials/tutorial-five-python.html), you can find examples of how to publish your messages using a routing key. This routing key is the event name, like `something.happened` from the examples above.
 
-1. RabbitEvents expects that a message body is a JSON encoded array. Every element of an array will be passed to a Listener as a separate variable. Example:
+1. Rabbit
+
+Events expects that a message body is a JSON-encoded array. Every element of an array will be passed to a Listener as a separate variable. For example:
 ```json
 [
   {
@@ -119,5 +120,5 @@ If you're using only one of parts of RabbitEvents, you should know a few things:
 ]
 ```
 
-There's 3 elements of an array, so 3 variables will be passed to a Listener (array, string and integer).
+There are 3 elements in this array, so 3 variables will be passed to a Listener (an array, a string, and an integer).
 If an associative array is being passed, the Dispatcher wraps this array by itself.
