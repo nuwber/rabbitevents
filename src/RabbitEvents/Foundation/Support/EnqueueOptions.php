@@ -17,6 +17,12 @@ class EnqueueOptions implements QueueNameInterface
 
     public function resolveQueueName(): string
     {
-        return $this->applicationName . ":" . implode(',', $this->events);
+        $name = $this->applicationName . ':' . implode(',', $this->events);
+
+        if (strlen($name) > 255) {
+            $name = $this->applicationName . ':' . md5($name);
+        }
+
+        return $name;
     }
 }
