@@ -204,6 +204,9 @@ or mention events separated by commas:
 php artisan rabbitevents:listen event.one,event.two,event.n
 ```
 
+If the list of events is too long, the queue name will be created as an MD5 checksum of the lengthy queue name. 
+This was implemented because the AMQP driver does not accept longer names.
+
 You can start listening to an event only by using the `rabbitevents:listen` command, so you could use some system such as [Supervisor](http://supervisord.org/)
 
 or [pm2](http://pm2.keymetrics.io/) to control your listeners.
