@@ -6,7 +6,6 @@ namespace RabbitEvents\Listener\Message;
 
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Arr;
-use RabbitEvents\Foundation\Context;
 use RabbitEvents\Foundation\Contracts\DelaysDelivery;
 use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Message;

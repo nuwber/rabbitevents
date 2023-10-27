@@ -26,6 +26,6 @@ class EnqueueOptionsTest extends TestCase
     {
         $enqueueOptions = new EnqueueOptions('test-app', [Str::random(300)]);
 
-        self::assertLessThan(255,strlen($enqueueOptions->resolveQueueName()) );
+        self::assertLessThan(200,strlen($enqueueOptions->resolveQueueName()) );
     }
 }
