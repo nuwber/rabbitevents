@@ -19,7 +19,7 @@ class EnqueueOptions implements QueueNameInterface
     {
         $name = $this->applicationName . ':' . implode(',', $this->events);
 
-        if (mb_strlen($name, 'ASCII') > 255) {
+        if (mb_strlen($name, 'ASCII') > 200) {
             $name = $this->applicationName . ':' . md5($name);
         }
 
