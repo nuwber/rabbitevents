@@ -10,6 +10,9 @@ Let's imagine a use case: a User made a payment. You need to handle this payment
 
 Once again, the RabbitEvents library helps you publish an event and handle it in another app. It doesn't make sense to use it in the same app because Laravel's Events work better for that.
 
+## Demo
+![rabbit-events-demo](https://github.com/nuwber/rabbitevents/assets/142213350/89df6194-e49d-4d58-8286-8932f182da4b)
+
 ## Table of Contents
 1. [Installation via Composer](#installation)
    * [Configuration](#configuration)
