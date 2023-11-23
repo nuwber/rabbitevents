@@ -177,6 +177,8 @@ class WorkerTest extends TestCase
         $worker->work($processor, $consumer, $this->options(['timeout' => 1]));
 
         self::assertEquals(Worker::EXIT_ERROR, $worker->exitStatus);
+
+        $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessingFailed::class))->once();
     }
 
     public function testTimeoutResetIfProcessEndedWithException()
