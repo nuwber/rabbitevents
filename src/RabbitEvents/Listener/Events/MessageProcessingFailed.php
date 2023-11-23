@@ -6,7 +6,7 @@ use RabbitEvents\Foundation\Message;
 
 class MessageProcessingFailed
 {
-    public function __construct(public Message $message, public \Throwable $exception)
+    public function __construct(public readonly Message $message, public readonly \Throwable $exception)
     {
     }
 }

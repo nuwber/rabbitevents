@@ -8,7 +8,7 @@ use RabbitEvents\Listener\Message\Handler;
 
 class ListenerHandlerExceptionOccurred
 {
-    public function __construct(public Handler $handler, public \Throwable $exception)
+    public function __construct(public readonly Handler $handler, public readonly \Throwable $exception)
     {
     }
 }
