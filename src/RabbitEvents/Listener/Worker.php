@@ -12,6 +12,7 @@ use RabbitEvents\Foundation\Message;
 use RabbitEvents\Listener\Events\MessageProcessingFailed;
 use RabbitEvents\Listener\Events\WorkerStopping;
 use RabbitEvents\Listener\Exceptions\MaxAttemptsExceededException;
+use RabbitEvents\Listener\Exceptions\TimeoutExceededException;
 use RabbitEvents\Listener\Message\ProcessingOptions;
 use RabbitEvents\Listener\Message\Processor;
 use Throwable;
@@ -105,6 +106,10 @@ class Worker
         // process if it is running too long because it has frozen. This uses the async
         // signals supported in recent versions of PHP to accomplish it conveniently.
         pcntl_signal(SIGALRM, function () use ($message, $consumer) {
+            $this->events->dispatch(new MessageProcessingFailed($message, new TimeoutExceededException(
+                'Worker has timed out.'
+            )));
+
             $consumer->acknowledge($message);
 
             $this->kill(static::EXIT_ERROR);
