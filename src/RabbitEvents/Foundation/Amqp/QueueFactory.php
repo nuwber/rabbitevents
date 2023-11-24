@@ -7,7 +7,6 @@ namespace RabbitEvents\Foundation\Amqp;
 use Interop\Amqp\AmqpDestination;
 use Interop\Amqp\AmqpQueue;
 use RabbitEvents\Foundation\Context;
-use RabbitEvents\Foundation\Support\EnqueueOptions;
 
 class QueueFactory
 {
@@ -16,12 +15,12 @@ class QueueFactory
     }
 
     /**
-     * @param EnqueueOptions $enqueueOptions
+     * @param string $queueName
      * @return AmqpQueue
      */
-    public function makeAndDeclare(EnqueueOptions $enqueueOptions): AmqpQueue
+    public function makeAndDeclare(string $queueName): AmqpQueue
     {
-        $queue = $this->context->createQueue($enqueueOptions->name);
+        $queue = $this->context->createQueue($queueName);
 
         $queue->addFlag(AmqpDestination::FLAG_DURABLE);
 

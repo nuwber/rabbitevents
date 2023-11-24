@@ -10,7 +10,6 @@ use Interop\Amqp\AmqpTopic;
 use Interop\Amqp\Impl\AmqpBind;
 use RabbitEvents\Foundation\Amqp\DestinationTopicFactory;
 use RabbitEvents\Foundation\Amqp\QueueFactory;
-use RabbitEvents\Foundation\Support\EnqueueOptions;
 
 /**
  * @mixin \Enqueue\AmqpLib\AmqpContext
@@ -43,11 +42,11 @@ class Context
         return new Consumer($this->createConsumer($queue));
     }
 
-    public function makeQueue(AmqpTopic $topic, EnqueueOptions $enqueueOptions): AmqpQueue
+    public function makeQueue(string $queueName, array $events, AmqpTopic $topic): AmqpQueue
     {
-        $queue = (new QueueFactory($this))->makeAndDeclare($enqueueOptions);
+        $queue = (new QueueFactory($this))->makeAndDeclare($queueName);
 
-        foreach ($enqueueOptions->events as $event) {
+        foreach ($events as $event) {
             $this->bind(new AmqpBind($topic, $queue, $event));
         }
 

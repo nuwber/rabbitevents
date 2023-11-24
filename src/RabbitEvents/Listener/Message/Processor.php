@@ -6,12 +6,13 @@ namespace RabbitEvents\Listener\Message;
 
 use Illuminate\Contracts\Events\Dispatcher as EventsDispatcher;
 use RabbitEvents\Foundation\Message;
-use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
-use RabbitEvents\Listener\Events\ListenerHandleFailed;
 use RabbitEvents\Listener\Events\ListenerHandled;
+use RabbitEvents\Listener\Events\ListenerHandleFailed;
+use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Events\ListenerHandling;
 use RabbitEvents\Listener\Exceptions\FailedException;
 use RabbitEvents\Listener\Facades\RabbitEvents;
+use RabbitEvents\Listener\ListenerOptions;
 use Throwable;
 
 class Processor
@@ -25,7 +26,7 @@ class Processor
      *
      * @throws Throwable
      */
-    public function process(Message $message, ProcessingOptions $options): void
+    public function process(Message $message, ListenerOptions $options): void
     {
         foreach (RabbitEvents::getListeners($message->event()) as $listener) {
             [$class, $callback] = $listener;
@@ -48,11 +49,11 @@ class Processor
      * Process concrete listener
      *
      * @param Handler $handler
-     * @param ProcessingOptions $options
+     * @param ListenerOptions $options
      * @return mixed
      * @throws Throwable
      */
-    public function runHandler(Handler $handler, ProcessingOptions $options): mixed
+    public function runHandler(Handler $handler, ListenerOptions $options): mixed
     {
         try {
             $this->raiseBeforeEvent($handler);
@@ -71,13 +72,13 @@ class Processor
      * Handle an exception that occurred while the job was running.
      *
      * @param Handler $handler
-     * @param ProcessingOptions $options
+     * @param ListenerOptions $options
      * @param Throwable $exception
      * @return void
      *
      * @throws Throwable
      */
-    protected function handleException(Handler $handler, ProcessingOptions $options, Throwable $exception): void
+    protected function handleException(Handler $handler, ListenerOptions $options, Throwable $exception): void
     {
         try {
             if ($exception instanceof FailedException) {

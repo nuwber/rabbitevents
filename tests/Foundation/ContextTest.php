@@ -52,26 +52,23 @@ class ContextTest extends TestCase
     public function test_make_queue()
     {
         $events = ['event.one', 'event.two'];
-        $enqueueOptions = new EnqueueOptions('test-app', $events);
+        $queueName = 'test-app:rabbitevents';
 
         $amqpContext = m::mock(AmqpContext::class);
         $amqpContext->shouldReceive('bind')
             ->twice();
         $amqpContext->shouldReceive('createQueue')
-            ->andReturn($amqpQueue = new AmqpQueue($enqueueOptions->name));
+            ->andReturn($amqpQueue = new AmqpQueue($queueName));
         $amqpContext->shouldReceive('declareQueue')
             ->once();
-
-        $topic = m::mock(AmqpTopic::class);
 
         $connection = m::mock(Connection::class);
         $connection->shouldReceive()
             ->createContext()
             ->andReturn($amqpContext);
 
-
-        $context = new Context($connection);
-        $queue = $context->makeQueue($topic, $enqueueOptions);
+        $queue = (new Context($connection))
+            ->makeQueue($queueName, $events, m::mock(AmqpTopic::class));
 
         self::assertInstanceOf(AmqpQueue::class, $queue);
     }
