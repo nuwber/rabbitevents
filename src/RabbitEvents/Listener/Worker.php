@@ -13,7 +13,6 @@ use RabbitEvents\Listener\Events\MessageProcessingFailed;
 use RabbitEvents\Listener\Events\WorkerStopping;
 use RabbitEvents\Listener\Exceptions\MaxAttemptsExceededException;
 use RabbitEvents\Listener\Exceptions\TimeoutExceededException;
-use RabbitEvents\Listener\Message\ProcessingOptions;
 use RabbitEvents\Listener\Message\Processor;
 use Throwable;
 
@@ -35,7 +34,7 @@ class Worker
     /**
      * @throws Throwable
      */
-    public function work(Processor $processor, Consumer $consumer, ProcessingOptions $options): int
+    public function work(Processor $processor, Consumer $consumer, ListenerOptions $options): int
     {
         if ($supportsAsyncSignals = $this->supportsAsyncSignals()) {
             $this->listenForSignals();
@@ -82,11 +81,11 @@ class Worker
     /**
      * @param Processor $processor
      * @param Message $message
-     * @param ProcessingOptions $options
+     * @param ListenerOptions $options
      * @return void
      * @throws Throwable
      */
-    private function processMessage(Processor $processor, Message $message, ProcessingOptions $options): void
+    private function processMessage(Processor $processor, Message $message, ListenerOptions $options): void
     {
         try {
             $this->skipIfAlreadyExceedsMaxAttempts($message, $options);
@@ -100,7 +99,7 @@ class Worker
     /**
      * Register the worker timeout handler.
      */
-    protected function registerTimeoutHandler(Message $message, Consumer $consumer, ProcessingOptions $options): void
+    protected function registerTimeoutHandler(Message $message, Consumer $consumer, ListenerOptions $options): void
     {
         // We will register a signal handler for the alarm signal so that we can kill this
         // process if it is running too long because it has frozen. This uses the async
@@ -118,7 +117,7 @@ class Worker
         pcntl_alarm(max($options->timeout, 0));
     }
 
-    protected function skipIfAlreadyExceedsMaxAttempts(Message $message, ProcessingOptions $options): void
+    protected function skipIfAlreadyExceedsMaxAttempts(Message $message, ListenerOptions $options): void
     {
         if ($options->maxTries === 0 || $message->attempts() <= $options->maxTries) {
             return;
@@ -154,7 +153,7 @@ class Worker
      *
      * @return null|int
      */
-    protected function stopIfNecessary(ProcessingOptions $options)
+    protected function stopIfNecessary(ListenerOptions $options)
     {
         if ($this->shouldQuit) {
             return self::EXIT_SUCCESS;

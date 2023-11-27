@@ -5,32 +5,28 @@ namespace RabbitEvents\Tests\Listener;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Mockery as m;
-use PhpAmqpLib\Exception\AMQPRuntimeException;
 use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Listener\Dispatcher;
-use RabbitEvents\Listener\Events\ListenerHandled;
-use RabbitEvents\Listener\Events\ListenerHandleFailed;
-use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
-use RabbitEvents\Listener\Events\ListenerHandling;
 use RabbitEvents\Listener\Events\MessageProcessingFailed;
 use RabbitEvents\Listener\Events\WorkerStopping;
-use RabbitEvents\Listener\Exceptions\MaxAttemptsExceededException;
-use RabbitEvents\Listener\Message\ProcessingOptions;
+use RabbitEvents\Listener\ListenerOptions;
 use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Listener\Worker;
-use RabbitEvents\Tests\Listener\Message\FakeHandlerFactory;
 
 class WorkerTest extends TestCase
 {
     public $events;
     public $exceptionHandler;
 
+    private $options;
+
     protected function setUp(): void
     {
         $this->events = m::spy(Dispatcher::class);
         $this->exceptionHandler = m::spy(ExceptionHandler::class);
+        $this->options = new ListenerOptions('test-app', 'rabbitmq', ['rabbit.event']);
 
         Container::setInstance($container = new Container);
 
@@ -52,8 +48,6 @@ class WorkerTest extends TestCase
 
     public function testWork(): void
     {
-        $options = $this->options();
-
         $worker = new Worker($this->exceptionHandler, $this->events);
         $worker->shouldQuit = true; //For one tick only
         
@@ -64,24 +58,30 @@ class WorkerTest extends TestCase
             ->andReturn($message);
         $consumer->shouldReceive('acknowledge')->once();
 
-        $status = $worker->work($processor, $consumer, $options);
+        $status = $worker->work($processor, $consumer, $this->options);
 
         self::assertEquals(Worker::EXIT_SUCCESS, $status);
 
-        $processor->shouldHaveReceived()->process($message, $options);
+        $processor->shouldHaveReceived()->process($message, $this->options);
         $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
     }
 
     public function testStopIfMemoryLimitExceeded(): void
     {
         $worker = new Worker($this->exceptionHandler, $this->events);
+        $options = new ListenerOptions(
+            'test-app',
+            'rabbitmq',
+            ['rabbit.event'],
+            memory: 0
+        );
 
         $consumer = m::mock(Consumer::class);
         $consumer->shouldReceive('nextMessage')
             ->andReturn(m::mock(Message::class));
         $consumer->shouldReceive('acknowledge')->once();
 
-        $status = $worker->work(m::spy(Processor::class), $consumer, $this->options(['memory' => 0]));
+        $status = $worker->work(m::spy(Processor::class), $consumer, $options);
 
         self::assertEquals(Worker::EXIT_MEMORY_LIMIT, $status);
         $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
@@ -97,7 +97,7 @@ class WorkerTest extends TestCase
         $consumer->shouldReceive('nextMessage')
             ->andThrow($exception);
 
-        $status = $worker->work(m::mock(Processor::class), $consumer, $this->options());
+        $status = $worker->work(m::mock(Processor::class), $consumer, $this->options);
 
         self::assertEquals(Worker::EXIT_SUCCESS, $status);
 
@@ -124,7 +124,7 @@ class WorkerTest extends TestCase
         $consumer->shouldReceive()
             ->acknowledge($message);
 
-        $status = $worker->work($processor, $consumer, $this->options());
+        $status = $worker->work($processor, $consumer, $this->options);
 
         self::assertEquals(Worker::EXIT_SUCCESS, $status);
 
@@ -149,7 +149,14 @@ class WorkerTest extends TestCase
         $worker = new Worker($this->exceptionHandler, $this->events);
         $worker->shouldQuit = true; //one tick
 
-        $worker->work($processor, $consumer, $this->options(['maxTries' => 2]));
+        $options = new ListenerOptions(
+            'test-app',
+            'rabbitmq',
+            ['rabbit.event'],
+            maxTries: 2
+        );
+
+        $worker->work($processor, $consumer, $options);
 
         $processor->shouldNotHaveReceived('process');
 
@@ -172,9 +179,16 @@ class WorkerTest extends TestCase
                 return true;
             });
 
+        $options = new ListenerOptions(
+            'test-app',
+            'rabbitmq',
+            ['rabbit.event'],
+            timeout: 1
+        );
+
         $worker = new TestWorker($this->exceptionHandler, $this->events);
         $worker->shouldQuit = true;
-        $worker->work($processor, $consumer, $this->options(['timeout' => 1]));
+        $worker->work($processor, $consumer, $options);
 
         self::assertEquals(Worker::EXIT_ERROR, $worker->exitStatus);
 
@@ -193,22 +207,18 @@ class WorkerTest extends TestCase
         $processor->shouldReceive('process')
             ->andThrow(new \RuntimeException('Stopped unexpectedly'));
 
+        $options = new ListenerOptions(
+            'test-app',
+            'rabbitmq',
+            ['rabbit.event'],
+            timeout: 1
+        );
+
         $worker = new TestWorker($this->exceptionHandler, $this->events);
         $worker->shouldQuit = true;
-        $worker->work($processor, $consumer, $this->options(['timeout' => 1]));
+        $worker->work($processor, $consumer, $options);
 
         self::assertTrue($worker->resetTimeoutHandler);
-    }
-
-    protected function options(array $overrides = []): ProcessingOptions
-    {
-        $options = new ProcessingOptions('test-app', 'rabbitmq');
-
-        foreach ($overrides as $key => $value) {
-            $options->{$key} = $value;
-        }
-
-        return $options;
     }
 }
 
