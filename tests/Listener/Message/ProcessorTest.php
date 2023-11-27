@@ -2,25 +2,22 @@
 
 namespace RabbitEvents\Tests\Listener\Message;
 
-use Illuminate\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
 use Mockery as m;
 use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Message;
-use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Events\ListenerHandled;
-use RabbitEvents\Listener\Events\ListenerHandling;
 use RabbitEvents\Listener\Events\ListenerHandleFailed;
+use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
+use RabbitEvents\Listener\Events\ListenerHandling;
 use RabbitEvents\Listener\Exceptions\FailedException;
-use RabbitEvents\Listener\Exceptions\MaxAttemptsExceededException;
 use RabbitEvents\Listener\Facades\RabbitEvents;
+use RabbitEvents\Listener\ListenerOptions;
 use RabbitEvents\Listener\Message\Handler;
 use RabbitEvents\Listener\Message\HandlerFactory;
-use RabbitEvents\Listener\Message\ProcessingOptions;
 use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Tests\Listener\Payload;
 use RabbitEvents\Tests\Listener\TestCase;
-use Symfony\Component\Process\Process;
 
 class ProcessorTest extends TestCase
 {
@@ -39,7 +36,7 @@ class ProcessorTest extends TestCase
     {
         $this->mockListeners([
             [\Closure::class, static fn() => true],
-            [FakeHandler::class, static fn() => true]
+            [FakeHandler::class, static fn() => true],
         ]);
 
         $processor = new Processor($handlerFactory = new FakeHandlerFactory(), $this->events);
@@ -65,9 +62,12 @@ class ProcessorTest extends TestCase
     {
         $this->mockListeners([
             [\Closure::class, static fn() => false],
-            [\Closure::class, static function () {
-                throw new \RuntimeException("This exception shouldn't be thrown because the first listener should stop propagation");
-            }]
+            [
+                \Closure::class,
+                static function () {
+                    throw new \RuntimeException("This exception shouldn't be thrown because the first listener should stop propagation");
+                },
+            ],
         ]);
 
         $handlerFactory = new FakeHandlerFactory();
@@ -84,9 +84,12 @@ class ProcessorTest extends TestCase
         $this->expectException(FailedException::class);
 
         $this->mockListeners([
-            [\Closure::class, static function () {
-                throw new FailedException();
-            }]
+            [
+                \Closure::class,
+                static function () {
+                    throw new FailedException();
+                },
+            ],
         ]);
 
         $handlerFactory = new FakeHandlerFactory();
@@ -136,14 +139,23 @@ class ProcessorTest extends TestCase
 
         $handler = new FakeHandler(
             $this->message,
-            function () {throw new \RuntimeException();}
+            function () {
+                throw new \RuntimeException();
+            }
         );
 
         $handler->attempts = 3;
 
         $processor = new Processor(new FakeHandlerFactory(), $this->events);
 
-        $processor->runHandler($handler, $this->options(['maxTries' => 3]));
+        $options = new ListenerOptions(
+            'test-app',
+            'rabbitmq',
+            ['rabbit.event'],
+            maxTries: 3
+        );
+
+        $processor->runHandler($handler, $options);
 
         self::assertTrue($handler->hasFailed());
         self::assertFalse($handler->isReleased());
@@ -156,7 +168,7 @@ class ProcessorTest extends TestCase
 
     protected function options(array $overrides = [])
     {
-        $options = new ProcessingOptions('test-app', 'rabbitmq');
+        $options = new ListenerOptions('test-app', 'rabbitmq', ['event.one', 'event.two']);
 
         foreach ($overrides as $key => $value) {
             $options->{$key} = $value;
@@ -219,8 +231,12 @@ class FakeHandler extends Handler
     public $acknowledged = false;
     public $transport;
 
-    public function __construct(?Message $message = null, callable $callback = null, string $listener = null, Transport $transport = null)
-    {
+    public function __construct(
+        ?Message $message = null,
+        callable $callback = null,
+        string $listener = null,
+        Transport $transport = null
+    ) {
         $this->message = $message;
         $this->callback = $callback ?: fn() => true;
         $this->listener = $listener;

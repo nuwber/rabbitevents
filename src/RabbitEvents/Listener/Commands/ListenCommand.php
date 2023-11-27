@@ -8,7 +8,6 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use RabbitEvents\Foundation\Context;
-use RabbitEvents\Foundation\Support\EnqueueOptions;
 use RabbitEvents\Foundation\Support\Releaser;
 use RabbitEvents\Listener\Events\ListenerHandled;
 use RabbitEvents\Listener\Events\ListenerHandleFailed;
@@ -17,9 +16,10 @@ use RabbitEvents\Listener\Events\ListenerHandling;
 use RabbitEvents\Listener\Events\MessageProcessingFailed;
 use RabbitEvents\Listener\Events\WorkerStopping;
 use RabbitEvents\Listener\Facades\RabbitEvents;
+use RabbitEvents\Listener\ListenerOptions;
 use RabbitEvents\Listener\Message\HandlerFactory;
-use RabbitEvents\Listener\Message\ProcessingOptions;
 use RabbitEvents\Listener\Message\Processor;
+use RabbitEvents\Listener\QueueName;
 use RabbitEvents\Listener\Worker;
 
 /**
@@ -35,6 +35,7 @@ class ListenCommand extends Command
     protected $signature = 'rabbitevents:listen
                             {events? : The name of the events to listen to}
                             {--service= : The name of current service. Necessary to identify listeners}
+                            {--queue= : The queue to listen on}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a massage could be handled}
                             {--tries=1 : Number of times to attempt to handle a Message before logging it failed}
@@ -58,14 +59,15 @@ class ListenCommand extends Command
      */
     public function handle(Context $context, Worker $worker)
     {
-        $options = $this->gatherProcessingOptions();
-
         $this->registerLogWriters();
-        $this->listenForEvents();
+        $this->listenForApplicationEvents();
+
+        $options = $this->gatherOptions();
 
         $queue = $context->makeQueue(
-            $context->makeTopic(),
-            new EnqueueOptions($options->service, $this->getInputEventsNames())
+            $this->option('queue') ?: QueueName::resolve($options->service, $options->events),
+            $options->events,
+            $context->makeTopic()
         );
 
         $handlerFactory = new HandlerFactory(
@@ -83,18 +85,34 @@ class ListenCommand extends Command
     /**
      * Gather all the queue worker options as a single object.
      *
-     * @return ProcessingOptions
+     * @return ListenerOptions
      */
-    protected function gatherProcessingOptions(): ProcessingOptions
+    protected function gatherOptions(): ListenerOptions
     {
-        return new ProcessingOptions(
+        return new ListenerOptions(
             $this->option('service') ?: $this->laravel['config']->get("app.name"),
             $this->laravel['config']['rabbitevents.default'],
+            $this->gatherEvents(),
             (int)$this->option('memory'),
             (int)$this->option('tries'),
             (int)$this->option('timeout'),
-            (int)$this->option('sleep')
+            (int)$this->option('sleep'),
         );
+    }
+
+    private function gatherEvents(): array
+    {
+        $events = $this->argument('events');
+
+        if (is_null($events)) {
+            return RabbitEvents::getEvents();
+        }
+
+        if (Str::contains($events, ',')) {
+            return array_map('trim', explode(',', $events));
+        }
+
+        return [$events];
     }
 
     /**
@@ -102,7 +120,7 @@ class ListenCommand extends Command
      *
      * @return void
      */
-    protected function listenForEvents(): void
+    protected function listenForApplicationEvents(): void
     {
         $callback = function ($event) {
             foreach ($this->logWriters as $writer) {
@@ -147,20 +165,5 @@ class ListenCommand extends Command
             Arr::get($config, 'logging.level', 'info'),
             Arr::get($config, 'logging.channel'),
         ];
-    }
-
-    private function getInputEventsNames(): array
-    {
-        $inputEvents = $this->argument('events');
-
-        if (is_null($inputEvents)) {
-            return RabbitEvents::getEvents();
-        }
-
-        if (Str::contains($inputEvents, ',')) {
-            return array_map('trim', explode(',', $inputEvents));
-        }
-
-        return [$inputEvents];
     }
 }

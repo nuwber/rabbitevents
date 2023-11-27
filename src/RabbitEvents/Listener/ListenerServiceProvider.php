@@ -6,7 +6,6 @@ namespace RabbitEvents\Listener;
 
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use RabbitEvents\Listener\Commands\EventsListCommand;
-use RabbitEvents\Listener\Commands\RegisterCommand;
 use RabbitEvents\Listener\Commands\ListenCommand;
 use RabbitEvents\Listener\Facades\RabbitEvents;
 
