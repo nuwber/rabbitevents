@@ -110,9 +110,7 @@ If you're using only one part of RabbitEvents, you should know a few things:
 
 1. You remember, we're using RabbitMQ as the transport layer. In the [RabbitMQ Documentation](https://www.rabbitmq.com/tutorials/tutorial-five-python.html), you can find examples of how to publish your messages using a routing key. This routing key is the event name, like `something.happened` from the examples above.
 
-1. Rabbit
-
-Events expects that a message body is a JSON-encoded array. Every element of an array will be passed to a Listener as a separate variable. For example:
+1. RabbitEvents expects that a message body is a JSON-encoded array. Every element of an array will be passed to a Listener as a separate variable. For example:
 ```json
 [
   {
