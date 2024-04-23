@@ -47,7 +47,6 @@ class InstallCommand extends Command
         $namespace = Str::replaceLast('\\', '', $this->laravel->getNamespace());
 
         if (file_exists($this->getLaravel()->bootstrapPath('providers.php'))) {
-            // @phpstan-ignore-next-line
             ServiceProvider::addProviderToBootstrapFile("{$namespace}\\Providers\\RabbitEventsServiceProvider");
         } else {
             $appConfig = file_get_contents($this->laravel->configPath('app.php'));
