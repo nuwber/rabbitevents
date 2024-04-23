@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-versions: ['8.2', '8.3']
+        php-versions: ['8.1', '8.2', '8.3']
     name: Static code analysis (PHP ${{ matrix.php-versions }})
     steps:
       - name: Checkout code
