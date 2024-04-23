@@ -13,7 +13,7 @@
   "require": {
     "php": "^8.1",
     "ext-json": "*",
-    "enqueue/amqp-lib": "^0.10",
+    "enqueue/amqp-lib": "^0.10.19",
     "illuminate/support": "9.0 - 11.0",
     "illuminate/events": "9.0 - 11.0",
     "illuminate/console": "9.0 - 11.0",
