@@ -4,9 +4,9 @@ on: [push]
 
 jobs:
   static-code-analysis:
+    container: docker://jakzal/phpqa:php8.2-alpine
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
       - name: phpqa
-        uses: docker://jakzal/phpqa:php8.2-alpine
         run: phpqa
