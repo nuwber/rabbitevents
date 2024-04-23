@@ -1,12 +1,22 @@
+# .github/workflows/static-code-analysis.yml
 name: Static code analysis
 
 on: [push]
 
 jobs:
   static-code-analysis:
-    container: docker://jakzal/phpqa:php8.2-alpine
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - name: phpqa
-        run: phpqa
+      - name: PhpCS
+        uses: docker://jakzal/phpqa:php8.2-alpine
+        with:
+          args: phpcs --no-interaction --ansi --standard=psr12 --extensions=php --error-severity=1 --warning-severity=8 src
+      - name: PhpMd
+        uses: docker://jakzal/phpqa:php8.2-alpine
+        with:
+          args: phpmd src
+      - name: parallel-lint
+        uses: docker://jakzal/phpqa:php8.2-alpine
+        with:
+          args: parallel-lint src
