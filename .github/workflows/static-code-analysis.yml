@@ -1,22 +1,28 @@
-# .github/workflows/static-code-analysis.yml
 name: Static code analysis
 
 on: [push]
 
 jobs:
-  static-code-analysis:
+  types:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@master
-      - name: PhpCS
-        uses: docker://jakzal/phpqa:php8.2-alpine
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
-          args: phpcs --no-interaction --ansi --standard=psr12 --extensions=php --error-severity=1 --warning-severity=8 src
-      - name: PhpMd
-        uses: docker://jakzal/phpqa:php8.2-alpine
+          php-version: 8.2
+          tools: composer:v2
+          coverage: none
+
+      - name: Install dependencies
+        uses: nick-fields/retry@v3
         with:
-          args: phpmd src
-      - name: parallel-lint
-        uses: docker://jakzal/phpqa:php8.2-alpine
-        with:
-          args: parallel-lint src
+          timeout_minutes: 5
+          max_attempts: 5
+          command: composer update --prefer-stable --prefer-dist --no-interaction --no-progress
+
+      - name: Execute type checking
+        run: vendor/bin/phpstan --configuration="phpstan.neon.dist"

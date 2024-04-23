@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Events\Dispatcher as BaseDispatcher;
+use function PHPUnit\Framework\throwException;
 
 class Dispatcher extends BaseDispatcher
 {
@@ -192,6 +193,8 @@ class Dispatcher extends BaseDispatcher
         if (is_string($mixed)) {
             return $this->createClassCallable($mixed);
         }
+
+        throw new \RuntimeException('Invalid middleware definition');
     }
 
     protected function handlerShouldBeQueued($class): bool

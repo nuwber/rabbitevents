@@ -17,7 +17,8 @@
     "illuminate/support": "9.0 - 11.0",
     "illuminate/events": "9.0 - 11.0",
     "illuminate/console": "9.0 - 11.0",
-    "illuminate/container": "9.0 - 11.0"
+    "illuminate/container": "9.0 - 11.0",
+    "phpstan/phpstan": "^1.10"
   },
   "replace": {
     "rabbitevents/foundation": "self.version",
@@ -26,7 +27,7 @@
   },
   "require-dev": {
     "mockery/mockery": "^1.6.0",
-    "phpunit/phpunit": "^11.0",
+    "phpunit/phpunit": "^10.5|^11.0",
     "vlucas/phpdotenv": "^v5.4.1"
   },
   "autoload": {

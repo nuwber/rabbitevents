@@ -50,10 +50,9 @@ class Processor
      *
      * @param Handler $handler
      * @param ListenerOptions $options
-     * @return mixed
      * @throws Throwable
      */
-    public function runHandler(Handler $handler, ListenerOptions $options): mixed
+    public function runHandler(Handler $handler, ListenerOptions $options)
     {
         try {
             $this->raiseBeforeEvent($handler);
