@@ -5,7 +5,10 @@ on: [push]
 jobs:
   types:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        php-versions: ['8.1', '8.2', '8.3']
+    name: Static code analysis (PHP ${{ matrix.php-versions }})
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -13,7 +16,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.2
+          php-version: ${{ matrix.php-versions }}
           tools: composer:v2
           coverage: none
 
