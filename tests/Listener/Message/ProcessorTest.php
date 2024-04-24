@@ -5,7 +5,6 @@ namespace RabbitEvents\Tests\Listener\Message;
 use Illuminate\Contracts\Events\Dispatcher;
 use Mockery as m;
 use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Test;
 use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Listener\Events\ListenerHandled;
@@ -34,8 +33,7 @@ class ProcessorTest extends TestCase
         $this->message = new Message('test.event', new Payload(['test' => 'payload']));
     }
 
-    #[Test]
-    public function process()
+    public function testProcess()
     {
         $this->mockListeners([
             [\Closure::class, static fn() => true],

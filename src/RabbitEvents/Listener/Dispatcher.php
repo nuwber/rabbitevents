@@ -8,7 +8,6 @@ use Closure;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Events\Dispatcher as BaseDispatcher;
-use function PHPUnit\Framework\throwException;
 
 class Dispatcher extends BaseDispatcher
 {
