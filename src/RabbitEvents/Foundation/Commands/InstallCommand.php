@@ -39,7 +39,7 @@ class InstallCommand extends Command
         $this->info('RabbitEvents scaffolding installed successfully.');
     }
 
-    public function registerServiceProvider(): void
+    private function registerServiceProvider(): void
     {
         $this->comment('Publishing RabbitEvents Service Provider...');
         $this->callSilent('vendor:publish', ['--tag' => 'rabbitevents-listener-provider']);
