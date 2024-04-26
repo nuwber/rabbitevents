@@ -171,9 +171,7 @@ class ListenCommand extends Command
 
     private function checkExtLoaded(): void
     {
-        if (extension_loaded('amqp')
-            && !class_exists('Enqueue\AmqpExt\AmqpConnectionFactory')
-        ) {
+        if (extension_loaded('amqp') && !class_exists('Enqueue\AmqpExt\AmqpConnectionFactory')) {
             $this->info("You have ext-amqp extension installed. Require enqueue/amqp-ext package to use it.");
             $this->info("The package can be installed via 'composer require enqueue/amqp-ext' command.");
         }

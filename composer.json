@@ -57,7 +57,7 @@
   },
   "suggest": {
     "ext-pcntl": "Required to use all features of the worker.",
-    "ext-amqp": "Using this extension makes your app faster. If you're using it you need to install enqueue/amqp-ext.",
+    "ext-amqp": "Using this extension makes your app faster. If you're using it you need to install enqueue/amqp-ext."
   },
   "config": {
     "sort-packages": true,

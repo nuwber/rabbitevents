@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation;
 
-use Interop\Amqp\AmqpConnectionFactory;
-use Interop\Amqp\AmqpContext;
-use Interop\Queue\Context;
 use Enqueue\AmqpTools\DelayStrategy;
 use Enqueue\AmqpTools\RabbitMqDlxDelayStrategy;
 use Illuminate\Support\Arr;
+use Interop\Amqp\AmqpConnectionFactory;
+use Interop\Amqp\AmqpContext;
+use Interop\Queue\Context;
 
 class Connection
 {
@@ -122,9 +122,7 @@ class Connection
 
     private function getConnectionFactoryClass(): string
     {
-        if (extension_loaded('amqp')
-            && class_exists('Enqueue\AmqpExt\AmqpConnectionFactory')
-        ) {
+        if (extension_loaded('amqp') && class_exists('Enqueue\AmqpExt\AmqpConnectionFactory')) {
             return \Enqueue\AmqpExt\AmqpConnectionFactory::class;
         } else {
             return \Enqueue\AmqpLib\AmqpConnectionFactory::class;
