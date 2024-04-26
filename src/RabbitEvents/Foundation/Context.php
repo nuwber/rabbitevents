@@ -13,6 +13,7 @@ use RabbitEvents\Foundation\Amqp\QueueFactory;
 
 /**
  * @mixin \Enqueue\AmqpLib\AmqpContext
+ * @mixin \Enqueue\AmqpExt\AmqpContext
  */
 class Context
 {

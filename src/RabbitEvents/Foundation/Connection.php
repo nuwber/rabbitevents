@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation;
 
+use Interop\Amqp\AmqpConnectionFactory;
 use Interop\Amqp\AmqpContext;
-use Enqueue\AmqpLib\AmqpConnectionFactory;
+use Interop\Queue\Context;
 use Enqueue\AmqpTools\DelayStrategy;
 use Enqueue\AmqpTools\RabbitMqDlxDelayStrategy;
 use Illuminate\Support\Arr;
@@ -44,7 +45,7 @@ class Connection
     /**
      * @return AmqpContext
      */
-    public function createContext(): AmqpContext
+    public function createContext(): Context
     {
         return $this->connect()->createContext();
     }
@@ -88,7 +89,9 @@ class Connection
      */
     protected function factory(): AmqpConnectionFactory
     {
-        $factory = new AmqpConnectionFactory([
+        $connectionFactoryClass = $this->getConnectionFactoryClass();
+
+        $factory = new $connectionFactoryClass([
             'dsn' => $this->getConfig('dsn'),
             'host' => $this->getConfig('host', '127.0.0.1'),
             'port' => $this->getConfig('port', 5672),
@@ -115,5 +118,16 @@ class Connection
         $factory->setDelayStrategy($this->getDelayStrategy());
 
         return $factory;
+    }
+
+    private function getConnectionFactoryClass(): string
+    {
+        if (extension_loaded('amqp')
+            && class_exists('Enqueue\AmqpExt\AmqpConnectionFactory')
+        ) {
+            return \Enqueue\AmqpExt\AmqpConnectionFactory::class;
+        } else {
+            return \Enqueue\AmqpLib\AmqpConnectionFactory::class;
+        }
     }
 }
