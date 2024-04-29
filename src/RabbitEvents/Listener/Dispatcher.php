@@ -192,6 +192,8 @@ class Dispatcher extends BaseDispatcher
         if (is_string($mixed)) {
             return $this->createClassCallable($mixed);
         }
+
+        throw new \RuntimeException('Invalid middleware definition');
     }
 
     protected function handlerShouldBeQueued($class): bool

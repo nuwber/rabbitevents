@@ -1,0 +1,9 @@
+parameters:
+  paths:
+    - src
+  level: 0
+  ignoreErrors:
+    - "#Unsafe usage of new static#"
+    -
+        message: "#^Call to an undefined static method Illuminate\\\\Support\\\\ServiceProvider\\:\\:addProviderToBootstrapFile\\(\\)\\.$#"
+        reportUnmatched: false

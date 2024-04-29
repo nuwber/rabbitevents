@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation;
 
-use Illuminate\Container\Container;
-use Illuminate\Contracts\Container\BindingResolutionException;
 use Interop\Amqp\AmqpMessage;
 use JsonSerializable;
 use RabbitEvents\Foundation\Amqp\MessageFactory;
-use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Support\Payload;
 
 /**
