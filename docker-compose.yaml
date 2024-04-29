@@ -1,7 +1,7 @@
 name: rabbitevents-dev
 
 services:
-  lib:
+  rabbitevents:
     volumes:
       - ./:/var/www/rabbitevents
     build:

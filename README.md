@@ -19,9 +19,10 @@ Once again, the RabbitEvents library helps you publish an event and handle it in
 1. [Upgrade from 7.x to 8.x](#upgrade_7.x-8.x)
 1. [Publisher component](#publisher)
 1. [Listener component](#listener)
-1. [Speeding up RabbitEvents](#speeding-up-rabbitevents)
 1. [Examples](./examples)
+1. [Speeding up RabbitEvents](#speeding-up-rabbitevents)
 1. [Non-standard use](#non-standard-use)
+1. [License](#license)
 
 ## Installation via Composer<a name="installation"></a>
 You can use Composer to install RabbitEvents into your Laravel project:
@@ -142,8 +143,6 @@ If you're using only one part of RabbitEvents, you should know a few things:
 There are 3 elements in this array, so 3 variables will be passed to a Listener (an array, a string, and an integer).
 If an associative array is being passed, the Dispatcher wraps this array by itself.
 
-
-# License
+# License <a name="license"></a>
 
 RabbitEvents is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-
