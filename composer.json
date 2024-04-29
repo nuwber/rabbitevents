@@ -57,7 +57,8 @@
   },
   "suggest": {
     "ext-pcntl": "Required to use all features of the worker.",
-    "vlucas/phpdotenv": "Loads environment variables from .env to getenv(), $_ENV and $_SERVER automagically."
+    "ext-amqp": "Using this extension makes your app faster. If you're using it you need to install enqueue/amqp-ext.",
+    "enqueue/amqp-ext": "This package is necessary if you want to use `ext-amqp`."
   },
   "config": {
     "sort-packages": true,

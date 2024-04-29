@@ -1,6 +1,7 @@
 {
   "name": "rabbitevents/foundation",
-  "description": " ",
+  "description": "Rabbitevents common package",
+  "homepage": "https://github.com/rabbitevents/foundation",
   "keywords": ["laravel", "rabbitmq", "events", "broadcast"],
   "type": "library",
   "license": "MIT",
@@ -14,9 +15,9 @@
     "php": "^8.1",
     "ext-bcmath": "*",
     "ext-json": "*",
-    "illuminate/support": "^9.0|^10.0",
-    "illuminate/console": "^9.0|^10.0",
-    "illuminate/container": "^9.0|^10.0",
+    "illuminate/support": "9 - 11",
+    "illuminate/console": "^9 - 11",
+    "illuminate/container": "9 - 11",
     "enqueue/amqp-lib": "^0.10"
   },
   "autoload": {
@@ -32,6 +33,8 @@
     }
   },
   "suggest": {
-    "vlucas/phpdotenv": "Required to use env funciton."
+    "ext-pcntl": "Required to use all features of the worker.",
+    "ext-amqp": "Using this extension makes your app faster. If you're using it you need to install enqueue/amqp-ext.",
+    "enqueue/amqp-ext": "This package is necessary if you want to use `ext-amqp`."
   }
 }
