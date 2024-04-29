@@ -59,6 +59,8 @@ class ListenCommand extends Command
      */
     public function handle(Context $context, Worker $worker)
     {
+        $this->checkExtLoaded();
+
         $this->registerLogWriters();
         $this->listenForApplicationEvents();
 
@@ -165,5 +167,13 @@ class ListenCommand extends Command
             Arr::get($config, 'logging.level', 'info'),
             Arr::get($config, 'logging.channel'),
         ];
+    }
+
+    private function checkExtLoaded(): void
+    {
+        if (extension_loaded('amqp') && !class_exists('Enqueue\AmqpExt\AmqpConnectionFactory')) {
+            $this->info("You have ext-amqp extension installed. Require enqueue/amqp-ext package to use it.");
+            $this->info("The package can be installed via 'composer require enqueue/amqp-ext' command.");
+        }
     }
 }

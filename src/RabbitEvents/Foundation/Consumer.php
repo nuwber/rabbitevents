@@ -7,8 +7,6 @@ namespace RabbitEvents\Foundation;
 use Illuminate\Support\Carbon;
 use Interop\Amqp\AmqpConsumer;
 use Interop\Amqp\AmqpMessage;
-use PhpAmqpLib\Exception\AMQPRuntimeException;
-use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
 
 /**
@@ -51,7 +49,7 @@ class Consumer
     {
         try {
             return $this->amqpConsumer->receive($timeout);
-        } catch (AMQPRuntimeException $exception) {
+        } catch (\Throwable $exception) {
             throw new ConnectionLostException($exception);
         }
     }

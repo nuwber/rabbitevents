@@ -1,0 +1,12 @@
+name: rabbitevents-dev
+
+services:
+  rabbitevents:
+    volumes:
+      - ./:/var/www/rabbitevents
+    build:
+      context: .
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    working_dir: /var/www/rabbitevents

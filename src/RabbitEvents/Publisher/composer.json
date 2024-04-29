@@ -1,6 +1,6 @@
 {
   "name": "rabbitevents/publisher",
-  "description": "The Publisher part of the RabbitEvents package.",
+  "description": "The Publisher component of the RabbitEvents package.",
   "keywords": ["laravel", "rabbitmq", "events", "broadcast", "publish", "pub"],
   "type": "library",
   "license": "MIT",

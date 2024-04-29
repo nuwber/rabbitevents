@@ -20,7 +20,9 @@ Once again, the RabbitEvents library helps you publish an event and handle it in
 1. [Publisher component](#publisher)
 1. [Listener component](#listener)
 1. [Examples](./examples)
+1. [Speeding up RabbitEvents](#speeding-up-rabbitevents)
 1. [Non-standard use](#non-standard-use)
+1. [License](#license)
 
 ## Installation via Composer<a name="installation"></a>
 You can use Composer to install RabbitEvents into your Laravel project:
@@ -104,6 +106,23 @@ The RabbitEvents Publisher component provides an API to publish events across th
 
 The RabbitEvents Listener component provides an API to handle events that were published across the application structure. More information about how it works can be found on the RabbitEvents [Listener page](https://github.com/rabbitevents/listener).
 
+## Speeding up RabbitEvents<a name="speeding-up-rabbitevents"></a>
+To enhance the performance of RabbitEvents, consider installing the `php-amqp` extension along with the `enqueue/amqp-ext` package. 
+By doing so, RabbitEvents will utilize the `enqueue/amqp-ext` package instead of the default `enqueue/amqp-lib` package. 
+This substitution is advantageous because the C-written `php-amqp` package significantly outperforms the PHP-written `enqueue/amqp-lib` package.
+
+You can install the `php-amqp` extension using the following command:
+```bash
+pecl install amqp
+```
+or use the way you prefer. More about it can be found [here](https://pecl.php.net/package/amqp).
+
+Next, install the `enqueue/amqp-ext` package with the following command:
+```bash
+composer require enqueue/amqp-ext
+```
+No additional configuration is required.
+
 ## Non-standard use <a name="#non-standard-use"></a>
 
 If you're using only one part of RabbitEvents, you should know a few things:
@@ -123,3 +142,7 @@ If you're using only one part of RabbitEvents, you should know a few things:
 
 There are 3 elements in this array, so 3 variables will be passed to a Listener (an array, a string, and an integer).
 If an associative array is being passed, the Dispatcher wraps this array by itself.
+
+# License <a name="license"></a>
+
+RabbitEvents is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
