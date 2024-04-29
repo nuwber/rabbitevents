@@ -5,6 +5,7 @@ namespace RabbitEvents\Foundation\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use RabbitEvents\Foundation\RabbitEventsServiceProvider;
 
 /**
  * @codeCoverageIgnore
@@ -32,8 +33,6 @@ class InstallCommand extends Command
         $this->callSilent('vendor:publish', ['--tag' => 'rabbitevents-config']);
 
         if (in_array('rabbitevents-listener-provider', $registeredTags)) {
-            $this->comment('Publishing RabbitEvents Service Provider...');
-            $this->callSilent('vendor:publish', ['--tag' => 'rabbitevents-listener-provider']);
             $this->registerServiceProvider();
         }
 
@@ -42,24 +41,31 @@ class InstallCommand extends Command
 
     private function registerServiceProvider(): void
     {
+        $this->comment('Publishing RabbitEvents Service Provider...');
+        $this->callSilent('vendor:publish', ['--tag' => 'rabbitevents-listener-provider']);
+
         $namespace = Str::replaceLast('\\', '', $this->laravel->getNamespace());
-        $prefix = "{$namespace}\\Providers";
-        $appConfig = file_get_contents($this->laravel->configPath('app.php'));
-        if (Str::contains($appConfig, $prefix . 'RabbitEventsServiceProvider::class')) {
-            return;
+
+        if (file_exists($this->getLaravel()->bootstrapPath('providers.php'))) {
+            ServiceProvider::addProviderToBootstrapFile("{$namespace}\\Providers\\RabbitEventsServiceProvider");
+        } else {
+            $appConfig = file_get_contents($this->laravel->configPath('app.php'));
+            if (Str::contains($appConfig, "{$namespace}\\Providers\\RabbitEventsServiceProvider::class")) {
+                return;
+            }
+            file_put_contents(
+                $this->laravel->configPath('app.php'),
+                str_replace(
+                    "{$namespace}\\Providers}\\EventServiceProvider::class," . PHP_EOL,
+                    "{$namespace}\\Providers\\EventServiceProvider::class," . PHP_EOL
+                    . "        {$namespace}\\Providers\\RabbitEventsServiceProvider::class," . PHP_EOL,
+                    $appConfig
+                )
+            );
         }
-        file_put_contents(
-            $this->laravel->configPath('app.php'),
-            str_replace(
-                "{$prefix}\\EventServiceProvider::class," . PHP_EOL,
-                "{$prefix}\\EventServiceProvider::class," . PHP_EOL
-                . "        {$prefix}\\RabbitEventsServiceProvider::class," . PHP_EOL,
-                $appConfig
-            )
-        );
 
         file_put_contents($this->laravel->path('Providers/RabbitEventsServiceProvider.php'), str_replace(
-            "namespace App\Providers;",
+            'namespace App\Providers;',
             "namespace {$namespace}\Providers;",
             file_get_contents($this->laravel->path('Providers/RabbitEventsServiceProvider.php'))
         ));

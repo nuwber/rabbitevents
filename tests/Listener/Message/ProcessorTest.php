@@ -4,6 +4,7 @@ namespace RabbitEvents\Tests\Listener\Message;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Mockery as m;
+use PHPUnit\Framework\Attributes\After;
 use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Listener\Events\ListenerHandled;
@@ -184,9 +185,7 @@ class ProcessorTest extends TestCase
             ->andReturn($listeners);
     }
 
-    /**
-     * @after
-     */
+    #[After]
     protected function clearListenersMock()
     {
         RabbitEvents::clearResolvedInstances();

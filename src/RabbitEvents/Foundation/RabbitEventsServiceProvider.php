@@ -54,7 +54,7 @@ class RabbitEventsServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__ . '/config/rabbitevents.php' => config_path('rabbitevents.php'),
+                __DIR__ . '/config/rabbitevents.php' => $this->app->configPath('rabbitevents.php'),
             ], 'rabbitevents-config');
         }
     }
