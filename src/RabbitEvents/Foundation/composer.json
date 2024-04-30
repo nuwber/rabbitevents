@@ -16,7 +16,7 @@
     "ext-bcmath": "*",
     "ext-json": "*",
     "illuminate/support": "9 - 11",
-    "illuminate/console": "^9 - 11",
+    "illuminate/console": "9 - 11",
     "illuminate/container": "9 - 11",
     "enqueue/amqp-lib": "^0.10"
   },
