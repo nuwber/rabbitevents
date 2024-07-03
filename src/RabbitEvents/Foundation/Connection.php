@@ -88,7 +88,9 @@ class Connection
      */
     protected function factory(): AmqpConnectionFactory
     {
-        $factory = new AmqpConnectionFactory([
+        $connectionFactoryClass = $this->getConnectionFactoryClass();
+
+        $factory = new $connectionFactoryClass([
             'dsn' => $this->getConfig('dsn'),
             'host' => $this->getConfig('host', '127.0.0.1'),
             'port' => $this->getConfig('port', 5672),
@@ -115,5 +117,14 @@ class Connection
         $factory->setDelayStrategy($this->getDelayStrategy());
 
         return $factory;
+    }
+
+    private function getConnectionFactoryClass(): string
+    {
+        if (extension_loaded('amqp') && class_exists('Enqueue\AmqpExt\AmqpConnectionFactory')) {
+            return \Enqueue\AmqpExt\AmqpConnectionFactory::class;
+        } else {
+            return \Enqueue\AmqpLib\AmqpConnectionFactory::class;
+        }
     }
 }

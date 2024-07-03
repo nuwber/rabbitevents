@@ -20,7 +20,9 @@ Once again, the RabbitEvents library helps you to publish an event and handle it
    * [rabbitevents:listen](#command-listen) - listen to an event
    * [rabbitevents:list](#command-list) - display list of registered events
 1. [Examples](/examples)
+1. [Speeding up RabbitEvents](#speeding-up-rabbitevents)
 1. [Non-standard use](#non-standard-use)
+1. [License](#license)
 
 ## Installation via Composer<a name="installation"></a>
 You may use Composer to install RabbitEvents into your Laravel project:
@@ -161,6 +163,23 @@ To get the list of all registered events please use the command `rabbitevents:li
 php artisan rabbitevents:list
 ```
 
+## Speeding up RabbitEvents<a name="speeding-up-rabbitevents"></a>
+To enhance the performance of RabbitEvents, consider installing the `php-amqp` extension along with the `enqueue/amqp-ext` package.
+By doing so, RabbitEvents will utilize the `enqueue/amqp-ext` package instead of the default `enqueue/amqp-lib` package.
+This substitution is advantageous because the C-written `php-amqp` package significantly outperforms the PHP-written `enqueue/amqp-lib` package.
+
+You can install the `php-amqp` extension using the following command:
+```bash
+pecl install amqp
+```
+or use the way you prefer. More about it can be found [here](https://pecl.php.net/package/amqp).
+
+Next, install the `enqueue/amqp-ext` package with the following command:
+```bash
+composer require enqueue/amqp-ext
+```
+No additional configuration is required.
+
 ## Non-standard use <a name="#non-standard-use"></a>
 
 If you're using only one of parts of RabbitEvents, you should know a few things:
@@ -181,3 +200,7 @@ If you're using only one of parts of RabbitEvents, you should know a few things:
 
 There'e 3 elements of an array, so 3 variables will be passed to a Listener (array, string and integer).
 If an associative array is being passed, the Dispatcher wraps this array by itself.
+
+# License <a name="license"></a>
+
+RabbitEvents is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

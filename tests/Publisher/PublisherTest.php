@@ -25,7 +25,8 @@ class PublisherTest extends TestCase
             ->make($event)
             ->andReturn($messageMock);
         $sender = m::mock(Transport::class);
-        $sender->shouldReceive('send');
+        $sender->shouldReceive('send')
+            ->once();
 
         $publisher = new Publisher($messageFactory, $sender);
         $publisher->publish($event);
