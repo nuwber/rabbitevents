@@ -51,7 +51,7 @@ class Consumer
     {
         try {
             return $this->amqpConsumer->receive($timeout);
-        } catch (AMQPRuntimeException $exception) {
+        } catch (\Throwable $exception) {
             throw new ConnectionLostException($exception);
         }
     }

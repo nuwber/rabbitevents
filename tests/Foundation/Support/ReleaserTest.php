@@ -28,7 +28,8 @@ class ReleaserTest extends TestCase
 
         $this->producer = m::mock(AmqpProducer::class);
         $this->producer->shouldReceive()
-            ->send($this->queue, $amqpMessage);
+            ->send($this->queue, $amqpMessage)
+            ->once();
     }
 
     public function testDeliveryDelay()
