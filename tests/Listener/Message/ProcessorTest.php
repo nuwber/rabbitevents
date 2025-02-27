@@ -115,12 +115,12 @@ class ProcessorTest extends TestCase
         $exceptionMessage = 'Failed handler exception';
         $this->expectExceptionMessage($exceptionMessage);
 
-        $handler = new FakeHandler(
-            $this->message,
-            function () use ($exceptionMessage) {
-                throw new \Exception($exceptionMessage);
-            }
-        );
+        $handler = new FakeHandler();
+
+        $handler->message = $this->message;
+        $handler->callback = function () use ($exceptionMessage) {
+            throw new \Exception($exceptionMessage);
+        };
 
         $processor = new Processor(new FakeHandlerFactory(), $this->events);
 
@@ -138,12 +138,11 @@ class ProcessorTest extends TestCase
     {
         $this->expectException(\RuntimeException::class);
 
-        $handler = new FakeHandler(
-            $this->message,
-            function () {
-                throw new \RuntimeException();
-            }
-        );
+        $handler = new FakeHandler();
+        $handler->message = $this->message;
+        $handler->callback = function () {
+            throw new \RuntimeException();
+        };
 
         $handler->attempts = 3;
 
@@ -207,7 +206,11 @@ class FakeHandlerFactory extends HandlerFactory
             return $this->handler;
         }
 
-        $handler = new FakeHandler($message, $callback, $listenerClass);
+        $handler = new FakeHandler();
+        $handler->message = $message;
+        $handler->callback = $callback;
+        $handler->setListenerClass($listenerClass);
+
         $this->handlers[] = $handler;
 
         return $handler;
@@ -231,15 +234,7 @@ class FakeHandler extends Handler
     public $transport;
 
     public function __construct(
-        ?Message $message = null,
-        callable $callback = null,
-        string $listener = null,
-        Transport $transport = null
     ) {
-        $this->message = $message;
-        $this->callback = $callback ?: fn() => true;
-        $this->listener = $listener;
-        $this->transport = $transport;
     }
 
     public function handle()
@@ -248,6 +243,12 @@ class FakeHandler extends Handler
         return call_user_func($this->callback, $this);
     }
 
+    public function setListenerClass(string $listener)
+    {
+        $this->listenerClass = $listener;
+
+        return $this;
+    }
     public function getName(): string
     {
         return 'FakeHandler';

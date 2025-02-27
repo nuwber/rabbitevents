@@ -15,7 +15,7 @@ trait PublishableEventTesting
         Container::getInstance()->instance(Publisher::class, \Mockery::spy(Publisher::class));
     }
 
-    public static function assertPublished(string $event, array $payload = null): void
+    public static function assertPublished(string $event, ?array $payload = null): void
     {
         Container::getInstance()->get(Publisher::class)
             ->shouldHaveReceived()
