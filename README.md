@@ -24,6 +24,7 @@ Once again, the RabbitEvents library helps you publish an event and handle it in
 1. [Listener component](#listener)
 1. [Examples](./examples)
 1. [Speeding up RabbitEvents](#speeding-up-rabbitevents)
+1. [Testing](#testing)
 1. [Non-standard use](#non-standard-use)
 1. [License](#license)
 
@@ -125,6 +126,69 @@ Next, install the `enqueue/amqp-ext` package with the following command:
 composer require enqueue/amqp-ext
 ```
 No additional configuration is required.
+
+## Testing <a name="testing"></a>
+
+We always write tests. Tests in our applications contain many mocks and fakes to test how events are published.
+
+There is the `PublishableEventTesting` trait that provides assertion methods in an Event class that you want to test.
+
+**Event.php**
+
+```php
+<?php
+
+namespace App\BroadcastEvents;
+
+use RabbitEvents\Publisher\ShouldPublish;
+use RabbitEvents\Publisher\Support\Publishable;
+use RabbitEvents\Publisher\Support\PublishableEventTesting;
+
+class Event implements ShouldPublish
+{
+    use Publishable;
+    use PublishableEventTesting;
+
+    public function __construct(private array $payload) 
+    {
+    }
+
+    public function publishEventKey(): string
+    {
+        return 'something.happened';
+    }
+
+    public function toPublish(): array
+    {
+        return $this->payload;
+    }
+}
+```
+
+**Test.php**
+
+```php
+<?php
+
+use \App\RabbitEvents\Event;
+use \App\RabbitEvents\AnotherEvent;
+
+Event::fake();
+
+$payload = [
+    'key1' => 'value1',
+    'key2' => 'value2',
+];
+
+Event::publish($payload);
+
+Event::assertPublished('something.happened', $payload);
+
+AnotherEvent::assertNotPublished();
+```
+
+If the assertion does not pass, `Mockery\Exception\InvalidCountException` will be thrown.\
+Don't forget to call `\Mockery::close()` in `tearDown` or similar methods of your tests.
 
 ## Non-standard use <a name="#non-standard-use"></a>
 

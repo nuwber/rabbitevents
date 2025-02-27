@@ -125,9 +125,9 @@ There is the `PublishableEventTesting` trait that provides assertion methods in 
 
 namespace App\BroadcastEvents;
 
-use Nuwber\Events\Event\Publishable;
-use Nuwber\Events\Event\ShouldPublish;
-use Nuwber\Events\Event\Testing\PublishableEventTesting;
+use RabbitEvents\Publisher\ShouldPublish;
+use RabbitEvents\Publisher\Support\Publishable;
+use RabbitEvents\Publisher\Support\PublishableEventTesting;
 
 class Event implements ShouldPublish
 {
