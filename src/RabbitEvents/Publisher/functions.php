@@ -31,6 +31,6 @@ if (!function_exists('publish')) {
                 }
             };
         }
-        return $event;
+        return new PendingPublish($event);
     }
 }
