@@ -107,10 +107,9 @@ class ListenCommand extends Command
     public function generateArguments(): array
     {
         $args = [];
-        $maxPriority = $this->option('max-priority');
-        if(empty($maxPriority)){
-            $maxPriority = $this->laravel['config']['rabbitevents.max_priority'];
-        }
+        $maxPriority = !empty($this->option('max-priority'))
+            ? (int)$this->option('max-priority')
+            : $this->laravel['config']['rabbitevents.max_priority'];
         if (!empty($maxPriority)) {
             $args['x-max-priority'] = $maxPriority;
         }
