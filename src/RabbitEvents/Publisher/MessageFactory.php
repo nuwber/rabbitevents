@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace RabbitEvents\Publisher;
 
 use Illuminate\Support\Carbon;
-use RabbitEvents\Foundation\Support\Payload;
+use PhpAmqpLib\Message\AMQPMessage;
 use RabbitEvents\Foundation\Message;
+use RabbitEvents\Foundation\Support\Payload;
+use RabbitEvents\Publisher\Support\DurableMessageInterface;
 
 class MessageFactory
 {
@@ -24,6 +26,11 @@ class MessageFactory
 
         $message = new Message($event->publishEventKey(), $payload);
         $message->setTimestamp(Carbon::now()->getTimestamp());
+
+
+        if ($event instanceof DurableMessageInterface) {
+            $message->setDeliveryMode(AMQPMessage::DELIVERY_MODE_PERSISTENT);
+        }
 
         return $message;
     }
