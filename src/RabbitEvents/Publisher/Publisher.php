@@ -26,7 +26,10 @@ class Publisher
     public function publish(ShouldPublish $event): void
     {
         $manager = $this->resolveTransactionManager();
-        if ($event instanceof AfterCommitMessageInterface && !is_null($manager)) {
+        if (
+            ($event instanceof AfterCommitMessageInterface || (property_exists($event, 'afterCommit') && $event->afterCommit))
+            && !is_null($manager)
+        ) {
             /** @var ShouldPublish $event */
             $manager->addCallback(
                 fn() => $this->send($event)
