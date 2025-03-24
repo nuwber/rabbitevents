@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation;
 
+use Illuminate\Container\Container;
 use Interop\Amqp\AmqpQueue;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpTopic;
@@ -43,9 +44,9 @@ class Context
         return new Consumer($this->createConsumer($queue));
     }
 
-    public function makeQueue(string $queueName, array $events, AmqpTopic $topic): AmqpQueue
+    public function makeQueue(string $queueName, array $events, AmqpTopic $topic, ?array $args = null): AmqpQueue
     {
-        $queue = (new QueueFactory($this))->makeAndDeclare($queueName);
+        $queue = Container::getInstance()->make(QueueFactory::class)->makeAndDeclare($queueName, $args);
 
         foreach ($events as $event) {
             $this->bind(new AmqpBind($topic, $queue, $event));

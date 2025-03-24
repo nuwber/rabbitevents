@@ -3,12 +3,11 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Arr;
-use Illuminate\Container\Container;
-use RabbitEvents\Publisher\Publisher;
+use RabbitEvents\Publisher\PendingPublish;
 use RabbitEvents\Publisher\ShouldPublish;
 
 if (!function_exists('publish')) {
-    function publish($event, array $payload = [])
+    function publish($event, array $payload = []): PendingPublish
     {
         if (is_string($event)) {
             $event = new class ($event, $payload) implements ShouldPublish {
@@ -32,9 +31,6 @@ if (!function_exists('publish')) {
                 }
             };
         }
-
-        Container::getInstance()
-            ->make(Publisher::class)
-            ->publish($event);
+        return $event;
     }
 }

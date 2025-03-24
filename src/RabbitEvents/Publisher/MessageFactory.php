@@ -31,6 +31,9 @@ class MessageFactory
         if ($event instanceof DurableMessageInterface) {
             $message->setDeliveryMode(AMQPMessage::DELIVERY_MODE_PERSISTENT);
         }
+        if (property_exists($event, 'priority') && $event->priority > 0) {
+            $message->setPriority($event->priority);
+        }
 
         return $message;
     }

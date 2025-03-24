@@ -8,5 +8,5 @@ use RabbitEvents\Publisher\ShouldPublish;
 
 abstract class AbstractPublishableEvent implements ShouldPublish
 {
-    use Publishable;
+    use Publishable, PublishableAfterCommit, HasPriority;
 }

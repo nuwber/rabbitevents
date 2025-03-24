@@ -18,11 +18,12 @@ class QueueFactory
      * @param string $queueName
      * @return AmqpQueue
      */
-    public function makeAndDeclare(string $queueName): AmqpQueue
+    public function makeAndDeclare(string $queueName, ?array $args = null): AmqpQueue
     {
         $queue = $this->context->createQueue($queueName);
 
         $queue->addFlag(AmqpDestination::FLAG_DURABLE);
+        empty($args) ?: $queue->setArguments($args);
 
         $this->context->declareQueue($queue);
 
