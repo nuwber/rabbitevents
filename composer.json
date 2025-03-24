@@ -1,7 +1,15 @@
 {
   "name": "nuwber/rabbitevents",
   "description": "The Nuwber RabbitEvents package",
-  "keywords": ["laravel", "rabbitmq", "events", "broadcast", "publish", "pub", "sub"],
+  "keywords": [
+    "laravel",
+    "rabbitmq",
+    "events",
+    "broadcast",
+    "publish",
+    "pub",
+    "sub"
+  ],
   "type": "library",
   "license": "MIT",
   "authors": [
@@ -17,7 +25,8 @@
     "illuminate/support": "9 - 12",
     "illuminate/events": "9 - 12",
     "illuminate/console": "9 - 12",
-    "illuminate/container": "9 - 12"
+    "illuminate/container": "9 - 12",
+    "illuminate/database": "9 - 12"
   },
   "replace": {
     "rabbitevents/foundation": "self.version",
