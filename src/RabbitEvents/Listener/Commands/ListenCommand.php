@@ -41,7 +41,7 @@ class ListenCommand extends Command
                             {--tries=1 : Number of times to attempt to handle a Message before logging it failed}
                             {--sleep=5 : Sleep time in seconds before handling failed message next time}
                             {--quiet: No console output}
-                            {--max-priority: If you use prioritised queues, set max priority option, or it will be used from config}';
+                            {--max-priority= : If you use prioritised queues, set max priority option, or it will be used from config}';
 
     /**
      * The console command description.
@@ -107,7 +107,9 @@ class ListenCommand extends Command
     public function generateArguments(): array
     {
         $args = [];
-        $maxPriority = $this->option('max-priority') ?? $this->laravel['config']['rabbitevents.max_priority'];
+        $maxPriority = !empty($this->option('max-priority'))
+            ? (int)$this->option('max-priority')
+            : $this->laravel['config']['rabbitevents.max_priority'];
         if (!empty($maxPriority)) {
             $args['x-max-priority'] = $maxPriority;
         }

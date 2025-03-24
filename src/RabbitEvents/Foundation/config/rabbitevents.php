@@ -52,5 +52,5 @@ return [
         'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
         'channel' => env('RABBITEVENTS_LOG_CHANNEL')
     ],
-    'max_priority' => null,
+    'max_priority' => env('RABBITEVENTS_MAX_PRIORITY'),
 ];
