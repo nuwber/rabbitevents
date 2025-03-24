@@ -40,7 +40,8 @@ class ListenCommand extends Command
                             {--timeout=60 : The number of seconds a massage could be handled}
                             {--tries=1 : Number of times to attempt to handle a Message before logging it failed}
                             {--sleep=5 : Sleep time in seconds before handling failed message next time}
-                            {--quiet: No console output}';
+                            {--quiet: No console output}
+                            {--max-priority: If you use prioritised queues, set max priority option, or it will be used from config}';
 
     /**
      * The console command description.
@@ -69,7 +70,8 @@ class ListenCommand extends Command
         $queue = $context->makeQueue(
             $this->option('queue') ?: QueueName::resolve($options->service, $options->events),
             $options->events,
-            $context->makeTopic()
+            $context->makeTopic(),
+            $this->generateArguments(),
         );
 
         $handlerFactory = new HandlerFactory(
@@ -100,6 +102,16 @@ class ListenCommand extends Command
             (int)$this->option('timeout'),
             (int)$this->option('sleep'),
         );
+    }
+
+    public function generateArguments(): array
+    {
+        $args = [];
+        $maxPriority = $this->option('max-priority') ?? $this->laravel['config']['rabbitevents.max_priority'];
+        if (!empty($maxPriority)) {
+            $args['x-max-priority'] = $maxPriority;
+        }
+        return $args;
     }
 
     private function gatherEvents(): array
