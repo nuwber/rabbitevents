@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener;
 
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use RabbitEvents\Foundation\Amqp\QueueFactory;
+use RabbitEvents\Foundation\Context;
 use RabbitEvents\Listener\Commands\EventsListCommand;
 use RabbitEvents\Listener\Commands\ListenCommand;
 use RabbitEvents\Listener\Facades\RabbitEvents;
@@ -33,6 +35,11 @@ class ListenerServiceProvider extends BaseServiceProvider
             ListenCommand::class,
             EventsListCommand::class,
         ]);
+
+        $this->app->singleton(
+            QueueFactory::class,
+            static fn($app) => new QueueFactory($app->make(Context::class))
+        );
 
         foreach ($this->listen as $event => $listeners) {
             foreach ($listeners as $listener) {
