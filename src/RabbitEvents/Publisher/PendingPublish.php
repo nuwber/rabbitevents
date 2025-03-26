@@ -8,6 +8,7 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 
 class PendingPublish
 {
+    protected bool $isPublished = false;
     public function __construct(protected ShouldPublish $event)
     {
 
@@ -42,8 +43,17 @@ class PendingPublish
      */
     public function __destruct()
     {
+        $this->publish();
+    }
+
+    public function publish(): void
+    {
+        if($this->isPublished){
+            return;
+        }
         Container::getInstance()
             ->make(Publisher::class)
             ->publish($this->event);
+        $this->isPublished = true;
     }
 }

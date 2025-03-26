@@ -5,12 +5,13 @@ declare(strict_types=1);
 use Illuminate\Support\Arr;
 use RabbitEvents\Publisher\PendingPublish;
 use RabbitEvents\Publisher\ShouldPublish;
+use RabbitEvents\Publisher\Support\AbstractPublishableEvent;
 
 if (!function_exists('publish')) {
-    function publish($event, array $payload = []): PendingPublish
+    function publish($event, array $payload = []): void
     {
-        if (is_string($event)) {
-            $event = new class ($event, $payload) implements ShouldPublish {
+        if(is_string($event)) {
+            $event = new class ($event, $payload) extends AbstractPublishableEvent {
                 private $event;
                 private $payload;
 
@@ -31,6 +32,6 @@ if (!function_exists('publish')) {
                 }
             };
         }
-        return new PendingPublish($event);
+        (new PendingPublish($event))->publish();
     }
 }
