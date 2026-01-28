@@ -7,17 +7,9 @@ use RabbitEvents\Publisher\Support\AbstractPublishableEvent;
 
 class UserCreated extends AbstractPublishableEvent
 {
-
-    /**
-     * @var User
-     */
-    private $user;
-
-    public function __construct(User $user)
+    public function __construct(public readonly User $user)
     {
-        $this->user = $user;
     }
-
 
     public function publishEventKey(): string
     {

@@ -29,7 +29,7 @@ class Dispatcher extends BaseDispatcher
     public function listen($events, $listener = null): void
     {
         foreach ((array)$events as $event) {
-            if (Str::contains($event, '*')) {
+            if (str_contains($event, '*')) {
                 $this->setupWildcardListen($event, $listener);
             } else {
                 $this->listeners[$event][] = $listener;
@@ -38,61 +38,6 @@ class Dispatcher extends BaseDispatcher
     }
 
     /**
-     * Get all of the listeners for a given event name.
-     * Make it working with Laravel 8.x and 9.x
-     *
-     * TODO: remove this function when 9.x become minimal supported version
-     *
-     * @param  string  $eventName
-     * @return array
-     */
-    public function getListeners($eventName): array
-    {
-        return array_merge(
-            $this->prepareListeners($eventName),
-            $this->wildcardsCache[$eventName] ?? $this->getWildcardListeners($eventName)
-        );
-    }
-
-    /**
-     * Get the wildcard listeners for the event.
-     *
-     * @param  string  $eventName
-     * @return array
-     */
-    protected function getWildcardListeners($eventName): array
-    {
-        $wildcards = [];
-
-        foreach ($this->wildcards as $key => $listeners) {
-            if (Str::is($key, $eventName)) {
-                foreach ($listeners as $listener) {
-                    $wildcards[] = [$this->getListenerClass($listener), $this->makeListener($listener, true)];
-                }
-            }
-        }
-
-        return $this->wildcardsCache[$eventName] = $wildcards;
-    }
-
-    /**
-     * Prepare the listeners for a given event.
-     *
-     * @param  string  $eventName
-     * @return Closure[]
-     */
-    protected function prepareListeners(string $eventName): array
-    {
-        $listeners = [];
-
-        foreach ($this->listeners[$eventName] ?? [] as $listener) {
-            $listeners[] = [$this->getListenerClass($listener), $this->makeListener($listener)];
-        }
-
-        return $listeners;
-    }
-
-    /*
      * @inheritdoc
      */
     public function makeListener($listener, $wildcard = false): Closure
@@ -104,14 +49,14 @@ class Dispatcher extends BaseDispatcher
         return function ($event, $payload) use ($listener, $wildcard) {
             $throughMiddleware = $this->extractMiddleware($listener);
 
-            if (!$wildcard && Arr::isAssoc($payload)) {
+            if (!$wildcard && (!is_array($payload) || Arr::isAssoc($payload))) {
                 $payload = [$payload];
             }
 
             foreach ($throughMiddleware as $middleware) {
                 $result = $wildcard
-                    ? call_user_func($middleware, $event, ...array_values($payload))
-                    : call_user_func_array($middleware, $payload);
+                    ? ($middleware)($event, ...array_values($payload))
+                    : ($middleware)(...$payload);
 
                 if (false === $result) {
                     return null;
@@ -120,23 +65,6 @@ class Dispatcher extends BaseDispatcher
 
             return parent::makeListener($listener, $wildcard)($event, $payload);
         };
-    }
-
-    protected function getListenerClass($listener): string
-    {
-        if (is_string($listener)) {
-            return $listener;
-        }
-
-        if ($listener instanceof Closure) {
-            return Closure::class;
-        }
-
-        if (is_object($listener)) {
-            return get_class($listener);
-        }
-
-        return 'Unknown Class';
     }
 
     protected function makeListenerInstance($listener)

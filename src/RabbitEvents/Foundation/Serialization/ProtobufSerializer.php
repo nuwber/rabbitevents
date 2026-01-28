@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation\Serialization;
 
+use RabbitEvents\Foundation\Contracts\TransportMessage;
 use Google\Protobuf\Internal\Message;
 use RabbitEvents\Foundation\Contracts\Serializer;
 use RabbitEvents\Foundation\Contracts\Payload;
@@ -26,16 +27,16 @@ class ProtobufSerializer implements Serializer
     /**
      * @inheritDoc
      */
-    public function deserialize(string $payload, array $properties = []): Payload
+    public function deserialize(TransportMessage $message): Payload
     {
-        $class = $properties['type'] ?? null;
+        $class = $message->getProperty('type');
 
         if ($class && class_exists($class) && is_subclass_of($class, Message::class)) {
-            /** @var Message $message */
-            $message = new $class();
-            $message->mergeFromString($payload);
+            /** @var Message $pbMessage */
+            $pbMessage = new $class();
+            $pbMessage->mergeFromString($message->getBody());
 
-            return new ProtobufPayload($message);
+            return new ProtobufPayload($pbMessage);
         }
 
         throw new \RuntimeException('Generic deserialization for Protobuf is not supported without "type" property with valid class name.');

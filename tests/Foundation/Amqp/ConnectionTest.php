@@ -1,11 +1,14 @@
 <?php
 
-namespace RabbitEvents\Tests\Foundation;
+namespace RabbitEvents\Tests\Foundation\Amqp;
 
-use Enqueue\AmqpTools\DelayStrategy;
 use Enqueue\AmqpTools\RabbitMqDlxDelayStrategy;
+use Enqueue\AmqpTools\DelayStrategy;
 use Interop\Amqp\AmqpConnectionFactory;
-use RabbitEvents\Foundation\Connection;
+use Interop\Amqp\AmqpContext;
+use RabbitEvents\Foundation\Amqp\Connection;
+use RabbitEvents\Tests\Foundation\TestCase;
+use Mockery as m;
 
 class ConnectionTest extends TestCase
 {

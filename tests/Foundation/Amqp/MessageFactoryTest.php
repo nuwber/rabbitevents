@@ -3,7 +3,7 @@
 namespace RabbitEvents\Tests\Foundation\Amqp;
 
 use Interop\Amqp\Impl\AmqpMessage;
-use RabbitEvents\Foundation\Amqp\MessageFactory;
+use RabbitEvents\Foundation\Amqp\AmqpMessageFactory;
 use RabbitEvents\Foundation\Contracts\Payload;
 use RabbitEvents\Tests\Foundation\TestCase;
 
@@ -13,25 +13,33 @@ class MessageFactoryTest extends TestCase
     {
         $payload = new class implements Payload {
 
-            public function jsonSerialize(): string
+            public function serialize(): string
             {
-                return json_encode($this->getPayload());
+                return json_encode($this->value());
             }
 
-            public function getPayload(): mixed
+            public function value(): mixed
             {
                 return ['some' => 'payload'];
             }
+
+            public function contentType(): string
+            {
+                return 'application/json';
+            }
         };
 
-        $result = MessageFactory::make('event', $payload, ['x-test' => 'property']);
+        $factory = new AmqpMessageFactory();
+        $result = $factory->make('event', $payload, ['x-test' => 'property']);
 
-        self::assertInstanceOf(AmqpMessage::class, $result);
-        self::assertEquals('event', $result->getRoutingKey());
-        self::assertEquals($payload->jsonSerialize(), $result->getBody());
+        self::assertInstanceOf(\RabbitEvents\Foundation\Contracts\TransportMessage::class, $result);
+        self::assertEquals($payload->serialize(), $result->getBody());
         self::assertEquals('property', $result->getProperty('x-test'));
-
-        self::assertEquals('UTF-8', $result->getContentEncoding());
-        self::assertEquals('application/json', $result->getContentType());
+        
+        $origin = $result->getOrigin();
+        self::assertInstanceOf(AmqpMessage::class, $origin);
+        self::assertEquals('event', $origin->getRoutingKey());
+        self::assertEquals('UTF-8', $origin->getContentEncoding());
+        self::assertEquals('application/json', $origin->getContentType());
     }
 }

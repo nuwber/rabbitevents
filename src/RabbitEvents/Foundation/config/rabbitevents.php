@@ -16,10 +16,12 @@ return [
     */
 
     'default' => env('RABBITEVENTS_CONNECTION', 'rabbitmq'),
+
     'connections' => [
         'rabbitmq' => [
             'driver' => 'rabbitmq',
             'exchange' => env('RABBITEVENTS_EXCHANGE', 'events'),
+            'durable' => env('RABBITEVENTS_QUEUE_DURABLE', true),
             'host' => env('RABBITEVENTS_HOST', 'localhost'),
             'port' => env('RABBITEVENTS_PORT', 5672),
             'user' => env('RABBITEVENTS_USER', 'guest'),
@@ -52,4 +54,16 @@ return [
         'level' => env('RABBITEVENTS_LOG_LEVEL', 'info'),
         'channel' => env('RABBITEVENTS_LOG_CHANNEL')
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Serializer
+    |--------------------------------------------------------------------------
+    |
+    | The default serializer used to serialize/deserialize event payloads.
+    | Supported: "json", "protobuf" or any class implementing Serializer interface.
+    |
+    */
+
+    'default_serializer' => \RabbitEvents\Foundation\Serialization\JsonSerializer::class,
 ];

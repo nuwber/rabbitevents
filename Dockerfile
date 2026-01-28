@@ -13,7 +13,8 @@ RUN install-php-extensions \
         bcmath \
         sockets \
         pcntl \
-        amqp
+        amqp \
+        pcov
 
 WORKDIR /var/www/rabbitevents
 ADD . .

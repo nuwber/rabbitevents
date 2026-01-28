@@ -17,8 +17,17 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - **PHP Requirement**: Bumped minimum PHP version to 8.2.
 - **Readonly Classes**: `Context`, `Publisher`, and `ListenerOptions` are now `readonly`.
-- **Message Class**: Refactored to use `Payload` interface instead of `mixed` payload and `Serializer` dependency.
+- **Message Class**:
+    - Refactored to use `Payload` interface instead of `mixed` payload and `Serializer` dependency.
+    - Properties `$event` and `$payload` are now `public readonly`.
+    - Removed `event()` and `payload()` accessor methods.
 - **Serializer Interface**: `deserialize` method now accepts `array $properties` to support context-aware deserialization.
+- **Connection Class Moved**: `RabbitEvents\Foundation\Connection` has been moved to `RabbitEvents\Foundation\Amqp\Connection`.
+- **Sender**: Decoupled from `Interop\Amqp\AmqpProducer`, now depends on `Interop\Queue\Producer`.
+- **Handler**:
+    - Removed `Container` dependency, now accepts `failedCallback` in constructor.
+    - Updated constructor signature.
+    - `$message` is now a public readonly property.
 
 ### Removed
 - Legacy internal `Support\Payload` class (replaced by `Contracts\Payload`).

@@ -4,53 +4,38 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation;
 
-use Interop\Amqp\AmqpQueue;
-use Interop\Amqp\AmqpContext;
-use Interop\Amqp\AmqpTopic;
-use Interop\Amqp\Impl\AmqpBind;
-use RabbitEvents\Foundation\Amqp\DestinationTopicFactory;
-use RabbitEvents\Foundation\Amqp\QueueFactory;
+use RabbitEvents\Foundation\Contracts\Connection;
+use RabbitEvents\Foundation\Contracts\Destination;
+use RabbitEvents\Foundation\Contracts\Producer;
 
-/**
- * @mixin \Enqueue\AmqpLib\AmqpContext
- * @mixin \Enqueue\AmqpExt\AmqpContext
- */
 class Context
 {
-    /**
-     * @var AmqpContext
-     */
-    private AmqpContext $amqpContext;
-
-    public function __construct(public readonly Connection $connection)
-    {
-        $this->amqpContext = $this->connection->createContext();
+    public function __construct(
+        public readonly Connection $connection,
+        public readonly Serialization\SerializerRegistry $registry
+    ) {
     }
 
-    public function __call(string $method, ?array $args)
+    public function makeTopic(): Destination
     {
-        return $this->amqpContext->$method(...$args);
+        return $this->connection->makeTopic();
     }
 
-    public function makeTopic(): AmqpTopic
+    public function createProducer(): Producer
     {
-        return (new DestinationTopicFactory($this))
-            ->makeAndDeclare($this->connection->getConfig('exchange'));
+        return $this->connection->createProducer();
     }
 
-    public function makeConsumer(AmqpQueue $queue): Consumer
+    public function makeConsumer(Destination $queue): Consumer
     {
-        return new Consumer($this->createConsumer($queue));
+        return new Consumer(
+            $this->connection->makeConsumer($queue),
+            $this->registry
+        );
     }
 
-    public function makeQueue(string $queueName, array $events, AmqpTopic $topic): AmqpQueue
+    public function makeQueue(string $queueName, array $events, Destination $topic): Destination
     {
-        $queue = (new QueueFactory($this))->makeAndDeclare($queueName);
-
-        foreach ($events as $event) {
-            $this->bind(new AmqpBind($topic, $queue, $event));
-        }
-
-        return $queue;
+        return $this->connection->makeQueue($queueName, $events, $topic);
     }
 }

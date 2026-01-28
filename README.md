@@ -19,9 +19,10 @@ Once again, the RabbitEvents library helps you publish an event and handle it in
 ## Table of Contents
 1. [Installation via Composer](#installation)
    * [Configuration](#configuration)
-1. [Upgrade from 7.x to 8.x](#upgrade_7.x-8.x)
+1. [Upgrade from 8.x to 9.x](#upgrade_8.x-9.x)
 1. [Publisher component](#publisher)
 1. [Listener component](#listener)
+1. [Listeners & Payloads](#listeners-payloads)
 1. [Examples](./examples)
 1. [Speeding up RabbitEvents](#speeding-up-rabbitevents)
 1. [Testing](#testing)
@@ -52,10 +53,23 @@ use Enqueue\AmqpTools\RabbitMqDlxDelayStrategy;
 
 return [
     'default' => env('RABBITEVENTS_CONNECTION', 'rabbitmq'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Serializer
+    |--------------------------------------------------------------------------
+    |
+    | The default serializer to use when publishing messages.
+    | Supported: "json", "protobuf" or any class implementing Serializer interface.
+    |
+    */
+    'default_serializer' => \RabbitEvents\Foundation\Serialization\JsonSerializer::class,
+
     'connections' => [
         'rabbitmq' => [
             'driver' => 'rabbitmq',
             'exchange' => env('RABBITEVENTS_EXCHANGE', 'events'),
+            'durable' => env('RABBITEVENTS_QUEUE_DURABLE', true),
             'host' => env('RABBITEVENTS_HOST', 'localhost'),
             'port' => env('RABBITEVENTS_PORT', 5672),
             'user' => env('RABBITEVENTS_USER', 'guest'),
@@ -90,13 +104,34 @@ return [
     ],
 ];
 ```
-## Upgrade from 7.x to 8.x<a name="upgrade_7.x-8.x"></a>
+## Upgrade from 8.x to 9.x<a name="upgrade_8.x-9.x"></a>
 
-### PHP 8.1 required
-RabbitEvents now requires PHP 8.1 or greater.
+### PHP 8.2 required
+RabbitEvents now requires PHP 8.2 or greater. It uses `readonly` classes and Enums.
+
+### Payload System Refactor
+The internal payload handling has been refactored. `Message::payload()` now returns a `RabbitEvents\Foundation\Contracts\Payload` object.
+To get the raw value, use `$message->payload->value()`.
+
+### Protobuf Support
+RabbitEvents now supports [Google Protobuf](https://github.com/protocolbuffers/protobuf) messages out of the box.
+Simply publish a Protobuf Message object, and it will be automatically serialized and hydrated on the listener side.
+The system uses the `type` AMQP header to resolve the correct class.
+
+### Dynamic Serializers
+The correct serializer is now automatically selected based on the `content_type` header of the message.
+- `application/json` -> JSON Serializer
+- `application/x-protobuf` -> Protobuf Serializer
 
 ### Supported Laravel versions
-RabbitEvents now supports Laravel 9.0 or greater.
+RabbitEvents now supports Laravel 10.0 or greater.
+
+### Architecture Decoupling
+Version 9.0 introduces a more abstract and extensible architecture.
+- **Decoupled Serialization**: Serializers now use an abstract `TransportMessage` contract instead of `Interop\Amqp\AmqpMessage`. This creates a cleaner separation between domain logic and the transport layer.
+- **Abstract Message Factory**: The `MessageFactory` has been moved to the Foundation layer and is now pluggable. You can implement your own `TransportMessageFactory` to create messages from different sources (e.g., tailored for testing or other transports).
+- **Transport Agnostic**: The core `Message` and `Sender` classes rely on internal contracts (`RabbitEvents\Foundation\Contracts\*`), avoiding strict dependencies on `queue-interop`. Adapters are provided for AMQP.
+- **Connection Class Moved**: `RabbitEvents\Foundation\Connection` has been moved to `RabbitEvents\Foundation\Amqp\Connection`. Update your type hints if you were using it directly.
 
 ### Removed `--connection` option from the `rabbitevents:listen` command
 There's an issue [#98](https://github.com/nuwber/rabbitevents/issues/98) that still needs to be resolved.
@@ -109,6 +144,31 @@ The RabbitEvents Publisher component provides an API to publish events across th
 ## RabbitEvents Listener<a name="listener"></a>
 
 The RabbitEvents Listener component provides an API to handle events that were published across the application structure. More information about how it works can be found on the RabbitEvents [Listener page](https://github.com/rabbitevents/listener).
+
+It supports:
+- **Manual Registration:** using the `$listen` array.
+- **Attributes:** using `#[Listener]` on classes or methods.
+- **Auto-Discovery:** automatically finding `#[Listener]` attributes in your listeners directory.
+
+## Listeners & Payloads<a name="listeners-payloads"></a>
+
+How the payload is passed to your listener depends on the serialization format:
+
+**JSON (Default):**
+The payload is decoded as an **associative array**.
+```php
+public function handle(array $payload) {
+    // $payload['key']
+}
+```
+
+**Protobuf:**
+The payload is passed as the **Message Object** itself.
+```php
+public function handle(\Google\Protobuf\Internal\Message $message) {
+    // $message->getSomething()
+}
+```
 
 ## Speeding up RabbitEvents<a name="speeding-up-rabbitevents"></a>
 To enhance the performance of RabbitEvents, consider installing the `php-amqp` extension along with the `enqueue/amqp-ext` package. 
@@ -190,7 +250,7 @@ AnotherEvent::assertNotPublished();
 If the assertion does not pass, `Mockery\Exception\InvalidCountException` will be thrown.\
 Don't forget to call `\Mockery::close()` in `tearDown` or similar methods of your tests.
 
-## Non-standard use <a name="#non-standard-use"></a>
+## Non-standard use <a name="non-standard-use"></a>
 
 If you're using only one part of RabbitEvents, you should know a few things:
 

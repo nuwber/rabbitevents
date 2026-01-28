@@ -17,11 +17,14 @@ class HandlerFactoryTest extends TestCase
     {
         $message = new Message('item.created', new Payload([]));
 
-        $factory = new HandlerFactory(m::mock(Container::class), m::mock(Transport::class));
+        $container = m::mock(Container::class);
+        $container->shouldReceive('make')->with('ClassName')->andReturn(new \stdClass());
+
+        $factory = new HandlerFactory($container, m::mock(Transport::class));
         $handler = $factory->make($message, static function() {}, 'ClassName');
 
         self::assertInstanceOf(Handler::class, $handler);
 
-        self::assertSame($message, $handler->getMessage());
+        self::assertSame($message, $handler->message);
     }
 }

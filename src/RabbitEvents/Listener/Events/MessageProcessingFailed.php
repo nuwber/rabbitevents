@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RabbitEvents\Listener\Events;
 
 use RabbitEvents\Foundation\Message;

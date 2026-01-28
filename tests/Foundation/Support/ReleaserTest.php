@@ -2,52 +2,55 @@
 
 namespace RabbitEvents\Tests\Foundation\Support;
 
-use Interop\Amqp\AmqpProducer;
-use Interop\Amqp\AmqpQueue;
-use Interop\Amqp\Impl\AmqpMessage;
 use Interop\Queue\Exception\DeliveryDelayNotSupportedException;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Foundation\Support\Releaser;
 use RabbitEvents\Tests\Foundation\TestCase;
-use Mockery as m;
+use RabbitEvents\Tests\Foundation\Stubs\DestinationStub;
+use RabbitEvents\Tests\Foundation\Stubs\ProducerStub;
+use RabbitEvents\Tests\Foundation\Stubs\TransportMessageStub;
 use RabbitEvents\Tests\Listener\Payload;
 
 class ReleaserTest extends TestCase
 {
-    private $producer;
+    private $producerStub;
     private $message;
-    private $queue;
+    private $queueStub;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->queue = m::mock(AmqpQueue::class);
+        $this->queueStub = new DestinationStub();
         $this->message = new Message('some.event', new Payload([]));
-        $this->message->setAmqpMessage($amqpMessage = new AmqpMessage());
+        $transportMessage = new TransportMessageStub();
+        $this->message->setTransportMessage($transportMessage);
 
-        $this->producer = m::mock(AmqpProducer::class);
-        $this->producer->shouldReceive()
-            ->send($this->queue, $amqpMessage)
-            ->once();
+        $this->producerStub = new ProducerStub();
     }
 
     public function testDeliveryDelay()
     {
-        $this->producer->shouldReceive()
-            ->setDeliveryDelay(1000);
-
-        (new Releaser($this->queue, $this->producer))
-            ->send($this->message);
+        $releaser = new Releaser($this->queueStub, $this->producerStub);
+        
+        $releaser->setDelay(1);
+        $releaser->send($this->message);
+            
+        self::assertEquals(1000, $this->producerStub->deliveryDelay);
+        self::assertCount(1, $this->producerStub->sent);
     }
 
     public function testNotThrowExceptionIfDelayNotSupported(): void
     {
-        $this->producer->shouldReceive()
-            ->setDeliveryDelay(1000)
-            ->andThrow(DeliveryDelayNotSupportedException::class);
+        // Simulate exception on setDeliveryDelay
+        $this->producerStub->throwException(new DeliveryDelayNotSupportedException(), 'setDeliveryDelay');
 
-        (new Releaser($this->queue, $this->producer))
-            ->send($this->message);
+        $releaser = new Releaser($this->queueStub, $this->producerStub);
+        
+        $releaser->setDelay(1);
+        $releaser->send($this->message);
+            
+        // Should send anyway, despite exception on delay
+        self::assertCount(1, $this->producerStub->sent);
     }
 }

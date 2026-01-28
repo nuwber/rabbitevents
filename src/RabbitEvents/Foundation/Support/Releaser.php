@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RabbitEvents\Foundation\Support;
 
 use Illuminate\Support\InteractsWithTime;

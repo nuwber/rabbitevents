@@ -35,25 +35,6 @@ trait RegisterListeners
 
     protected function resolveListenerClass(string $listenerClass): array
     {
-        $listeners = [];
-        $class = new ReflectionClass($listenerClass);
-
-        // Class Level Attributes
-        foreach ($class->getAttributes(Listener::class) as $attribute) {
-            /** @var Listener $instance */
-            $instance = $attribute->newInstance();
-            $listeners[$instance->event][] = [$listenerClass, 'handle'];
-        }
-
-        // Method Level Attributes
-        foreach ($class->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-            foreach ($method->getAttributes(Listener::class) as $attribute) {
-                 /** @var Listener $instance */
-                $instance = $attribute->newInstance();
-                $listeners[$instance->event][] = [$listenerClass, $method->getName()];
-            }
-        }
-
-        return $listeners;
+        return ListenerDiscoverer::eventsFromClass($listenerClass);
     }
 }

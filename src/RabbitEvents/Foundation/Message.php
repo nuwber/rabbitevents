@@ -4,67 +4,64 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation;
 
-use Interop\Amqp\AmqpMessage;
-use JsonSerializable;
-use RabbitEvents\Foundation\Amqp\MessageFactory;
-use RabbitEvents\Foundation\Support\Payload;
+use RabbitEvents\Foundation\Contracts\Serializer;
+use RabbitEvents\Foundation\Contracts\Payload;
+use RabbitEvents\Foundation\Serialization\JsonSerializer;
+use RabbitEvents\Foundation\Contracts\TransportMessage;
 
 /**
- * @mixin AmqpMessage
+ * @mixin TransportMessage
  */
 class Message
 {
     /**
-     * @var AmqpMessage
+     * @var TransportMessage|null
      */
-    private $amqpMessage;
+    private ?TransportMessage $transportMessage = null;
 
     public function __construct(
-        private string $event,
-        private JsonSerializable $payload,
+        public readonly string $event,
+        public readonly Payload $payload,
         private array $properties = []
     ) {
     }
 
     /**
-     * @param AmqpMessage $amqpMessage
+     * @param TransportMessage $message
+     * @param Serializer|null $serializer
      * @return static
      * @throws \JsonException
      */
-    public static function createFromAmqpMessage(AmqpMessage $amqpMessage): self
+    public static function createFromTransportMessage(TransportMessage $message, ?Serializer $serializer = null): static
     {
+        $serializer = $serializer ?? new JsonSerializer();
+        
         return (new static(
-            $amqpMessage->getProperty('event') ?: $amqpMessage->getRoutingKey(),
-            Payload::createFromJson($amqpMessage->getBody()),
-            $amqpMessage->getProperties()
-        ))->setAmqpMessage($amqpMessage);
+            $message->getProperty('event') ?: $message->getRoutingKey(),
+            $serializer->deserialize($message),
+            $message->getProperties()
+        ))->setTransportMessage($message);
     }
 
     /**
-     * @return AmqpMessage
+     * @return TransportMessage
      */
-    public function amqpMessage(): AmqpMessage
+    public function transportMessage(): TransportMessage
     {
-        if (is_null($this->amqpMessage)) {
-            $this->amqpMessage = MessageFactory::make($this->event, $this->payload, $this->properties);
+        if (is_null($this->transportMessage)) {
+            $this->transportMessage = MessageFactory::make(
+                $this->event,
+                $this->payload,
+                $this->properties
+            );
         }
 
-        return $this->amqpMessage;
+        return $this->transportMessage;
     }
 
     public function __call(string $method, ?array $args)
     {
-        return $this->amqpMessage()->$method(...$args);
-    }
-
-    public function payload(): JsonSerializable
-    {
-        return $this->payload;
-    }
-
-    public function event(): string
-    {
-        return $this->event;
+        return $this->transportMessage()->$method(...$args);
     }
 
     public function attempts(): int
@@ -80,12 +77,12 @@ class Message
     }
 
     /**
-     * @param AmqpMessage $amqpMessage
+     * @param TransportMessage $transportMessage
      * @return Message
      */
-    public function setAmqpMessage(AmqpMessage $amqpMessage): self
+    public function setTransportMessage(TransportMessage $transportMessage): self
     {
-        $this->amqpMessage = $amqpMessage;
+        $this->transportMessage = $transportMessage;
 
         return $this;
     }

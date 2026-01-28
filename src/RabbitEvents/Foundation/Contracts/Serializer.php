@@ -17,11 +17,10 @@ interface Serializer
     /**
      * Deserialize payload from string to Payload object.
      *
-     * @param string $payload
-     * @param array $properties
+     * @param TransportMessage $message
      * @return Payload
      */
-    public function deserialize(string $payload, array $properties = []): Payload;
+    public function deserialize(TransportMessage $message): Payload;
 
     /**
      * Get Content-Type of the serializer

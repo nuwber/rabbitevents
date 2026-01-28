@@ -27,4 +27,34 @@ class AmqpTransportMessage implements TransportMessage
     {
         return $this->message->getProperties();
     }
+
+    public function getOrigin(): AmqpMessage
+    {
+        return $this->message;
+    }
+
+    public function setProperty(string $name, mixed $value): void
+    {
+        $this->message->setProperty($name, $value);
+    }
+
+    public function getRoutingKey(): ?string
+    {
+        return $this->message->getRoutingKey();
+    }
+
+    public function getTimestamp(): ?int
+    {
+        return $this->message->getTimestamp();
+    }
+
+    public function setTimestamp(int $timestamp): void
+    {
+        $this->message->setTimestamp($timestamp);
+    }
+
+    public function __call(string $method, array $args)
+    {
+        return $this->message->$method(...$args);
+    }
 }

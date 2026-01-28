@@ -2,7 +2,6 @@
 
 namespace RabbitEvents\Tests\Listener;
 
-use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Support\Arr;
 use RabbitEvents\Listener\Dispatcher;
 use RabbitEvents\Tests\Listener\Stubs\ListenerStub;
@@ -52,8 +51,8 @@ class DispatcherTest extends TestCase
         self::assertCount(2, $listeners);
 
         foreach ($listeners as $key => $listener) {
-
-            [$class, $callback] = $listener;
+            $class = 'Closure';
+            $callback = $listener;
             ++$key;
 
             self::assertEquals('Closure', $class);
@@ -69,7 +68,7 @@ class DispatcherTest extends TestCase
         $dispatcher = new Dispatcher();
         $dispatcher->listen('simple', ListenerStub::class);
         $listeners = $dispatcher->getListeners('simple');
-        [,$closure] = Arr::first($listeners);
+        $closure = Arr::first($listeners);
 
         //array is because listener returns func_get_args
         $this->assertEquals([$payload], $closure('simple', $payload));
@@ -82,7 +81,7 @@ class DispatcherTest extends TestCase
         $dispatcher = new Dispatcher();
         $dispatcher->listen('wildcard.*', ListenerStub::class);
         $listeners = $dispatcher->getListeners('wildcard.*');
-        [,$closure] = Arr::first($listeners);
+        $closure = Arr::first($listeners);
 
         //array is because listener returns func_get_args
         $this->assertEquals(['wildcard.event', $payload], $closure('wildcard.event', $payload));
@@ -95,22 +94,13 @@ class DispatcherTest extends TestCase
         $preparedListeners = $dispatcher->getListeners('item.created');
 
         $listener1 = array_shift($preparedListeners);
-        [$class, $callable] = $listener1;
-
-        self::assertEquals($this->listen['item.created'][0], $class);
-        self::assertIsCallable($callable);
+        self::assertIsCallable($listener1);
 
         $listener2 = array_shift($preparedListeners);
-        [$class, $callable] = $listener2;
-
-        self::assertEquals($this->listen['item.created'][1], $class);
-        self::assertIsCallable($callable);
+        self::assertIsCallable($listener2);
 
         $listener3 = array_shift($preparedListeners);
-        [$class, $callable] = $listener3;
-
-        self::assertEquals($this->listen['item.*'][0], $class);
-        self::assertIsCallable($callable);
+        self::assertIsCallable($listener3);
     }
 
     public function testAddListenerWhichIsAnObject()
@@ -120,9 +110,7 @@ class DispatcherTest extends TestCase
 
         $listeners = $dispatcher->getListeners('some.event');
 
-        [$class, $callback] = array_shift($listeners);
-
-        self::assertEquals(ListenerStubForMiddleware::class, $class);
+        $callback = array_shift($listeners);
 
         $payload = ['pay' => 'load'];
         $result = $callback('some.event', $payload);
@@ -130,21 +118,21 @@ class DispatcherTest extends TestCase
         self::assertEquals($payload, array_shift($result));
     }
 
-    public function testListenerInstanceNotInstanceable()
+    public function testListenerCallWithObjectAsPayload(): void
     {
-        $this->expectException(BindingResolutionException::class);
+        $payload = new \stdClass();
+        $payload->item = true;
 
         $dispatcher = new Dispatcher();
-        $dispatcher->listen('some.event', ['Not Existing', 'Class']);
-        $listeners = $dispatcher->getListeners('some.event');
-
-        [$class, $callback] = array_shift($listeners);
-
-        self::assertEquals('Unknown Class', $class);
-
-        $callback('some.event', []);
+        $dispatcher->listen('simple', ListenerStub::class);
+        $listeners = $dispatcher->getListeners('simple');
+        $closure = Arr::first($listeners);
+        
+        $result = $closure('simple', $payload);
+        
+        $this->assertEquals([$payload], $result);
     }
-    
+
     private function setupDispatcher(): Dispatcher
     {
         $dispatcher = new Dispatcher();

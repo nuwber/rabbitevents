@@ -4,21 +4,25 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Listener\Message;
 
-use Illuminate\Contracts\Events\Dispatcher as EventsDispatcher;
+use Illuminate\Events\Dispatcher as EventsDispatcher;
+use RabbitEvents\Listener\Dispatcher;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Listener\Events\ListenerHandled;
 use RabbitEvents\Listener\Events\ListenerHandleFailed;
 use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Events\ListenerHandling;
 use RabbitEvents\Listener\Exceptions\FailedException;
-use RabbitEvents\Listener\Facades\RabbitEvents;
+
 use RabbitEvents\Listener\ListenerOptions;
 use Throwable;
 
 class Processor
 {
-    public function __construct(private HandlerFactory $handlerFactory, private EventsDispatcher $events)
-    {
+    public function __construct(
+        private HandlerFactory $handlerFactory,
+        private EventsDispatcher $events,
+        private Dispatcher $dispatcher
+    ) {
     }
 
     /**
@@ -28,11 +32,9 @@ class Processor
      */
     public function process(Message $message, ListenerOptions $options): void
     {
-        foreach (RabbitEvents::getListeners($message->event()) as $listener) {
-            [$class, $callback] = $listener;
-
+        foreach ($this->dispatcher->getListeners($message->event) as $listener) {
             $response = $this->runHandler(
-                $this->handlerFactory->make($message, $callback, $class),
+                $this->handlerFactory->make($message, $listener, $this->getListenerClass($listener)),
                 $options
             );
 
@@ -43,6 +45,19 @@ class Processor
                 break;
             }
         }
+    }
+
+    protected function getListenerClass(mixed $listener): string
+    {
+        if (is_object($listener)) {
+            return get_class($listener);
+        }
+
+        if (is_array($listener)) {
+            return is_object($listener[0]) ? get_class($listener[0]) : $listener[0];
+        }
+
+        return 'Closure';
     }
 
     /**

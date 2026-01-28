@@ -1,6 +1,11 @@
 <?php
-namespace app\Providers;
 
+declare(strict_types=1);
+
+namespace App\Providers;
+
+use App\Listeners\Listener;
+use App\Listeners\WildcardListener;
 use RabbitEvents\Listener\ListenerServiceProvider;
 
 class RabbitEventsServiceProvider extends ListenerServiceProvider

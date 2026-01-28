@@ -17,14 +17,19 @@ class DestinationTopicFactoryTest extends TestCase
     {
         $exchange = 'events';
 
-        $context = m::mock(Context::class);
-        $context->shouldReceive()
+        $amqpContext = m::mock(\Interop\Amqp\AmqpContext::class);
+        $amqpContext->shouldReceive()
             ->createTopic($exchange)
             ->andReturn($amqpTopic = new ImplAmqpTopic($exchange));
-        $context->shouldReceive()
+        $amqpContext->shouldReceive()
             ->declareTopic($amqpTopic);
 
-        $factory = new DestinationTopicFactory($context);
+        $connection = m::mock(\RabbitEvents\Foundation\Amqp\Connection::class);
+        $connection->shouldReceive('getConfig')
+            ->with('durable', true)
+            ->andReturn(true);
+
+        $factory = new DestinationTopicFactory($amqpContext, $connection);
         $topic = $factory->makeAndDeclare($exchange);
 
         self::assertSame($amqpTopic, $topic);

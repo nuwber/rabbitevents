@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RabbitEvents\Foundation\Commands;
 
 use Illuminate\Console\Command;

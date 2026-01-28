@@ -9,11 +9,19 @@ If you only need to handle events, you can use the RabbitEvents `Listener` separ
 1. [Installation via Composer](#installation)
 2. [Configuration](#configuration)
 3. [Register a Listener](#register)
+   - [Registering Listeners via Attributes](#registering-listeners-via-attributes)
+   - [Listener Discovery](#listener-discovery)
 4. [Defining Listeners](#defining-listeners)
+   - [Handling Protobuf Messages](#handling-protobuf-messages)
 5. [Middleware](#listener-middleware)
 6. [Stopping The Propagation Of An Event](#stopping-propagation)
 7. [Console Commands](#commands)
-8. [Logging](#logging)
+   - [Command `rabbitevents:listen`](#command-listen)
+     - [Options](#listen-options)
+   - [Command `rabbitevents:list`](#command-list)
+   - [Event Discovery Caching](#discovery-caching)
+8. [Supervisor Configuration](#supervisor)
+9. [Logging](#logging)
 
 ## Installation via Composer<a name="installation"></a>
 
@@ -60,6 +68,70 @@ class RabbitEventsServiceProvider extends ListenerServiceProvider
 }
 ```
 
+### Registering Listeners via Attributes<a name="registering-listeners-via-attributes"></a>
+
+Instead of manually registering listeners in the `$listen` array, you can use the `#[Listener]` attribute on your listener class or methods.
+
+**Class Listener**
+
+```php
+use RabbitEvents\Listener\Attributes\Listener;
+
+#[Listener(event: 'payment.succeeded')]
+class SendNotification
+{
+    public function handle($payload)
+    {
+        // ...
+    }
+}
+```
+
+**Method Listeners**
+
+```php
+class UserEventSubscriber
+{
+    #[Listener(event: 'user.created')]
+    public function onUserCreated($payload) {}
+
+    #[Listener(event: 'user.deleted')]
+    public function onUserDeleted($payload) {}
+}
+```
+
+To enable auto-discovery, ensure you are using the `RabbitEventsServiceProvider`.
+
+### Listener Discovery <a name="listener-discovery"></a>
+
+Listener discovery is **enabled by default**. The service provider will automatically scan your `app/Listeners` directory for classes with the `#[Listener]` attribute.
+
+If you wish to **disable** auto-discovery, you can override the `shouldDiscoverEvents` method in your `RabbitEventsServiceProvider`:
+
+```php
+/**
+ * Determine if events and listeners should be automatically discovered.
+ */
+public function shouldDiscoverEvents(): bool
+{
+    return false;
+}
+```
+
+By default, the `listenerDirectory` is set to `app_path('Listeners')`. You can override this method if your listeners are located elsewhere.
+
+```php
+/**
+ * Get the listener directory path.
+ */
+protected function listenerDirectory(): string
+{
+    return app_path('Bus/Listeners');
+}
+```
+
+When discovery is enabled, the service provider will scan the directory for classes with the `#[Listener]` attribute and register them automatically.
+
 ## Defining Listeners <a name="defining-listeners"></a>
 
 Event listeners receive the event data in the method provided in the `$listen` definition. If no method is provided, the `handle` method will be called. Within the handle method, you can perform actions necessary to respond to the event:
@@ -94,6 +166,25 @@ class AllItemEventsListener
             'item.deleted' => ...,
             'item.updated' => ...,
         ];
+    }
+}
+```
+
+### Handling Protobuf Messages<a name="handling-protobuf-messages"></a>
+
+If you publish a Protobuf message, the Listener will automatically receive the hydrated object instance.
+
+```php
+<?php
+
+use App\Messages\AccountCreated;
+
+class AccountListener
+{
+    public function handle(AccountCreated $message)
+    {
+        // $message is an instance of App\Messages\AccountCreated
+        $id = $message->getId();
     }
 }
 ```
@@ -230,6 +321,25 @@ To get the list of all registered events, please use the command `rabbitevents:l
 ```bash
 php artisan rabbitevents:list
 ```
+
+## Event Discovery Caching <a name="discovery-caching"></a>
+
+If you are using event discovery, scanning the listener directory on every request (or worker boot) can be slow in large applications. You can cache the discovered events using the `rabbitevents:cache` command:
+
+```bash
+php artisan rabbitevents:cache
+```
+
+This command will generate a `bootstrap/cache/rabbitevents.php` file. The `RabbitEventsServiceProvider` will automatically use this file instead of scanning the directory.
+
+To clear the cache, use the `rabbitevents:clear` command:
+
+```bash
+php artisan rabbitevents:clear
+```
+
+> [!IMPORTANT]
+> You should run `rabbitevents:cache` during your deployment process.
 
 # Supervisor Configuration<a name="supervisor"></a>
 

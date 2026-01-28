@@ -16,6 +16,7 @@ use RabbitEvents\Listener\Events\WorkerStopping;
 use RabbitEvents\Listener\ListenerOptions;
 use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Listener\Worker;
+use RabbitEvents\Listener\WorkerExitStatus;
 
 class WorkerTest extends TestCase
 {
@@ -61,7 +62,7 @@ class WorkerTest extends TestCase
 
         $status = $worker->work($processor, $consumer, $this->options);
 
-        self::assertEquals(Worker::EXIT_SUCCESS, $status);
+        self::assertEquals(WorkerExitStatus::SUCCESS, $status);
 
         $processor->shouldHaveReceived()->process($message, $this->options);
         $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
@@ -84,7 +85,7 @@ class WorkerTest extends TestCase
 
         $status = $worker->work(m::spy(Processor::class), $consumer, $options);
 
-        self::assertEquals(Worker::EXIT_MEMORY_LIMIT, $status);
+        self::assertEquals(WorkerExitStatus::MEMORY_LIMIT, $status);
         $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
     }
 
@@ -100,7 +101,7 @@ class WorkerTest extends TestCase
 
         $status = $worker->work(m::mock(Processor::class), $consumer, $this->options);
 
-        self::assertEquals(Worker::EXIT_SUCCESS, $status);
+        self::assertEquals(WorkerExitStatus::SUCCESS, $status);
 
         $this->exceptionHandler->shouldHaveReceived()->report($exception);
         $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
@@ -127,7 +128,7 @@ class WorkerTest extends TestCase
 
         $status = $worker->work($processor, $consumer, $this->options);
 
-        self::assertEquals(Worker::EXIT_SUCCESS, $status);
+        self::assertEquals(WorkerExitStatus::SUCCESS, $status);
 
         $this->exceptionHandler->shouldHaveReceived()->report($exception);
         $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
@@ -191,7 +192,7 @@ class WorkerTest extends TestCase
         $worker->shouldQuit = true;
         $worker->work($processor, $consumer, $options);
 
-        self::assertEquals(Worker::EXIT_ERROR, $worker->exitStatus);
+        self::assertEquals(WorkerExitStatus::ERROR, $worker->exitStatus);
 
         $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessingFailed::class))->once();
     }
@@ -229,7 +230,7 @@ class TestWorker extends Worker
     public $exitStatus;
     public $resetTimeoutHandler = false;
 
-    public function kill($status = 0)
+    public function kill(\RabbitEvents\Listener\WorkerExitStatus|int $status = 0): void
     {
         $this->exitStatus = $status;
     }

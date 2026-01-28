@@ -11,6 +11,8 @@ use RabbitEvents\Listener\Facades\RabbitEvents;
 
 class ListenerServiceProvider extends BaseServiceProvider
 {
+    use HasListeners\RegisterListeners;
+
     /**
      * The event listener mappings for the application.
      *
@@ -32,13 +34,86 @@ class ListenerServiceProvider extends BaseServiceProvider
         $this->commands([
             ListenCommand::class,
             EventsListCommand::class,
+            Commands\EventsCacheCommand::class,
+            Commands\EventsClearCommand::class,
         ]);
 
-        foreach ($this->listen as $event => $listeners) {
+        foreach ($this->listens() as $event => $listeners) {
             foreach ($listeners as $listener) {
                 RabbitEvents::listen($event, $listener);
             }
         }
+    }
+
+    /**
+     * Get the events and handlers.
+     *
+     * @return array
+     */
+    public function listens(): array
+    {
+        if ($this->eventsAreCached()) {
+            $listeners = array_merge_recursive(
+                $this->listen,
+                require $this->app->bootstrapPath('cache/rabbitevents.php')
+            );
+        } else {
+            if ($this->shouldDiscoverEvents()) {
+                $this->listenerClasses = array_unique(array_merge(
+                    $this->listenerClasses,
+                    $this->discoverEvents()
+                ));
+            }
+
+            $listeners = array_merge_recursive($this->listen, $this->getEventsFromAttributes());
+        }
+
+        return $listeners;
+    }
+
+    /**
+     * Determine if the application events are cached.
+     *
+     * @return bool
+     */
+    protected function eventsAreCached(): bool
+    {
+        return $this->app->bound('path.bootstrap') && 
+               file_exists($this->app->bootstrapPath('cache/rabbitevents.php'));
+    }
+
+    /**
+     * Determine if events and listeners should be automatically discovered.
+     *
+     * @return bool
+     */
+    public function shouldDiscoverEvents(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the listener directory path.
+     *
+     * @return string
+     */
+    protected function listenerDirectory(): string
+    {
+        return $this->app->path('Listeners');
+    }
+
+    /**
+     * Discover the events and listeners for the application.
+     *
+     * @return array
+     */
+    public function discoverEvents(): array
+    {
+        return HasListeners\ListenerDiscoverer::discover(
+            $this->listenerDirectory(),
+            $this->app->basePath(),
+            $this->app->getNamespace()
+        );
     }
 
     public function register(): void

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace RabbitEvents\Foundation;
 
 use RabbitEvents\Foundation\Amqp\AmqpMessageFactory;
-use RabbitEvents\Foundation\Contracts\TestTransportMessageFactory;
 use RabbitEvents\Foundation\Contracts\Payload;
 use RabbitEvents\Foundation\Contracts\TransportMessage;
 use RabbitEvents\Foundation\Contracts\TransportMessageFactory;

@@ -10,7 +10,17 @@ class AttributeDiscoveryTest extends TestCase
 {
     public function testDiscovery()
     {
-        $provider = new TestServiceProvider(\Mockery::mock('Illuminate\Contracts\Foundation\Application'));
+        $app = \Mockery::mock('Illuminate\Foundation\Application');
+        $app->shouldReceive('bound')->with('path.bootstrap')->andReturn(false);
+        $app->shouldReceive('path')->with('Listeners')->andReturn(__DIR__ . '/Fixtures/Listeners');
+        $app->shouldReceive('basePath')->andReturn(__DIR__ . '/Fixtures');
+        $app->shouldReceive('getNamespace')->andReturn('RabbitEvents\Tests\Listener\Fixtures\\');
+
+        if (!is_dir(__DIR__ . '/Fixtures/Listeners')) {
+            mkdir(__DIR__ . '/Fixtures/Listeners', 0777, true);
+        }
+        
+        $provider = new TestServiceProvider($app);
         $provider->registerListeners();
         
         $events = $provider->listens();

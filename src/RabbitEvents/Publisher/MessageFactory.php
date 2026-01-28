@@ -4,25 +4,32 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Publisher;
 
+use Google\Protobuf\Internal\Message as ProtobufMessage;
 use Illuminate\Support\Carbon;
-use RabbitEvents\Foundation\Support\Payload;
 use RabbitEvents\Foundation\Message;
+use RabbitEvents\Foundation\Serialization\SerializerRegistry;
 
 class MessageFactory
 {
-    public function __construct()
+    public function __construct(private SerializerRegistry $registry)
     {
     }
 
     public function make(ShouldPublish $event): Message
     {
-        $payload = $event->toPublish();
+        $rawPayload = $event->toPublish();
+        $contentType = 'application/json';
+        $properties = [];
 
-        if (!$payload instanceof \JsonSerializable) {
-            $payload = new Payload($payload);
+        if ($rawPayload instanceof ProtobufMessage) {
+            $contentType = 'application/x-protobuf';
+            $properties['type'] = get_class($rawPayload);
         }
 
-        $message = new Message($event->publishEventKey(), $payload);
+        $serializer = $this->registry->get($contentType);
+        $payload = $serializer->serialize($rawPayload);
+
+        $message = new Message($event->publishEventKey(), $payload, $properties);
         $message->setTimestamp(Carbon::now()->getTimestamp());
 
         return $message;

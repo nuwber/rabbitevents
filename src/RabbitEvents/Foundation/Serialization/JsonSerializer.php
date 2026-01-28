@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation\Serialization;
 
+use RabbitEvents\Foundation\Contracts\TransportMessage;
 use RabbitEvents\Foundation\Contracts\Payload;
 use RabbitEvents\Foundation\Contracts\Serializer;
 use RabbitEvents\Foundation\Support\JsonPayload;
@@ -22,9 +23,9 @@ class JsonSerializer implements Serializer
      * @inheritDoc
      * @throws \JsonException
      */
-    public function deserialize(string $payload, array $properties = []): Payload
+    public function deserialize(TransportMessage $message): Payload
     {
-        return new JsonPayload(json_decode($payload, true, 512, JSON_THROW_ON_ERROR));
+        return new JsonPayload(json_decode($message->getBody(), true, 512, JSON_THROW_ON_ERROR));
     }
 
     public function contentType(): string

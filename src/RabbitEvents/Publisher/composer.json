@@ -1,7 +1,20 @@
 {
   "name": "rabbitevents/publisher",
   "description": "The Publisher component of the RabbitEvents package.",
-  "keywords": ["laravel", "rabbitmq", "events", "broadcast", "publish", "pub"],
+  "keywords": [
+    "laravel",
+    "rabbitmq",
+    "events",
+    "microservices",
+    "messaging",
+    "amqp",
+    "pubsub",
+    "broadcast",
+    "protobuf",
+    "event-driven",
+    "queue",
+    "publish"
+  ],
   "type": "library",
   "license": "MIT",
   "authors": [
@@ -11,7 +24,7 @@
     }
   ],
   "require": {
-    "php": "^8.1",
+    "php": "^8.2",
     "ext-json": "*",
     "rabbitevents/foundation": "self.version"
   },

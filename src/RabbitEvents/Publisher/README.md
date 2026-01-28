@@ -112,6 +112,19 @@ event($event)
 publish($event);
 ```
 
+### Publishing Protobuf Messages
+
+You can publish Google Protobuf messages directly. The system will automatically handle serialization and set the `content_type` to `application/x-protobuf`.
+
+```php
+use App\Messages\AccountCreated; // Generated Protobuf class
+
+$message = new AccountCreated(['id' => 123, 'name' => 'John']);
+
+publish('account.created', $message);
+```
+The `type` header will be automatically set to `App\Messages\AccountCreated`, allowing the consumer to re-hydrate the object.
+
 ## Testing <a name="testing"></a>
 
 We always write tests. Tests in our applications contain many mocks and fakes to test how events are published.

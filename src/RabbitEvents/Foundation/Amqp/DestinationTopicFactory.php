@@ -6,11 +6,11 @@ namespace RabbitEvents\Foundation\Amqp;
 
 use Interop\Amqp\AmqpDestination;
 use Interop\Amqp\AmqpTopic;
-use RabbitEvents\Foundation\Context;
+use Interop\Amqp\AmqpContext;
 
 class DestinationTopicFactory
 {
-    public function __construct(private readonly Context $context)
+    public function __construct(private readonly AmqpContext $context, private readonly Connection $connection)
     {
     }
 
@@ -19,7 +19,10 @@ class DestinationTopicFactory
         $topic = $this->context->createTopic($name);
 
         $topic->setType(AmqpTopic::TYPE_TOPIC);
-        $topic->addFlag(AmqpDestination::FLAG_DURABLE);
+        
+        if ($this->connection->getConfig('durable', true)) {
+           $topic->addFlag(AmqpDestination::FLAG_DURABLE);
+        }
 
         $this->context->declareTopic($topic);
 

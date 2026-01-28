@@ -9,6 +9,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use RabbitEvents\Foundation\Context;
 use RabbitEvents\Foundation\Support\Releaser;
+use RabbitEvents\Listener\Dispatcher;
 use RabbitEvents\Listener\Events\ListenerHandled;
 use RabbitEvents\Listener\Events\ListenerHandleFailed;
 use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
@@ -21,6 +22,7 @@ use RabbitEvents\Listener\Message\HandlerFactory;
 use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Listener\QueueName;
 use RabbitEvents\Listener\Worker;
+use RabbitEvents\Listener\WorkerExitStatus;
 
 /**
  * @codeCoverageIgnore
@@ -55,7 +57,7 @@ class ListenCommand extends Command
      * Execute the console command.
      * @param Context $context
      * @param Worker $worker
-     * @return int
+     * @return WorkerExitStatus
      */
     public function handle(Context $context, Worker $worker)
     {
@@ -78,7 +80,7 @@ class ListenCommand extends Command
         );
 
         return $worker->work(
-            new Processor($handlerFactory, $this->laravel['events']),
+            new Processor($handlerFactory, $this->laravel['events'], $this->laravel[Dispatcher::class]),
             $context->makeConsumer($queue),
             $options
         );

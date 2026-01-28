@@ -36,7 +36,7 @@ class General extends Writer
             'handler' => [
                 'name' => $event->handler->getName(),
                 'attempts' => $event->handler->attempts(),
-                'payload' => $event->handler->payload(),
+                'payload' => $event->handler->payload,
             ],
             'status' => $status,
         ];

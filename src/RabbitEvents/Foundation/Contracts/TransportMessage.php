@@ -28,4 +28,19 @@ interface TransportMessage
      * @return array
      */
     public function getProperties(): array;
+
+    /**
+     * Get the original transport message object (e.g., AmqpMessage).
+     *
+     * @return mixed
+     */
+    public function getOrigin(): mixed;
+
+    public function setProperty(string $name, mixed $value): void;
+
+    public function getRoutingKey(): ?string;
+
+    public function getTimestamp(): ?int;
+
+    public function setTimestamp(int $timestamp): void;
 }

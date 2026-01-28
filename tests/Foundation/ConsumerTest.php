@@ -2,76 +2,82 @@
 
 namespace RabbitEvents\Tests\Foundation;
 
-use Interop\Amqp\AmqpConsumer;
-use Interop\Amqp\AmqpMessage;
-use Interop\Amqp\Impl\AmqpMessage as ImplAmqpMessage;
+use RabbitEvents\Foundation\Contracts\QueueConsumer;
+use RabbitEvents\Foundation\Contracts\TransportMessage;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
 use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Context;
 use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
 use RabbitEvents\Foundation\Message;
+use RabbitEvents\Foundation\Serialization\SerializerRegistry;
+use RabbitEvents\Foundation\Contracts\Serializer;
+use RabbitEvents\Tests\Foundation\Stubs\QueueConsumerStub;
+use RabbitEvents\Tests\Foundation\Stubs\TransportMessageStub;
 use \Mockery as m;
 
 class ConsumerTest extends TestCase
 {
-
     public function testNextMessage(): void
     {
         $event = 'item.created';
-        $payload = '{"pay":"load"}';
+        $payload = ['pay' => 'load'];
 
-        $amqpMessage = new ImplAmqpMessage();
-        $amqpMessage->setRoutingKey($event);
-        $amqpMessage->setBody($payload);
-        $amqpMessage->setProperty('x-attempts', 2);
+        $transportMessage = new TransportMessageStub(
+            properties: ['event' => null, 'x-attempts' => 2, 'content_type' => 'application/json', 'routing_key' => $event]
+        );
 
-        $amqpConsumer = m::mock(AmqpConsumer::class);
-        $amqpConsumer->shouldReceive('receive')
-            ->andReturn($amqpMessage);
+        $registry = m::mock(SerializerRegistry::class);
+        $serializer = m::mock(Serializer::class);
+        $serializer->shouldReceive('deserialize')
+            ->with($transportMessage)
+            ->andReturn(new \RabbitEvents\Foundation\Support\JsonPayload($payload));
+        
+        $registry->shouldReceive('get')->with('application/json')->andReturn($serializer);
 
-        $consumer = new Consumer($amqpConsumer);
+        $consumerStub = new QueueConsumerStub([$transportMessage]);
+
+        $consumer = new Consumer($consumerStub, $registry);
         $message = $consumer->nextMessage();
 
         self::assertInstanceOf(Message::class, $message);
-        self::assertEquals($event, $message->getProperty('event'));
-        self::assertEquals($event, $message->event());
-        self::assertEquals($payload, $message->payload()->jsonSerialize());
+        self::assertEquals($event, $message->event);
+        self::assertEquals($payload, $message->payload->value()); 
         self::assertEquals(3, $message->attempts());
     }
 
     public function testNoMessage()
     {
-        $amqpConsumer = m::mock(AmqpConsumer::class);
-        $amqpConsumer->shouldReceive('receive')->andReturnNull();
-
-        $consumer = new Consumer($amqpConsumer, m::mock(Context::class));
+        $consumerStub = new QueueConsumerStub([]);
+        $consumer = new Consumer($consumerStub, m::mock(SerializerRegistry::class));
 
         self::assertNull($consumer->nextMessage());
     }
 
     public function testAcknowledge(): void
     {
-        $amqpConsumer = m::mock(AmqpConsumer::class);
-        $amqpConsumer->shouldReceive('acknowledge')->once();
-
+        $transportMessage = new TransportMessageStub();
+        
         $message = m::mock(Message::class)->makePartial();
-        $message->shouldReceive('amqpMessage')
-            ->andReturn(m::mock(AmqpMessage::class));
+        $message->shouldReceive('transportMessage')->andReturn($transportMessage);
 
-        $consumer = new Consumer($amqpConsumer, m::mock(Context::class));
+        $consumerStub = new QueueConsumerStub();
+        
+        $consumer = new Consumer($consumerStub, m::mock(SerializerRegistry::class));
         $consumer->acknowledge($message);
+        
+        self::assertContains($transportMessage, $consumerStub->acknowledged);
     }
 
     public function testConnectionLostCatch()
     {
         $this->expectException(ConnectionLostException::class);
 
-        $amqpConsumer = m::mock(AmqpConsumer::class);
-        $amqpConsumer->shouldReceive()
+        $consumerMock = m::mock(QueueConsumer::class);
+        $consumerMock->shouldReceive()
             ->receive(123)
             ->andThrow(AMQPRuntimeException::class);
 
-        $consumer = new Consumer($amqpConsumer, m::mock(Context::class));
+        $consumer = new Consumer($consumerMock, m::mock(SerializerRegistry::class));
         $consumer->nextMessage(123);
     }
 }

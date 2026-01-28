@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation\Support;
 
-use Interop\Amqp\AmqpProducer;
-use Interop\Queue\Destination;
+use RabbitEvents\Foundation\Contracts\Producer;
+use RabbitEvents\Foundation\Contracts\Destination;
 use Interop\Queue\Exception;
 use Interop\Queue\Exception\InvalidDestinationException;
 use Interop\Queue\Exception\InvalidMessageException;
@@ -14,7 +14,7 @@ use RabbitEvents\Foundation\Message;
 
 class Sender implements Transport
 {
-    public function __construct(protected Destination $destination, protected AmqpProducer $producer)
+    public function __construct(protected Destination $destination, protected Producer $producer)
     {
     }
 
@@ -25,6 +25,6 @@ class Sender implements Transport
      */
     public function send(Message $message): void
     {
-        $this->producer->send($this->destination, $message->amqpMessage());
+        $this->producer->send($this->destination, $message->transportMessage());
     }
 }

@@ -2,74 +2,67 @@
 
 namespace RabbitEvents\Tests\Foundation;
 
-use Interop\Amqp\AmqpConsumer;
-use Interop\Amqp\AmqpContext;
 use Interop\Amqp\Impl\AmqpQueue;
-use Interop\Amqp\AmqpTopic;
-use RabbitEvents\Foundation\Connection;
 use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Context;
 use Mockery as m;
-use RabbitEvents\Foundation\Support\EnqueueOptions;
 
 class ContextTest extends TestCase
 {
-    public function test_context_call()
-    {
-        $amqpContext = m::mock(AmqpContext::class);
-        $amqpContext->shouldReceive()
-            ->foo('bar')
-            ->once()
-            ->andReturn('result');
-
-        $connection = m::mock(Connection::class);
-        $connection->shouldReceive('createContext')
-            ->andReturn($amqpContext);
-
-        $context = new Context($connection);
-
-        self::assertEquals('result', $context->foo('bar'));
-    }
-
     public function test_create_consumer()
     {
-        $amqpContext = m::mock(AmqpContext::class)->makePartial();
-        $amqpContext->shouldReceive('createConsumer')
-            ->andReturn(m::mock(AmqpConsumer::class));
-
         $amqpQueue = new AmqpQueue('name');
+        $destination = new \RabbitEvents\Foundation\Amqp\AmqpDestinationAdapter($amqpQueue);
+        
+        $connectionStub = new \RabbitEvents\Tests\Foundation\Stubs\ConnectionStub();
 
-        $connection = m::mock(Connection::class);
-        $connection->shouldReceive('createContext')
-            ->andReturn($amqpContext);
-
-        $context = new Context($connection);
-        $consumer = $context->makeConsumer($amqpQueue);
+        $context = new Context($connectionStub, m::mock(\RabbitEvents\Foundation\Serialization\SerializerRegistry::class));
+        $consumer = $context->makeConsumer($destination);
 
         self::assertInstanceOf(Consumer::class, $consumer);
+        self::assertCount(1, $connectionStub->createdConsumers);
+        self::assertSame($destination, $connectionStub->createdConsumers[0]);
     }
 
     public function test_make_queue()
     {
         $events = ['event.one', 'event.two'];
         $queueName = 'test-app:rabbitevents';
+        
+        $topic = new \RabbitEvents\Tests\Foundation\Stubs\DestinationStub();
 
-        $amqpContext = m::mock(AmqpContext::class);
-        $amqpContext->shouldReceive('bind')
-            ->twice();
-        $amqpContext->shouldReceive('createQueue')
-            ->andReturn($amqpQueue = new AmqpQueue($queueName));
-        $amqpContext->shouldReceive('declareQueue')
-            ->once();
+        $connectionStub = new \RabbitEvents\Tests\Foundation\Stubs\ConnectionStub();
 
-        $connection = m::mock(Connection::class);
-        $connection->shouldReceive()
-            ->createContext()
-            ->andReturn($amqpContext);
+        $queue = (new Context($connectionStub, m::mock(\RabbitEvents\Foundation\Serialization\SerializerRegistry::class)))
+            ->makeQueue($queueName, $events, $topic);
 
-        $queue = (new Context($connection))
-            ->makeQueue($queueName, $events, m::mock(AmqpTopic::class));
-
-        self::assertInstanceOf(AmqpQueue::class, $queue);
+        self::assertInstanceOf(\RabbitEvents\Foundation\Contracts\Destination::class, $queue);
+        self::assertCount(1, $connectionStub->createdQueues);
+        self::assertEquals($queueName, $connectionStub->createdQueues[0]['name']);
+        self::assertSame($topic, $connectionStub->createdQueues[0]['topic']);
     }
+
+    public function test_create_producer()
+    {
+        $connectionStub = new \RabbitEvents\Tests\Foundation\Stubs\ConnectionStub();
+        
+        $context = new Context($connectionStub, m::mock(\RabbitEvents\Foundation\Serialization\SerializerRegistry::class));
+        $producer = $context->createProducer();
+        
+        self::assertInstanceOf(\RabbitEvents\Foundation\Contracts\Producer::class, $producer);
+        self::assertEquals(1, $connectionStub->createdProducers);
+    }
+    
+    public function test_make_topic()
+    {
+        $connectionStub = new \RabbitEvents\Tests\Foundation\Stubs\ConnectionStub();
+        
+        $context = new Context($connectionStub, m::mock(\RabbitEvents\Foundation\Serialization\SerializerRegistry::class));
+        $topic = $context->makeTopic();
+        
+        self::assertInstanceOf(\RabbitEvents\Foundation\Contracts\Destination::class, $topic);
+        self::assertCount(1, $connectionStub->createdTopics);
+    }
+
+
 }
