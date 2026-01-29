@@ -39,7 +39,7 @@ class MessageFactoryTest extends TestCase
         $origin = $result->getOrigin();
         self::assertInstanceOf(AmqpMessage::class, $origin);
         self::assertEquals('event', $origin->getRoutingKey());
-        self::assertEquals('UTF-8', $origin->getContentEncoding());
-        self::assertEquals('application/json', $origin->getContentType());
+        self::assertEquals('UTF-8', $origin->getProperty('content_encoding'));
+        self::assertEquals('application/json', $origin->getProperty('content_type'));
     }
 }

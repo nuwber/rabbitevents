@@ -118,6 +118,8 @@ class ListenerServiceProvider extends BaseServiceProvider
 
     public function register(): void
     {
+        $this->app->singleton(Dispatcher::class);
+        $this->app->alias(Dispatcher::class, 'rabbitevents.events');
         $this->registerPublishing();
     }
 

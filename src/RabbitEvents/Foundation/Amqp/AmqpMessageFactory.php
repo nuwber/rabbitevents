@@ -15,11 +15,10 @@ class AmqpMessageFactory implements TransportMessageFactory
     {
         $message = new AmqpMessage(
             $payload->serialize(),
-            $properties,
-            [
+            array_merge($properties, [
                 'content_type' => $payload->contentType(),
                 'content_encoding' => 'UTF-8',
-            ]
+            ])
         );
         $message->setRoutingKey($event);
         $message->setProperty('event', $event);

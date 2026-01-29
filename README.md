@@ -118,6 +118,16 @@ RabbitEvents now supports [Google Protobuf](https://github.com/protocolbuffers/p
 Simply publish a Protobuf Message object, and it will be automatically serialized and hydrated on the listener side.
 The system uses the `type` AMQP header to resolve the correct class.
 
+**Example:**
+```php
+use Google\Protobuf\StringValue;
+
+$message = new StringValue();
+$message->setValue('Hello World');
+
+publish('my.event', $message);
+```
+
 ### Dynamic Serializers
 The correct serializer is now automatically selected based on the `content_type` header of the message.
 - `application/json` -> JSON Serializer
