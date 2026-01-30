@@ -1,6 +1,7 @@
 <?php
 
 use Enqueue\AmqpTools\RabbitMqDlxDelayStrategy;
+use RabbitEvents\Foundation\Serialization\JsonSerializer;
 
 return [
 
@@ -65,5 +66,5 @@ return [
     |
     */
 
-    'default_serializer' => \RabbitEvents\Foundation\Serialization\JsonSerializer::class,
+    'default_serializer' => JsonSerializer::class,
 ];

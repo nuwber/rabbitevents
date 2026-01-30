@@ -23,7 +23,7 @@ interface Payload
     /**
      * Get the content type of the payload.
      *
-     * @return string
+     * @return ContentType
      */
-    public function contentType(): string;
+    public function contentType(): ContentType;
 }

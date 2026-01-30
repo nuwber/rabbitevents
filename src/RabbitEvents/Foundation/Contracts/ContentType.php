@@ -6,4 +6,5 @@ namespace RabbitEvents\Foundation\Contracts;
 
 interface ContentType extends \Stringable
 {
+    public function getValue(): string;
 }

@@ -23,6 +23,8 @@ Once again, the RabbitEvents library helps you publish an event and handle it in
 1. [Publisher component](#publisher)
 1. [Listener component](#listener)
 1. [Listeners & Payloads](#listeners-payloads)
+1. [Custom Serializers](#custom-serializers)
+1. [Extensions](#extensions)
 1. [Examples](./examples)
 1. [Speeding up RabbitEvents](#speeding-up-rabbitevents)
 1. [Testing](#testing)
@@ -122,10 +124,10 @@ The system uses the `type` AMQP header to resolve the correct class.
 ```php
 use Google\Protobuf\StringValue;
 
-$message = new StringValue();
-$message->setValue('Hello World');
-
-publish('my.event', $message);
++$message = new StringValue();
++$message->setValue('Hello World');
++
++publish('my.event', $message);
 ```
 
 ### Dynamic Serializers
@@ -143,8 +145,15 @@ Version 9.0 introduces a more abstract and extensible architecture.
 - **Transport Agnostic**: The core `Message` and `Sender` classes rely on internal contracts (`RabbitEvents\Foundation\Contracts\*`), avoiding strict dependencies on `queue-interop`. Adapters are provided for AMQP.
 - **Connection Class Moved**: `RabbitEvents\Foundation\Connection` has been moved to `RabbitEvents\Foundation\Amqp\Connection`. Update your type hints if you were using it directly.
 
+### Namespace Changes
+We have reorganized the namespace structure for better clarity and standard compliance:
+- **Commands**: All console commands have been moved to `Console` namespaces.
+  - `RabbitEvents\Foundation\Commands` -> `RabbitEvents\Foundation\Console`
+  - `RabbitEvents\Listener\Commands` -> `RabbitEvents\Listener\Console`
+  - `RabbitEvents\Publisher\Commands` -> `RabbitEvents\Publisher\Console`
+- **Releaser**: `RabbitEvents\Foundation\Support\Releaser` has been moved to `RabbitEvents\Listener\Support\Releaser` as it is a listener-specific component.
+
 ### Removed `--connection` option from the `rabbitevents:listen` command
-There's an issue [#98](https://github.com/nuwber/rabbitevents/issues/98) that still needs to be resolved.
 The default connection is always used instead.
 
 ## RabbitEvents Publisher<a name="publisher"></a>
@@ -179,6 +188,37 @@ public function handle(\Google\Protobuf\Internal\Message $message) {
     // $message->getSomething()
 }
 ```
+
+## Custom Serializers<a name="custom-serializers"></a>
+
+You can implement your own serializer by implementing `RabbitEvents\Foundation\Contracts\Serializer` and `RabbitEvents\Foundation\Contracts\ContentType`.
+
+```php
+use RabbitEvents\Foundation\Contracts\Serializer;
+use RabbitEvents\Foundation\Contracts\ContentType;
+use RabbitEvents\Foundation\Contracts\Payload;
+
+class MySerializer implements Serializer
+{
+    public function serialize($data): Payload { ... }
+    public function deserialize($message): Payload { ... }
+    public function contentType(): ContentType { return new MyContentType(); }
+    public function canSerialize($payload): bool { ... }
+}
+```
+
+Register your serializer in a ServiceProvider:
+
+```php
+$registry = $this->app->make(\RabbitEvents\Foundation\Serialization\SerializerRegistry::class);
+$registry->register(new MySerializer());
+```
+
+New serializers are prepended to the registry, so they can override default behavior if they claim the payload.
+
+## Extensions<a name="extensions"></a>
+
+- [Protobuf Support](https://github.com/rabbitevents/protobuf) - Provides official Google Protobuf serialization support.
 
 ## Speeding up RabbitEvents<a name="speeding-up-rabbitevents"></a>
 To enhance the performance of RabbitEvents, consider installing the `php-amqp` extension along with the `enqueue/amqp-ext` package. 

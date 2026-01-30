@@ -89,7 +89,7 @@ class Worker
             $this->skipIfAlreadyExceedsMaxAttempts($message, $options);
 
             $processor->process($message, $options);
-        } catch (\Throwable $throwable) {
+        } catch (Throwable $throwable) {
             $this->exceptions->report($throwable);
         }
     }

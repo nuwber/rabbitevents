@@ -7,7 +7,7 @@ namespace RabbitEvents\Foundation;
 use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use Interop\Queue\Topic;
-use RabbitEvents\Foundation\Commands\InstallCommand;
+use RabbitEvents\Foundation\Console\InstallCommand;
 use RabbitEvents\Foundation\Serialization\JsonSerializer;
 
 class RabbitEventsServiceProvider extends ServiceProvider
@@ -23,28 +23,20 @@ class RabbitEventsServiceProvider extends ServiceProvider
 
         $this->app->singleton(Serialization\SerializerRegistry::class, function ($app) use ($config) {
             $registry = new Serialization\SerializerRegistry();
-            
-            $registry->register(new Serialization\JsonSerializer());
-            $registry->register(new Serialization\ProtobufSerializer());
+            $registry->register(
+                $app->make($app['config']['rabbitevents.default_serializer'] ?? JsonSerializer::class), 
+                true
+            );
 
             return $registry;
         });
 
-        // Publisher needs a default serializer
-        $this->app->singleton(Contracts\Serializer::class, function ($app) use ($config) {
-            $class = Arr::get($config, 'default_serializer', JsonSerializer::class);
+        $this->app->singleton(Contracts\Connection::class, fn() => new Amqp\Connection($config));
 
-            return new $class;
-        });
-
-        $this->app->singleton(Contracts\Connection::class, function ($app) use ($config) {
-             return new Amqp\Connection($config);
-        });
-        
         $this->app->singleton(
             Context::class,
             static fn($app) => new Context(
-                $app[Contracts\Connection::class], 
+                $app[Contracts\Connection::class],
                 $app[Serialization\SerializerRegistry::class]
             )
         );
@@ -88,7 +80,7 @@ class RabbitEventsServiceProvider extends ServiceProvider
     protected function registerCommands()
     {
         $this->commands([
-            InstallCommand::class
+            InstallCommand::class,
         ]);
     }
 }

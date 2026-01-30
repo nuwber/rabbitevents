@@ -7,7 +7,7 @@ namespace RabbitEvents\Publisher;
 use Illuminate\Support\ServiceProvider;
 use RabbitEvents\Foundation\Serialization\SerializerRegistry;
 use RabbitEvents\Foundation\Support\Sender;
-use RabbitEvents\Publisher\Commands\ObserverMakeCommand;
+use RabbitEvents\Publisher\Console\ObserverMakeCommand;
 use RabbitEvents\Foundation\Context;
 
 class PublisherServiceProvider extends ServiceProvider

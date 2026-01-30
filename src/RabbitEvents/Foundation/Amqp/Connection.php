@@ -10,7 +10,6 @@ use Illuminate\Support\Arr;
 use Interop\Amqp\AmqpConnectionFactory;
 use Interop\Amqp\AmqpContext;
 use Interop\Queue\Context;
-
 use Interop\Amqp\Impl\AmqpBind;
 use RabbitEvents\Foundation\Contracts\Connection as ConnectionContract;
 use RabbitEvents\Foundation\Contracts\Destination;

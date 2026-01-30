@@ -31,9 +31,10 @@ class MessageFactoryTest extends TestCase
 
         $serializer = \Mockery::mock(\RabbitEvents\Foundation\Contracts\Serializer::class);
         $serializer->shouldReceive('serialize')->andReturn($payload);
+        $serializer->shouldReceive('contentType')->andReturn(new \RabbitEvents\Foundation\Serialization\JsonContentType());
 
         $registry = \Mockery::mock(\RabbitEvents\Foundation\Serialization\SerializerRegistry::class);
-        $registry->shouldReceive('get')->with('application/json')->andReturn($serializer);
+        $registry->shouldReceive('resolve')->andReturn($serializer);
         
         $this->factory = new MessageFactory($registry);
 
@@ -53,9 +54,10 @@ class MessageFactoryTest extends TestCase
 
         $serializer = \Mockery::mock(\RabbitEvents\Foundation\Contracts\Serializer::class);
         $serializer->shouldReceive('serialize')->with($payload)->andReturn($payload);
+        $serializer->shouldReceive('contentType')->andReturn(new \RabbitEvents\Foundation\Serialization\JsonContentType());
 
         $registry = \Mockery::mock(\RabbitEvents\Foundation\Serialization\SerializerRegistry::class);
-        $registry->shouldReceive('get')->with('application/json')->andReturn($serializer);
+        $registry->shouldReceive('resolve')->with($payload)->andReturn($serializer);
 
         $factory = new MessageFactory($registry);
 

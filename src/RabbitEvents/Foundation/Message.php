@@ -30,7 +30,6 @@ class Message
      * @param TransportMessage $message
      * @param Serializer|null $serializer
      * @return static
-     * @throws \JsonException
      */
     public static function createFromTransportMessage(TransportMessage $message, ?Serializer $serializer = null): static
     {

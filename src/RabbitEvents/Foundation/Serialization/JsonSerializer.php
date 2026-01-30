@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation\Serialization;
 
+use RabbitEvents\Foundation\Contracts\ContentType;
 use RabbitEvents\Foundation\Contracts\TransportMessage;
 use RabbitEvents\Foundation\Contracts\Payload;
 use RabbitEvents\Foundation\Contracts\Serializer;
@@ -28,8 +29,16 @@ class JsonSerializer implements Serializer
         return new JsonPayload(json_decode($message->getBody(), true, 512, JSON_THROW_ON_ERROR));
     }
 
-    public function contentType(): string
+    public function contentType(): ContentType
     {
-        return 'application/json';
+        return new JsonContentType();
+    }
+
+    public function canSerialize(mixed $payload): bool
+    {
+        return is_array($payload) || 
+            is_scalar($payload) || 
+            $payload instanceof \JsonSerializable || 
+            $payload instanceof \stdClass;
     }
 }

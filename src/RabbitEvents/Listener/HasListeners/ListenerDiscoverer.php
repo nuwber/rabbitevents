@@ -77,9 +77,24 @@ class ListenerDiscoverer
 
         $reflection = new ReflectionClass($class);
 
-        return !$reflection->isAbstract() && 
-               (!$reflection->getAttributes(Listener::class) !== [] ||
-               $reflection->getMethods(\ReflectionMethod::IS_PUBLIC));
+        return !$reflection->isAbstract() &&
+            (static::hasListenerAttribute($reflection) || static::hasPublicMethods($reflection));
+    }
+
+    protected static function hasListenerAttribute(ReflectionClass $reflection): bool
+    {
+        return $reflection->getAttributes(Listener::class) !== [];
+    }
+
+    protected static function hasPublicMethods(ReflectionClass $reflection): bool
+    {
+        foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+            if ($method->getAttributes(Listener::class) !== []) {
+                return true;
+            }
+        }
+
+        return false;
     }
     /**
      * Get the events from the listener attributes.

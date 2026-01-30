@@ -5,6 +5,7 @@ namespace RabbitEvents\Tests\Foundation\Amqp;
 use Interop\Amqp\Impl\AmqpMessage;
 use RabbitEvents\Foundation\Amqp\AmqpMessageFactory;
 use RabbitEvents\Foundation\Contracts\Payload;
+use RabbitEvents\Foundation\Contracts\TransportMessage;
 use RabbitEvents\Tests\Foundation\TestCase;
 
 class MessageFactoryTest extends TestCase
@@ -23,16 +24,16 @@ class MessageFactoryTest extends TestCase
                 return ['some' => 'payload'];
             }
 
-            public function contentType(): string
+            public function contentType(): \RabbitEvents\Foundation\Contracts\ContentType
             {
-                return 'application/json';
+                return new \RabbitEvents\Foundation\Serialization\JsonContentType();
             }
         };
 
         $factory = new AmqpMessageFactory();
         $result = $factory->make('event', $payload, ['x-test' => 'property']);
 
-        self::assertInstanceOf(\RabbitEvents\Foundation\Contracts\TransportMessage::class, $result);
+        self::assertInstanceOf(TransportMessage::class, $result);
         self::assertEquals($payload->serialize(), $result->getBody());
         self::assertEquals('property', $result->getProperty('x-test'));
         

@@ -22,8 +22,8 @@ class Payload implements \RabbitEvents\Foundation\Contracts\Payload
         return json_encode($this->payload);
     }
 
-    public function contentType(): string
+    public function contentType(): \RabbitEvents\Foundation\Contracts\ContentType
     {
-        return 'application/json';
+        return new \RabbitEvents\Foundation\Serialization\JsonContentType();
     }
 }

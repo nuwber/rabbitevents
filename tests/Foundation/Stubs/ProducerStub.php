@@ -29,14 +29,6 @@ class ProducerStub implements Producer
         $this->deliveryDelay = $delay;
     }
     
-    // Magic method to support generic calls (like setDeliveryDelay which is not in contract but used by Releaser)
-    public function __call($name, $arguments)
-    {
-        if ($name === 'setDeliveryDelay') {
-            $this->setDeliveryDelay(...$arguments);
-        }
-    }
-    
     public function throwException(\Throwable $e, string $method = 'send')
     {
         $this->exceptions[$method] = $e;

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener;
 
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
-use RabbitEvents\Listener\Commands\EventsListCommand;
-use RabbitEvents\Listener\Commands\ListenCommand;
 use RabbitEvents\Listener\Facades\RabbitEvents;
 
 class ListenerServiceProvider extends BaseServiceProvider
@@ -32,10 +30,10 @@ class ListenerServiceProvider extends BaseServiceProvider
         }
 
         $this->commands([
-            ListenCommand::class,
-            EventsListCommand::class,
-            Commands\EventsCacheCommand::class,
-            Commands\EventsClearCommand::class,
+            Console\ListenCommand::class,
+            Console\EventsListCommand::class,
+            Console\EventsCacheCommand::class,
+            Console\EventsClearCommand::class,
         ]);
 
         foreach ($this->listens() as $event => $listeners) {

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation\Support;
 
+use RabbitEvents\Foundation\Contracts\ContentType;
 use RabbitEvents\Foundation\Contracts\Payload;
+use RabbitEvents\Foundation\Serialization\JsonContentType;
 
 class JsonPayload implements Payload
 {
@@ -26,8 +28,8 @@ class JsonPayload implements Payload
         return json_encode($this->value, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
 
-    public function contentType(): string
+    public function contentType(): ContentType
     {
-        return 'application/json';
+        return new JsonContentType();
     }
 }

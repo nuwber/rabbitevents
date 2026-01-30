@@ -36,7 +36,7 @@ class General extends Writer
             'handler' => [
                 'name' => $event->handler->getName(),
                 'attempts' => $event->handler->attempts(),
-                'payload' => $this->sanitizePayload($event->handler->payload->serialize()),
+                'payload' => $event->handler->payload->serialize(),
             ],
             'status' => $status,
         ];
@@ -55,14 +55,5 @@ class General extends Writer
         }
 
         return $this->defaultLogLevel;
-    }
-
-    private function sanitizePayload(string $payload): string
-    {
-        if (mb_detect_encoding($payload, 'UTF-8', true) === false) {
-            return base64_encode($payload);
-        }
-
-        return $payload;
     }
 }

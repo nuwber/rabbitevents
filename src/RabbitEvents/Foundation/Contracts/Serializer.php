@@ -25,7 +25,15 @@ interface Serializer
     /**
      * Get Content-Type of the serializer
      *
-     * @return string
+     * @return ContentType
      */
-    public function contentType(): string;
+    public function contentType(): ContentType;
+
+    /**
+     * Determine if the serializer can serialize the payload.
+     *
+     * @param mixed $payload
+     * @return bool
+     */
+    public function canSerialize(mixed $payload): bool;
 }

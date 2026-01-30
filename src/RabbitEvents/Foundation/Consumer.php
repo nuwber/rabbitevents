@@ -6,9 +6,9 @@ namespace RabbitEvents\Foundation;
 
 use Illuminate\Support\Carbon;
 use RabbitEvents\Foundation\Contracts\QueueConsumer;
+use RabbitEvents\Foundation\Contracts\Serializer;
 use RabbitEvents\Foundation\Contracts\TransportMessage;
 use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
-
 use RabbitEvents\Foundation\Exceptions\UnsupportedContentTypeException;
 use RabbitEvents\Foundation\Serialization\SerializerRegistry;
 
@@ -21,14 +21,13 @@ class Consumer
     {
     }
 
-    public function __call(string $method, ?array $args)
+    public function __call(string $method, array $args)
     {
         return $this->consumer->$method(...$args);
     }
 
     /**
      * Receives a Message from the queue and returns Message object
-     * @throws \JsonException
      */
     public function nextMessage(int $timeout = 0): ?Message
     {
@@ -46,9 +45,9 @@ class Consumer
         }
 
         try {
-            $serializer = $this->registry->get(
-                $transportMessage->getProperty('content_type', 'application/json')
-            );
+            $content_type = $transportMessage->getProperty('content_type');
+
+            $serializer = $content_type ? $this->registry->get($content_type) : $this->registry->getDefault();
 
             return Message::createFromTransportMessage($transportMessage, $serializer)->increaseAttempts();
         } catch (UnsupportedContentTypeException $e) {

@@ -6,5 +6,4 @@ namespace RabbitEvents\Foundation\Exceptions;
 
 class UnsupportedContentTypeException extends \Exception
 {
-
 }

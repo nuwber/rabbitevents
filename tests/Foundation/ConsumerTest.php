@@ -3,10 +3,8 @@
 namespace RabbitEvents\Tests\Foundation;
 
 use RabbitEvents\Foundation\Contracts\QueueConsumer;
-use RabbitEvents\Foundation\Contracts\TransportMessage;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
 use RabbitEvents\Foundation\Consumer;
-use RabbitEvents\Foundation\Context;
 use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Foundation\Serialization\SerializerRegistry;
@@ -17,10 +15,40 @@ use \Mockery as m;
 
 class ConsumerTest extends TestCase
 {
+    public function testNextMessageWithDefaultSerializer(): void
+    {
+        $event = 'item.created';
+        $payload = ['pay' => 'load'];
+
+        $transportMessage = new TransportMessageStub(
+            properties: ['event' => null, 'x-attempts' => 2, 'routing_key' => $event]
+        );
+
+        $registry = m::mock(SerializerRegistry::class);
+        $serializer = m::mock(Serializer::class);
+        $serializer->shouldReceive('deserialize')
+            ->with($transportMessage)
+            ->andReturn(new \RabbitEvents\Foundation\Support\JsonPayload($payload));
+        
+        $registry->shouldReceive('getDefault')->andReturn($serializer);
+
+        $consumerStub = new QueueConsumerStub([$transportMessage]);
+
+        $consumer = new Consumer($consumerStub, $registry);
+        $message = $consumer->nextMessage();
+
+        self::assertInstanceOf(Message::class, $message);
+        self::assertEquals($payload, $message->payload->value());
+    }
+
     public function testNextMessage(): void
     {
         $event = 'item.created';
         $payload = ['pay' => 'load'];
+
+        \Illuminate\Container\Container::getInstance()->bind(Serializer::class, function () { // @phpstan-ignore-line
+             return m::mock(Serializer::class);
+        });
 
         $transportMessage = new TransportMessageStub(
             properties: ['event' => null, 'x-attempts' => 2, 'content_type' => 'application/json', 'routing_key' => $event]

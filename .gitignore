@@ -4,4 +4,3 @@ composer.lock
 .DS_Store
 coverage.xml
 .phpunit.cache
-integration

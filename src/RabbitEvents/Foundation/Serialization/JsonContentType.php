@@ -8,8 +8,15 @@ use RabbitEvents\Foundation\Contracts\ContentType;
 
 class JsonContentType implements ContentType
 {
+    private string $contentType = 'application/json';
+
     public function __toString(): string
     {
-        return 'application/json';
+        return $this->contentType;
+    }
+
+    public function getValue(): string
+    {
+        return $this->contentType;
     }
 }
