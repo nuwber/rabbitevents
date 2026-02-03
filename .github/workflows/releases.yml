@@ -67,12 +67,6 @@ jobs:
         with:
             ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Install splitsh-lite
-        run: |
-            wget -O splitsh-lite.tar.gz https://github.com/splitsh/lite/releases/download/v1.0.1/lite_linux_amd64.tar.gz
-            tar -zxvf splitsh-lite.tar.gz --directory ./bin
-            chmod +x ./bin/splitsh-lite
-
       - name: Run split script
         run: |
             git config --global user.email "masterjus@gmail.com"

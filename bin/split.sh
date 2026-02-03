@@ -14,10 +14,16 @@ else
     CURRENT_BRANCH=$1
 fi
 
+if [ "$(uname)" == "Darwin" ]; then
+    SPLITSH_LITE="./bin/splitsh-lite"
+elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+    SPLITSH_LITE="./bin/splitsh-lite-linux"
+fi
+
 function split()
 {
-    chmod +x ./bin/splitsh-lite
-    SHA1=`./bin/splitsh-lite --prefix=$1`
+    chmod +x $SPLITSH_LITE
+    SHA1=`$SPLITSH_LITE --prefix=$1`
     git push $2 "$SHA1:refs/heads/$CURRENT_BRANCH" -f
 }
 
