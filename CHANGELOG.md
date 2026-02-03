@@ -5,11 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [9.0.0]
 
 ### Added
-- **Payload Interface Pattern**: `Contracts\Payload` interface with `JsonPayload` and `ProtobufPayload` implementations.
+- **Payload Interface Pattern**: `Contracts\Payload` interface with `JsonPayload` implementation.
 - **Dynamic Serializer Selection**: `SerializerRegistry` selects serializer based on `content_type` header.
-- **Protobuf Support**: Out-of-the-box support for Google Protobuf messages.
-    - Automatic `type` header setting in Publisher.
-    - Automatic class re-hydration in Consumer.
 - **Listener Attributes**: Support for `#[Listener]` attribute for auto-registration of events.
 - **Configurable Queue Durability**: Added `durable` configuration option to control queue persistence (defaults to `true`).
 - **Enums**: `WorkerExitStatus` Enum for worker exit codes.
@@ -20,6 +17,9 @@ All notable changes to this project will be documented in this file.
 - **Release Automation**: Added `.github/workflows/releases.yml` and updated `bin/release.sh` to automate multi-repo tagging.
 
 ### Changed
+- **Architecture**:
+    - Moved Protobuf support to a separate package: `rabbitevents/protobuf`.
+    - Refactored `Listener` discovery and Console commands.
 - **PHP Requirement**: Bumped minimum PHP version to 8.2.
 - **Readonly Classes**: `Context`, `Publisher`, and `ListenerOptions` are now `readonly`.
 - **Message Class**:
