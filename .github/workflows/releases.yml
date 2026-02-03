@@ -1,4 +1,4 @@
-name: manual release
+name: Manual Release
 
 on:
   workflow_dispatch:
@@ -23,6 +23,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout branch
+        run: git checkout ${{ github.ref_name }}
 
       - name: Remove optional "v" prefix
         id: version
