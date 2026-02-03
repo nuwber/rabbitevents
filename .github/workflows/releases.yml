@@ -71,7 +71,6 @@ jobs:
         run: |
             wget -O splitsh-lite.tar.gz https://github.com/splitsh/lite/releases/download/v1.0.1/lite_linux_amd64.tar.gz
             tar -zxvf splitsh-lite.tar.gz --directory ./bin
-            mv ./bin/splitsh-lite-linux-amd64 ./bin/splitsh-lite
             chmod +x ./bin/splitsh-lite
 
       - name: Run split script
