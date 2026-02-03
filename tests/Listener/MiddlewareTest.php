@@ -2,7 +2,7 @@
 
 namespace RabbitEvents\Tests\Listener;
 
-use Illuminate\Container\Container;
+
 use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Listener\Dispatcher;
@@ -101,7 +101,7 @@ class MiddlewareTest extends TestCase
 
     private function makeHandler($message, $callback): Handler
     {
-        return new Handler(new Container(), $message, $callback, __CLASS__, \Mockery::mock(Transport::class));
+        return new Handler($message, $callback, __CLASS__, \Mockery::mock(Transport::class));
     }
 }
 

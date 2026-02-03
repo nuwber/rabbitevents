@@ -1,7 +1,21 @@
 {
   "name": "rabbitevents/listener",
   "description": "The Listener component of the RabbitEvents library.",
-  "keywords": ["laravel", "rabbitmq", "events", "listener", "sub"],
+  "keywords": [
+    "laravel",
+    "rabbitmq",
+    "events",
+    "listener",
+    "microservices",
+    "messaging",
+    "amqp",
+    "pubsub",
+    "broadcast",
+    "protobuf",
+    "event-driven",
+    "queue",
+    "subscribe"
+  ],
   "type": "library",
   "license": "MIT",
   "authors": [
@@ -12,9 +26,9 @@
   ],
   "minimum-stability": "dev",
   "require": {
-    "php": "^8.1",
+    "php": "^8.2",
     "ext-json": "*",
-    "illuminate/events": "9 - 12",
+    "illuminate/events": "10 - 12",
     "rabbitevents/foundation": "self.version"
   },
   "autoload": {

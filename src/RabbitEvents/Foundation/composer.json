@@ -2,7 +2,21 @@
   "name": "rabbitevents/foundation",
   "description": "Rabbitevents common package",
   "homepage": "https://github.com/rabbitevents/foundation",
-  "keywords": ["laravel", "rabbitmq", "events", "broadcast"],
+  "keywords": [
+    "laravel",
+    "rabbitmq",
+    "events",
+    "microservices",
+    "messaging",
+    "amqp",
+    "pubsub",
+    "broadcast",
+    "protobuf",
+    "event-driven",
+    "queue",
+    "publish",
+    "subscribe"
+  ],
   "type": "library",
   "license": "MIT",
   "authors": [
@@ -12,12 +26,12 @@
     }
   ],
   "require": {
-    "php": "^8.1",
+    "php": "^8.2",
     "ext-bcmath": "*",
     "ext-json": "*",
-    "illuminate/support": "9 - 12",
-    "illuminate/console": "9 - 12",
-    "illuminate/container": "9 - 12",
+    "illuminate/support": "10 - 12",
+    "illuminate/console": "10 - 12",
+    "illuminate/container": "10 - 12",
     "enqueue/amqp-lib": "^0.10"
   },
   "autoload": {

@@ -5,50 +5,61 @@ declare(strict_types=1);
 namespace RabbitEvents\Foundation;
 
 use Illuminate\Support\Carbon;
-use Interop\Amqp\AmqpConsumer;
-use Interop\Amqp\AmqpMessage;
+use RabbitEvents\Foundation\Contracts\QueueConsumer;
+use RabbitEvents\Foundation\Contracts\Serializer;
+use RabbitEvents\Foundation\Contracts\TransportMessage;
 use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
+use RabbitEvents\Foundation\Exceptions\UnsupportedContentTypeException;
+use RabbitEvents\Foundation\Serialization\SerializerRegistry;
 
 /**
- * @mixin AmqpConsumer
+ * @mixin QueueConsumer
  */
 class Consumer
 {
-    public function __construct(private AmqpConsumer $amqpConsumer)
+    public function __construct(private QueueConsumer $consumer, private SerializerRegistry $registry)
     {
     }
 
-    public function __call(string $method, ?array $args)
+    public function __call(string $method, array $args)
     {
-        return $this->amqpConsumer->$method(...$args);
+        return $this->consumer->$method(...$args);
     }
 
     /**
      * Receives a Message from the queue and returns Message object
-     * @throws \JsonException
      */
     public function nextMessage(int $timeout = 0): ?Message
     {
-        if (!$amqpMessage = $this->receiveMessage($timeout)) {
+        if (!$transportMessage = $this->receiveMessage($timeout)) {
             return null;
         }
 
         // Set timestamp only if this message was not released before
-        if (!$amqpMessage->getTimestamp()) {
-            $amqpMessage->setTimestamp(Carbon::now()->getTimestamp());
+        if (!$transportMessage->getTimestamp()) {
+            $transportMessage->setTimestamp(Carbon::now()->getTimestamp());
         }
 
-        if (!$amqpMessage->getProperty('event')) {
-            $amqpMessage->setProperty('event', $amqpMessage->getRoutingKey());
+        if (!$transportMessage->getProperty('event')) {
+            $transportMessage->setProperty('event', $transportMessage->getRoutingKey());
         }
 
-        return Message::createFromAmqpMessage($amqpMessage)->increaseAttempts();
+        try {
+            $content_type = $transportMessage->getProperty('content_type');
+
+            $serializer = $content_type ? $this->registry->get($content_type) : $this->registry->getDefault();
+
+            return Message::createFromTransportMessage($transportMessage, $serializer)->increaseAttempts();
+        } catch (UnsupportedContentTypeException $e) {
+            $this->consumer->reject($transportMessage, false);
+            throw $e;
+        }
     }
 
-    protected function receiveMessage(int $timeout = 0): ?AmqpMessage
+    protected function receiveMessage(int $timeout = 0): ?TransportMessage
     {
         try {
-            return $this->amqpConsumer->receive($timeout);
+            return $this->consumer->receive($timeout);
         } catch (\Throwable $exception) {
             throw new ConnectionLostException($exception);
         }
@@ -56,6 +67,6 @@ class Consumer
 
     public function acknowledge(Message $message): void
     {
-        $this->amqpConsumer->acknowledge($message->amqpMessage());
+        $this->consumer->acknowledge($message->transportMessage());
     }
 }

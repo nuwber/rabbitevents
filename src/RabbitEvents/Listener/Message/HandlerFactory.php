@@ -16,6 +16,15 @@ class HandlerFactory
 
     public function make(Message $message, callable $callback, string $listenerClass): Handler
     {
-        return new Handler($this->container, $message, $callback, $listenerClass, $this->transport);
+        $failedCallback = null;
+
+        if (
+            $listenerClass !== \Closure::class
+            && method_exists($listener = $this->container->make($listenerClass), 'failed')
+        ) {
+            $failedCallback = [$listener, 'failed'];
+        }
+
+        return new Handler($message, $callback, $listenerClass, $this->transport, $failedCallback);
     }
 }

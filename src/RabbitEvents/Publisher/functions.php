@@ -8,17 +8,24 @@ use RabbitEvents\Publisher\Publisher;
 use RabbitEvents\Publisher\ShouldPublish;
 
 if (!function_exists('publish')) {
-    function publish($event, array $payload = [])
+    function publish($event, $payload = [])
     {
         if (is_string($event)) {
             $event = new class ($event, $payload) implements ShouldPublish {
                 private $event;
                 private $payload;
 
-                public function __construct(string $event, array $payload = [])
+                public function __construct(string $event, $payload = [])
                 {
                     $this->event = $event;
-                    $this->payload = Arr::isAssoc($payload) ? [$payload] : Arr::wrap($payload);
+                    
+                    if (is_object($payload)) {
+                        $this->payload = $payload;
+                    } elseif (is_array($payload) && Arr::isAssoc($payload)) {
+                        $this->payload = [$payload];
+                    } else {
+                        $this->payload = Arr::wrap($payload);
+                    }
                 }
 
                 public function publishEventKey(): string
@@ -26,7 +33,7 @@ if (!function_exists('publish')) {
                     return $this->event;
                 }
 
-                public function toPublish(): array
+                public function toPublish(): mixed
                 {
                     return $this->payload;
                 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Listener\Message;
 
-use Illuminate\Contracts\Container\Container;
+
 use Illuminate\Support\Arr;
 use RabbitEvents\Foundation\Contracts\DelaysDelivery;
 use RabbitEvents\Foundation\Contracts\Transport;
@@ -28,22 +28,22 @@ class Handler
     protected bool $failed = false;
 
     public function __construct(
-        protected Container $app,
-        private Message $message,
+        public readonly Message $message,
         private \Closure $listener,
-        private string $listenerClass,
-        private Transport $transport
+        protected string $listenerClass,
+        private Transport $transport,
+        private mixed $failedCallback = null
     ) {
     }
 
     public function handle()
     {
-        return call_user_func($this->listener, $this->message->event(), Arr::wrap($this->payload()));
+        return ($this->listener)($this->message->event, Arr::wrap($this->payload()));
     }
 
     public function payload(): mixed
     {
-        return json_decode($this->message->getBody(), true);
+        return $this->message->payload->value();
     }
 
     /**
@@ -51,12 +51,7 @@ class Handler
      */
     public function getName(): string
     {
-        return $this->message->event() . ':' . $this->listenerClass;
-    }
-
-    public function getMessage(): Message
-    {
-        return $this->message;
+        return $this->message->event . ':' . $this->listenerClass;
     }
 
     /**
@@ -69,13 +64,8 @@ class Handler
     {
         $this->markAsFailed();
 
-        // If the handling attempt has failed, call the listener's "failed" method. This is
-        // to allow every developer to better keep monitor of their failed handling attempts.
-        if (
-            $this->listenerClass !== \Closure::class
-            && method_exists($listener = $this->app->make($this->listenerClass), 'failed')
-        ) {
-            $listener->failed($this->payload(), $exception);
+        if ($this->failedCallback && is_callable($this->failedCallback)) {
+            ($this->failedCallback)($this->payload(), $exception);
         }
     }
 
@@ -107,7 +97,7 @@ class Handler
         }
 
         $this->transport->send(
-            Message::createFromAmqpMessage($this->message->amqpMessage())
+            Message::createFromTransportMessage($this->message->transportMessage())
         );
 
         $this->released = true;

@@ -1,7 +1,21 @@
 {
   "name": "nuwber/rabbitevents",
   "description": "The Nuwber RabbitEvents package",
-  "keywords": ["laravel", "rabbitmq", "events", "broadcast", "publish", "pub", "sub"],
+  "keywords": [
+    "laravel",
+    "rabbitmq",
+    "events",
+    "microservices",
+    "messaging",
+    "amqp",
+    "pubsub",
+    "broadcast",
+    "protobuf",
+    "event-driven",
+    "queue",
+    "publish",
+    "subscribe"
+  ],
   "type": "library",
   "license": "MIT",
   "authors": [
@@ -11,13 +25,13 @@
     }
   ],
   "require": {
-    "php": "^8.1",
+    "php": "^8.2",
     "ext-json": "*",
     "enqueue/amqp-lib": "^0.10",
-    "illuminate/support": "9 - 12",
-    "illuminate/events": "9 - 12",
-    "illuminate/console": "9 - 12",
-    "illuminate/container": "9 - 12"
+    "illuminate/support": "10 - 12",
+    "illuminate/events": "10 - 12",
+    "illuminate/console": "10 - 12",
+    "illuminate/container": "10 - 12"
   },
   "replace": {
     "rabbitevents/foundation": "self.version",
@@ -25,10 +39,11 @@
     "rabbitevents/listener": "self.version"
   },
   "require-dev": {
+    "google/protobuf": "^4.33",
     "mockery/mockery": "^1.6.0",
+    "phpstan/phpstan": "^2.1",
     "phpunit/phpunit": "^10.5|^11.0",
-    "vlucas/phpdotenv": "^v5.6",
-    "phpstan/phpstan": "^2.1"
+    "vlucas/phpdotenv": "^v5.6"
   },
   "autoload": {
     "psr-4": {
@@ -45,7 +60,7 @@
   },
   "scripts": {
     "test": "phpunit -c phpunit.xml.dist",
-    "analyse": "vendor/bin/phpstan analyse"
+    "analyse": "vendor/bin/phpstan --memory-limit=256M analyse"
   },
   "extra": {
     "laravel": {
@@ -62,7 +77,8 @@
   "suggest": {
     "ext-pcntl": "Required to use all features of the worker.",
     "ext-amqp": "Using this extension makes your app faster. If you're using it you need to install enqueue/amqp-ext.",
-    "enqueue/amqp-ext": "This package is necessary if you want to use `ext-amqp`."
+    "enqueue/amqp-ext": "This package is necessary if you want to use `ext-amqp`.",
+    "rabbitevents/protobuf": "The Protobuf serializer for RabbitEvents."
   },
   "config": {
     "sort-packages": true,

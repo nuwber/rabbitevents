@@ -1,9 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
+namespace App\Http\Middleware;
+
+use Illuminate\Support\Arr;
+
 class ExampleMiddleware
 {
-    public function handle($payload)
+    public function handle(array $payload): bool
     {
-        return \Arr::get($payload, 'entity.type') === 'mytype';
+        return Arr::get($payload, 'entity.type') === 'mytype';
     }
 }

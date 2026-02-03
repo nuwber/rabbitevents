@@ -2,7 +2,7 @@
 
 namespace RabbitEvents\Tests\Listener\Message;
 
-use Illuminate\Container\Container;
+
 use Mockery as m;
 use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Message;
@@ -33,7 +33,6 @@ class HandlerTest extends TestCase
     public function testGetName(): void
     {
         $handler = new Handler(
-            m::mock(Container::class),
             $this->getMessage(),
             static fn($event, $payload) => $event,
             $this->listenerClass,
@@ -69,18 +68,16 @@ class HandlerTest extends TestCase
 
         $this->expectExceptionMessage($exception->getMessage());
 
-        $container = new Container();
-        $listener = $container->instance(FailingListener::class, new FailingListener());
-
+        $listener = new FailingListener();
         $message = $this->getMessage();
         $transport = m::spy(Transport::class);
 
-        $handler = new Handler($container, $message, static fn($event, $payload) => $event, FailingListener::class, $transport);
+        $handler = new Handler($message, static fn($event, $payload) => $event, FailingListener::class, $transport, [$listener, 'failed']);
 
         $handler->fail($exception);
 
         self::assertTrue($handler->hasFailed());
-        self::assertEquals($message->payload(), $listener->payload);
+        self::assertEquals($message->payload, $listener->payload);
 
         $transport->shouldHaveReceived('send', m::type(Message::class));
     }
@@ -99,7 +96,6 @@ class HandlerTest extends TestCase
     public function testRelease()
     {
         $handler = new Handler(
-            m::mock(Container::class),
             new Message('some.event', new Payload([])),
             static fn($event, $payload) => $event,
             $this->listenerClass,
@@ -117,7 +113,6 @@ class HandlerTest extends TestCase
     public function testGetAttempts()
     {
         $handler = new Handler(
-            m::mock(Container::class),
             $this->getMessage()->increaseAttempts(),
             static fn($event, $payload) => $event,
             $this->listenerClass,
@@ -135,7 +130,6 @@ class HandlerTest extends TestCase
     protected function getHandler(?callable $callback = null, ?string $listenerClass = null)
     {
         return new Handler(
-            m::mock(Container::class),
             $this->getMessage(),
             $callback ?: static fn($event, $payload) => $event,
             $listenerClass ?: $this->listenerClass,

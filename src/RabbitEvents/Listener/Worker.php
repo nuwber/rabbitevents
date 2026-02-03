@@ -18,10 +18,6 @@ use Throwable;
 
 class Worker
 {
-    public const EXIT_SUCCESS = 0;
-    public const EXIT_ERROR = 1;
-    public const EXIT_MEMORY_LIMIT = 12;
-
     /**
      * Indicates if the worker should exit.
      */
@@ -34,7 +30,7 @@ class Worker
     /**
      * @throws Throwable
      */
-    public function work(Processor $processor, Consumer $consumer, ListenerOptions $options): int
+    public function work(Processor $processor, Consumer $consumer, ListenerOptions $options): WorkerExitStatus
     {
         if ($supportsAsyncSignals = $this->supportsAsyncSignals()) {
             $this->listenForSignals();
@@ -65,9 +61,9 @@ class Worker
 
     /**
      * @param Consumer $consumer
-     * @return Message|void|null
+     * @return Message|null
      */
-    protected function getNextMessage(Consumer $consumer)
+    protected function getNextMessage(Consumer $consumer): ?Message
     {
         try {
             return $consumer->nextMessage(1000);
@@ -76,6 +72,8 @@ class Worker
 
             $this->stopListeningIfLostConnection($throwable);
         }
+
+        return null;
     }
 
     /**
@@ -91,7 +89,7 @@ class Worker
             $this->skipIfAlreadyExceedsMaxAttempts($message, $options);
 
             $processor->process($message, $options);
-        } catch (\Throwable $throwable) {
+        } catch (Throwable $throwable) {
             $this->exceptions->report($throwable);
         }
     }
@@ -111,7 +109,7 @@ class Worker
 
             $consumer->acknowledge($message);
 
-            $this->kill(static::EXIT_ERROR);
+            $this->kill(WorkerExitStatus::ERROR);
         });
 
         pcntl_alarm(max($options->timeout, 0));
@@ -153,15 +151,17 @@ class Worker
      *
      * @return null|int
      */
-    protected function stopIfNecessary(ListenerOptions $options)
+    protected function stopIfNecessary(ListenerOptions $options): ?WorkerExitStatus
     {
         if ($this->shouldQuit) {
-            return self::EXIT_SUCCESS;
+            return WorkerExitStatus::SUCCESS;
         }
 
         if ($this->memoryExceeded($options->memory)) {
-            return self::EXIT_MEMORY_LIMIT;
+            return WorkerExitStatus::MEMORY_LIMIT;
         }
+
+        return null; // Explicit return null
     }
 
     /**
@@ -188,12 +188,12 @@ class Worker
     /**
      * Stop listening and bail out of the script.
      *
-     * @param int $status
-     * @return int
+     * @param WorkerExitStatus $status
+     * @return WorkerExitStatus
      */
-    public function stop(int $status = 0)
+    public function stop(WorkerExitStatus $status): WorkerExitStatus
     {
-        $this->events->dispatch(new WorkerStopping($status));
+        $this->events->dispatch(new WorkerStopping($status->value));
 
         return $status;
     }
@@ -201,18 +201,20 @@ class Worker
     /**
      * Kill the process.
      *
-     * @param int $status
+     * @param int|WorkerExitStatus $status
      * @return never
      */
-    public function kill($status = 0)
+    public function kill(int|WorkerExitStatus $status = 0): void
     {
-        $this->events->dispatch(new WorkerStopping($status));
+        $exitCode = $status instanceof WorkerExitStatus ? $status->value : $status;
+
+        $this->events->dispatch(new WorkerStopping($exitCode));
 
         if (extension_loaded('posix')) {
             posix_kill(getmypid(), SIGKILL);
         }
 
-        exit($status);
+        exit($exitCode);
     }
 
     /**
@@ -225,7 +227,7 @@ class Worker
         pcntl_async_signals(true);
 
         pcntl_signal(SIGINT, function () {
-            $this->kill(self::EXIT_SUCCESS);
+            $this->kill(WorkerExitStatus::SUCCESS);
         });
 
         pcntl_signal(SIGTERM, function () {
