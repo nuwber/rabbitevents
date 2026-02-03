@@ -10,9 +10,6 @@ Let's imagine a use case: a User made a payment. You need to handle this payment
 
 Once again, the RabbitEvents library helps you publish an event and handle it in another app. It doesn't make sense to use it in the same app because Laravel's Events work better for that.
 
-> [!IMPORTANT]
-> **Attention version 7 users!** A new version 7.3.0 has been released with *ext-amqp* support (similar to version 8.2). Update for improved performance.
-
 ## Demo
 ![rabbit-events-demo](https://github.com/nuwber/rabbitevents/assets/142213350/89df6194-e49d-4d58-8286-8932f182da4b)
 
