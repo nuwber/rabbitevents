@@ -113,8 +113,8 @@ The internal payload handling has been refactored. `Message::payload()` now retu
 To get the raw value, use `$message->payload->value()`.
 
 ### Protobuf Support
-RabbitEvents now supports [Google Protobuf](https://github.com/protocolbuffers/protobuf) messages out of the box.
-Simply publish a Protobuf Message object, and it will be automatically serialized and hydrated on the listener side.
+RabbitEvents supports [Google Protobuf](https://github.com/protocolbuffers/protobuf) messages via the `rabbitevents/protobuf` extension package.
+Once installed, simply publish a Protobuf Message object, and it will be automatically serialized and hydrated on the listener side.
 The system uses the `type` AMQP header to resolve the correct class.
 
 **Example:**
@@ -215,7 +215,7 @@ New serializers are prepended to the registry, so they can override default beha
 
 ## Extensions<a name="extensions"></a>
 
-- [Protobuf Support](https://github.com/rabbitevents/protobuf) - Provides official Google Protobuf serialization support.
+- [Protobuf Support](https://github.com/rabbitevents/protobuf) - Provides official Google Protobuf serialization support. Required for using Protobuf messages.
 
 ## Speeding up RabbitEvents<a name="speeding-up-rabbitevents"></a>
 To enhance the performance of RabbitEvents, consider installing the `php-amqp` extension along with the `enqueue/amqp-ext` package. 

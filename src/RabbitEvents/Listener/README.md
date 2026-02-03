@@ -173,6 +173,7 @@ class AllItemEventsListener
 ### Handling Protobuf Messages<a name="handling-protobuf-messages"></a>
 
 If you publish a Protobuf message, the Listener will automatically receive the hydrated object instance.
+> **Note**: You must install the `rabbitevents/protobuf` package to use this feature.
 
 ```php
 <?php

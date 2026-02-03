@@ -114,7 +114,8 @@ publish($event);
 
 ### Publishing Protobuf Messages
 
-You can publish Google Protobuf messages directly. The system will automatically handle serialization and set the `content_type` to `application/x-protobuf`.
+You can publish Google Protobuf messages. The system will automatically handle serialization and set the `content_type` to `application/x-protobuf`.
+> **Note**: You must install the `rabbitevents/protobuf` package to use this feature.
 
 ```php
 use App\Messages\AccountCreated; // Generated Protobuf class
