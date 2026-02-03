@@ -67,6 +67,12 @@ jobs:
         with:
             ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Run split script
+        run: |
+            git config --global user.email "masterjus@gmail.com"
+            git config --global user.name "Eugene Kirdzei"
+            bash ./bin/split.sh ${{ github.ref_name }}
+
       - name: Run release script
         run: |
             git config --global user.email "masterjus@gmail.com"

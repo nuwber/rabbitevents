@@ -8,10 +8,15 @@
 set -e
 set -x
 
-CURRENT_BRANCH="8.x"
+if [ -z "$1" ]; then
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+else
+    CURRENT_BRANCH=$1
+fi
 
 function split()
 {
+    chmod +x ./bin/splitsh-lite
     SHA1=`./bin/splitsh-lite --prefix=$1`
     git push $2 "$SHA1:refs/heads/$CURRENT_BRANCH" -f
 }
