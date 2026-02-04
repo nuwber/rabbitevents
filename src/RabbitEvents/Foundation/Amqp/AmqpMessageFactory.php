@@ -16,7 +16,7 @@ class AmqpMessageFactory implements TransportMessageFactory
         $message = new AmqpMessage(
             $payload->serialize(),
             array_merge($properties, [
-                'content_type' => $payload->contentType(),
+                'content_type' => (string) $payload->contentType(),
                 'content_encoding' => 'UTF-8',
             ])
         );

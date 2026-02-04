@@ -6,11 +6,14 @@ namespace RabbitEvents\Listener\Console;
 
 use Illuminate\Console\Command;
 use RabbitEvents\Listener\HasListeners\ListenerDiscoverer;
+use RabbitEvents\Listener\HasListeners\RegisterListeners;
 use RabbitEvents\Listener\ListenerServiceProvider;
 use Throwable;
 
 class EventsCacheCommand extends Command
 {
+    use RegisterListeners;
+
     /**
      * The name and signature of the console command.
      *
@@ -63,7 +66,7 @@ class EventsCacheCommand extends Command
             } else {
                 $listenerClasses = ListenerDiscoverer::discover(
                     $this->laravel->path('Listeners'),
-                    $this->laravel->basePath(),
+                    $this->laravel->path(),
                     $this->laravel->getNamespace()
                 );
             }
@@ -73,6 +76,6 @@ class EventsCacheCommand extends Command
             }
         }
 
-        return $listeners;
+        return $this->deduplicateListeners($listeners);
     }
 }

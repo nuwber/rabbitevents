@@ -66,7 +66,7 @@ class ListenerServiceProvider extends BaseServiceProvider
             $listeners = array_merge_recursive($this->listen, $this->getEventsFromAttributes());
         }
 
-        return $listeners;
+        return $this->deduplicateListeners($listeners);
     }
 
     /**
@@ -109,7 +109,7 @@ class ListenerServiceProvider extends BaseServiceProvider
     {
         return HasListeners\ListenerDiscoverer::discover(
             $this->listenerDirectory(),
-            $this->app->basePath(),
+            $this->app->path(),
             $this->app->getNamespace()
         );
     }
@@ -136,4 +136,5 @@ class ListenerServiceProvider extends BaseServiceProvider
             ], 'rabbitevents-listener-provider');
         }
     }
+
 }

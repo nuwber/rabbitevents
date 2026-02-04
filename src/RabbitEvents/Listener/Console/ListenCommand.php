@@ -151,7 +151,6 @@ class ListenCommand extends Command
         }
 
         $config = $this->laravel['config'];
-        [$enabled, $defaultLoglevel, $channel] = $this->parseLoggingConfiguration();
 
         if ($config->get('rabbitevents.logging.enabled', false)) {
             $this->logWriters[] = new Log\General(
