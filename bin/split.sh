@@ -8,31 +8,22 @@
 set -e
 set -x
 
+# Determine the current branch
 if [ -z "$1" ]; then
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 else
     CURRENT_BRANCH=$1
 fi
 
-if [ "$(uname)" == "Darwin" ]; then
-    SPLITSH_LITE="./bin/splitsh-lite"
-elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-    SPLITSH_LITE="./bin/splitsh-lite-linux"
-fi
 
 function split()
 {
-    chmod +x $SPLITSH_LITE
-    echo "Running splitsh: $SPLITSH_LITE --prefix=$1"
-    
-    # Debug: Check if binary runs
-    $SPLITSH_LITE --help > /dev/null || echo "WARNING: splitsh-lite failed to run --help"
-
-    SHA1=`$SPLITSH_LITE --prefix=$1`
+    echo "Splitting $1..."
+    SHA1=`git subtree split --prefix=$1`
     echo "Generated SHA1: $SHA1"
 
     if [ -z "$SHA1" ]; then
-        echo "Error: splitsh-lite returned empty SHA1 for prefix $1"
+        echo "Error: git subtree returned empty SHA1 for prefix $1"
         exit 1
     fi
 
