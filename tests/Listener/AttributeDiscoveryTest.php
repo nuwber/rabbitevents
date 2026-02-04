@@ -13,6 +13,7 @@ class AttributeDiscoveryTest extends TestCase
         $app = \Mockery::mock('Illuminate\Foundation\Application');
         $app->shouldReceive('bound')->with('path.bootstrap')->andReturn(false);
         $app->shouldReceive('path')->with('Listeners')->andReturn(__DIR__ . '/Fixtures/Listeners');
+        $app->shouldReceive('path')->withNoArgs()->andReturn(__DIR__ . '/Fixtures');
         $app->shouldReceive('basePath')->andReturn(__DIR__ . '/Fixtures');
         $app->shouldReceive('getNamespace')->andReturn('RabbitEvents\Tests\Listener\Fixtures\\');
 
