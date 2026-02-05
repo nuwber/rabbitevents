@@ -62,7 +62,7 @@ class EventsCacheCommand extends Command
 
         foreach ($this->laravel->getProviders(ListenerServiceProvider::class) as $provider) {
             if (method_exists($provider, 'discoverEvents')) {
-                 $listenerClasses = $provider->discoverEvents();
+                $listenerClasses = $provider->discoverEvents();
             } else {
                 $listenerClasses = ListenerDiscoverer::discover(
                     $this->laravel->path('Listeners'),
@@ -70,12 +70,12 @@ class EventsCacheCommand extends Command
                     $this->laravel->getNamespace()
                 );
             }
-            
+
             foreach ($listenerClasses as $class) {
                 $listeners = array_merge_recursive($listeners, ListenerDiscoverer::eventsFromClass($class));
             }
         }
 
-        return $this->deduplicateListeners($listeners);
+        return $listeners;
     }
 }

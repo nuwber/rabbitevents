@@ -17,9 +17,12 @@ use RabbitEvents\Listener\ListenerOptions;
 use RabbitEvents\Listener\Message\Processor;
 use RabbitEvents\Listener\Worker;
 use RabbitEvents\Listener\WorkerExitStatus;
+use RabbitEvents\Tests\MocksCommonObjects;
 
 class WorkerTest extends TestCase
 {
+    use MocksCommonObjects;
+
     public $events;
     public $exceptionHandler;
 
@@ -30,7 +33,7 @@ class WorkerTest extends TestCase
     {
         $this->events = m::spy(Dispatcher::class);
         $this->exceptionHandler = m::spy(ExceptionHandler::class);
-        $this->options = new ListenerOptions('test-app', 'rabbitmq', ['rabbit.event']);
+        $this->options = $this->createListenerOptions();
 
         Container::setInstance($container = new Container);
 
@@ -52,7 +55,7 @@ class WorkerTest extends TestCase
     {
         $worker = new Worker($this->exceptionHandler, $this->events);
         $worker->shouldQuit = true; //For one tick only
-        
+
         $processor = m::spy(Processor::class);
         $message = m::mock(Message::class);
         $consumer = m::mock(Consumer::class)->makePartial();
@@ -71,12 +74,7 @@ class WorkerTest extends TestCase
     public function testStopIfMemoryLimitExceeded(): void
     {
         $worker = new Worker($this->exceptionHandler, $this->events);
-        $options = new ListenerOptions(
-            'test-app',
-            'rabbitmq',
-            ['rabbit.event'],
-            memory: 0
-        );
+        $options = $this->createListenerOptions(['memory' => 0]);
 
         $consumer = m::mock(Consumer::class);
         $consumer->shouldReceive('nextMessage')
@@ -151,12 +149,7 @@ class WorkerTest extends TestCase
         $worker = new Worker($this->exceptionHandler, $this->events);
         $worker->shouldQuit = true; //one tick
 
-        $options = new ListenerOptions(
-            'test-app',
-            'rabbitmq',
-            ['rabbit.event'],
-            maxTries: 2
-        );
+        $options = $this->createListenerOptions(['maxTries' => 2]);
 
         $worker->work($processor, $consumer, $options);
 
@@ -181,12 +174,7 @@ class WorkerTest extends TestCase
                 return true;
             });
 
-        $options = new ListenerOptions(
-            'test-app',
-            'rabbitmq',
-            ['rabbit.event'],
-            timeout: 1
-        );
+        $options = $this->createListenerOptions(['timeout' => 1]);
 
         $worker = new TestWorker($this->exceptionHandler, $this->events);
         $worker->shouldQuit = true;
@@ -209,12 +197,7 @@ class WorkerTest extends TestCase
         $processor->shouldReceive('process')
             ->andThrow(new \RuntimeException('Stopped unexpectedly'));
 
-        $options = new ListenerOptions(
-            'test-app',
-            'rabbitmq',
-            ['rabbit.event'],
-            timeout: 1
-        );
+        $options = $this->createListenerOptions(['timeout' => 1]);
 
         $worker = new TestWorker($this->exceptionHandler, $this->events);
         $worker->shouldQuit = true;

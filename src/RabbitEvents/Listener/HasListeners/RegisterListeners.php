@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Listener\HasListeners;
 
-use RabbitEvents\Listener\Attributes\Listener;
-use ReflectionClass;
-use ReflectionMethod;
-
 trait RegisterListeners
 {
     /**
@@ -43,13 +39,24 @@ trait RegisterListeners
         $deduplicated = [];
 
         foreach ($listeners as $event => $eventListeners) {
-            $seen = [];
+            $seenKeys = []; // Map of normalized key => index in deduplicated array
+
             foreach ($eventListeners as $listener) {
                 $key = $this->normalizeListener($listener);
 
-                if (!in_array($key, $seen)) {
-                    $seen[] = $key;
+                if (!isset($seenKeys[$key])) {
+                    // First time seeing this listener, add it
+                    $seenKeys[$key] = count($deduplicated[$event] ?? []);
                     $deduplicated[$event][] = $listener;
+                } else {
+                    // Duplicate found - prefer array format over string format
+                    $existingIndex = $seenKeys[$key];
+                    $existingListener = $deduplicated[$event][$existingIndex];
+
+                    if (is_array($listener) && is_string($existingListener)) {
+                        // Replace string with array format
+                        $deduplicated[$event][$existingIndex] = $listener;
+                    }
                 }
             }
         }

@@ -28,13 +28,72 @@ class Dispatcher extends BaseDispatcher
      */
     public function listen($events, $listener = null): void
     {
-        foreach ((array)$events as $event) {
+        foreach ((array) $events as $event) {
             if (str_contains($event, '*')) {
                 $this->setupWildcardListen($event, $listener);
             } else {
-                $this->listeners[$event][] = $listener;
+                // Check for duplicates before adding
+                if (!$this->isDuplicateListener($event, $listener)) {
+                    $this->listeners[$event][] = $listener;
+                }
             }
         }
+    }
+
+    /**
+     * Check if a listener is already registered for an event.
+     *
+     * @param string $event
+     * @param mixed $listener
+     * @return bool
+     */
+    protected function isDuplicateListener(string $event, $listener): bool
+    {
+        if (!isset($this->listeners[$event])) {
+            return false;
+        }
+
+        $normalizedListener = $this->normalizeListenerForComparison($listener);
+
+        foreach ($this->listeners[$event] as $existingListener) {
+            if ($normalizedListener === $this->normalizeListenerForComparison($existingListener)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Normalize a listener to a comparable format.
+     *
+     * @param mixed $listener
+     * @return string
+     */
+    protected function normalizeListenerForComparison($listener): string
+    {
+        if (is_array($listener)) {
+            return $listener[0] . '@' . ($listener[1] ?? 'handle');
+        }
+
+        if (is_string($listener)) {
+            // Strip '::class' suffix if present 
+            if (str_contains($listener, '::class')) {
+                $listener = str_replace('::class', '', $listener);
+            }
+
+            if (str_contains($listener, '@')) {
+                return $listener;
+            }
+
+            return $listener . '@handle';
+        }
+
+        if ($listener instanceof Closure) {
+            return spl_object_hash($listener);
+        }
+
+        return serialize($listener);
     }
 
     /**
@@ -95,7 +154,7 @@ class Dispatcher extends BaseDispatcher
         }
 
         if (isset($instance->middleware)) {
-            foreach ((array)$instance->middleware as $middleware) {
+            foreach ((array) $instance->middleware as $middleware) {
                 $result[] = $this->createMiddlewareCallable($middleware);
             }
         }
