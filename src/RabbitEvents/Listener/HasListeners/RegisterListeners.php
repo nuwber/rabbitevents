@@ -39,22 +39,19 @@ trait RegisterListeners
         $deduplicated = [];
 
         foreach ($listeners as $event => $eventListeners) {
-            $seenKeys = []; // Map of normalized key => index in deduplicated array
+            $seenKeys = [];
 
             foreach ($eventListeners as $listener) {
                 $key = $this->normalizeListener($listener);
 
                 if (!isset($seenKeys[$key])) {
-                    // First time seeing this listener, add it
                     $seenKeys[$key] = count($deduplicated[$event] ?? []);
                     $deduplicated[$event][] = $listener;
                 } else {
-                    // Duplicate found - prefer array format over string format
                     $existingIndex = $seenKeys[$key];
                     $existingListener = $deduplicated[$event][$existingIndex];
 
                     if (is_array($listener) && is_string($existingListener)) {
-                        // Replace string with array format
                         $deduplicated[$event][$existingIndex] = $listener;
                     }
                 }
