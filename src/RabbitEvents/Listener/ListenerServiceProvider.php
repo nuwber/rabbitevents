@@ -76,8 +76,8 @@ class ListenerServiceProvider extends BaseServiceProvider
      */
     protected function eventsAreCached(): bool
     {
-        return $this->app->bound('path.bootstrap') && 
-               file_exists($this->app->bootstrapPath('cache/rabbitevents.php'));
+        return $this->app->bound('path.bootstrap') &&
+            file_exists($this->app->bootstrapPath('cache/rabbitevents.php'));
     }
 
     /**
