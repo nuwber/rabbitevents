@@ -28,10 +28,10 @@
     "php": "^8.2",
     "ext-json": "*",
     "enqueue/amqp-lib": "^0.10",
-    "illuminate/support": "10 - 12",
-    "illuminate/events": "10 - 12",
-    "illuminate/console": "10 - 12",
-    "illuminate/container": "10 - 12"
+    "illuminate/support": "10 - 13",
+    "illuminate/events": "10 - 13",
+    "illuminate/console": "10 - 13",
+    "illuminate/container": "10 - 13"
   },
   "replace": {
     "rabbitevents/foundation": "self.version",
@@ -42,7 +42,7 @@
     "google/protobuf": "^4.33",
     "mockery/mockery": "^1.6.0",
     "phpstan/phpstan": "^2.1",
-    "phpunit/phpunit": "^10.5|^11.0",
+    "phpunit/phpunit": "^10.5|^11.0|^12.0",
     "vlucas/phpdotenv": "^v5.6"
   },
   "autoload": {
