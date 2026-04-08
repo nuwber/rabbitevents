@@ -28,7 +28,7 @@
   "require": {
     "php": "^8.2",
     "ext-json": "*",
-    "illuminate/events": "10 - 12",
+    "illuminate/events": "10 - 13",
     "rabbitevents/foundation": "self.version"
   },
   "autoload": {

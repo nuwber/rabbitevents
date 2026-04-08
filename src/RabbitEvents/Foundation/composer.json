@@ -29,9 +29,9 @@
     "php": "^8.2",
     "ext-bcmath": "*",
     "ext-json": "*",
-    "illuminate/support": "10 - 12",
-    "illuminate/console": "10 - 12",
-    "illuminate/container": "10 - 12",
+    "illuminate/support": "10 - 13",
+    "illuminate/console": "10 - 13",
+    "illuminate/container": "10 - 13",
     "enqueue/amqp-lib": "^0.10"
   },
   "autoload": {
