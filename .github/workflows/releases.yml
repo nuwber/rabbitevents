@@ -14,6 +14,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     name: Release ${{ inputs.version }}
 
     outputs:
@@ -57,7 +60,7 @@ jobs:
 
       - name: Fail if branch and release tag do not match
         if: ${{ steps.guard.outputs.VERSION_MISMATCH == 'true' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
               core.setFailed('Workflow failed. Release version does not match with selected target branch. Did you select the correct branch?')
@@ -81,7 +84,7 @@ jobs:
 
       - name: Generate release notes
         id: generated-notes
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const { data } = await github.rest.repos.generateReleaseNotes({
