@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener\Console;
 
 use Illuminate\Console\Command;
+use RabbitEvents\Foundation\Connection\ConnectionManager;
 use RabbitEvents\Foundation\Context;
 use RabbitEvents\Listener\Support\Releaser;
 use RabbitEvents\Listener\Dispatcher;
@@ -34,6 +35,7 @@ class ListenCommand extends Command
     protected $signature = 'rabbitevents:listen
                             {events? : The name of the events to listen to}
                             {--service= : The name of current service. Necessary to identify listeners}
+                            {--connection= : The name of the connection to listen on}
                             {--queue= : The queue to listen on}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a massage could be handled}
@@ -65,6 +67,10 @@ class ListenCommand extends Command
 
         $options = $this->gatherOptions();
 
+        if ($this->laravel->bound(ConnectionManager::class)) {
+            $context = $this->laravel[ConnectionManager::class]->context($options->connectionName);
+        }
+
         $queue = $context->makeQueue(
             $this->option('queue') ?: QueueName::resolve($options->service, $options->events),
             $options->events,
@@ -92,7 +98,7 @@ class ListenCommand extends Command
     {
         return new ListenerOptions(
             $this->option('service') ?: $this->laravel['config']->get("app.name"),
-            $this->laravel['config']['rabbitevents.default'],
+            $this->option('connection') ?: $this->laravel['config']['rabbitevents.default'],
             $this->gatherEvents(),
             (int)$this->option('memory'),
             (int)$this->option('tries'),
