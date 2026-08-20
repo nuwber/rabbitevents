@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener\Console;
 
 use Illuminate\Console\Command;
+use RabbitEvents\Foundation\Connection\ConnectionManager;
 use RabbitEvents\Foundation\Context;
 use RabbitEvents\Listener\Support\Releaser;
 use RabbitEvents\Listener\Dispatcher;
@@ -34,12 +35,13 @@ class ListenCommand extends Command
     protected $signature = 'rabbitevents:listen
                             {events? : The name of the events to listen to}
                             {--service= : The name of current service. Necessary to identify listeners}
+                            {--connection= : The name of the connection to listen on}
                             {--queue= : The queue to listen on}
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a massage could be handled}
                             {--tries=1 : Number of times to attempt to handle a Message before logging it failed}
                             {--sleep=5 : Sleep time in seconds before handling failed message next time}
-                            {--quiet: No console output}';
+                            {--quiet : No console output}';
 
     /**
      * The console command description.
@@ -54,7 +56,7 @@ class ListenCommand extends Command
      * Execute the console command.
      * @param Context $context
      * @param Worker $worker
-     * @return WorkerExitStatus
+     * @return WorkerExitStatus|int
      */
     public function handle(Context $context, Worker $worker)
     {
@@ -64,6 +66,41 @@ class ListenCommand extends Command
         $this->listenForApplicationEvents();
 
         $options = $this->gatherOptions();
+
+        if (empty($options->events)) {
+            $this->error('No RabbitEvents listeners registered in the application. Process aborted.');
+
+            return WorkerExitStatus::ERROR;
+        }
+
+        $registeredEvents = $this->laravel[Dispatcher::class]->getEvents();
+        $missingEvents = [];
+
+        foreach ($options->events as $event) {
+            if (!$this->hasListenerForEvent($event, $registeredEvents)) {
+                $missingEvents[] = $event;
+            }
+        }
+
+        if (!empty($missingEvents)) {
+            $this->warn(sprintf(
+                'No listeners registered for event(s): %s.',
+                implode(', ', $missingEvents)
+            ));
+
+            if (count($missingEvents) === count($options->events)) {
+                $this->error('None of the specified events have registered listeners. Process aborted.');
+                if (!empty($registeredEvents)) {
+                    $this->line('Available registered events: ' . implode(', ', $registeredEvents));
+                }
+
+                return WorkerExitStatus::ERROR;
+            }
+        }
+
+        if ($this->laravel->bound(ConnectionManager::class)) {
+            $context = $this->laravel[ConnectionManager::class]->context($options->connectionName);
+        }
 
         $queue = $context->makeQueue(
             $this->option('queue') ?: QueueName::resolve($options->service, $options->events),
@@ -92,7 +129,7 @@ class ListenCommand extends Command
     {
         return new ListenerOptions(
             $this->option('service') ?: $this->laravel['config']->get("app.name"),
-            $this->laravel['config']['rabbitevents.default'],
+            $this->option('connection') ?: $this->laravel['config']['rabbitevents.default'],
             $this->gatherEvents(),
             (int)$this->option('memory'),
             (int)$this->option('tries'),
@@ -159,6 +196,48 @@ class ListenCommand extends Command
                 $config->get('rabbitevents.logging.channel')
             );
         }
+    }
+
+    /**
+     * Determine if a listener is registered for the given event or matching wildcard.
+     *
+     * @param string $event
+     * @param array<string> $registeredEvents
+     * @return bool
+     */
+    protected function hasListenerForEvent(string $event, array $registeredEvents): bool
+    {
+        if (in_array($event, $registeredEvents, true)) {
+            return true;
+        }
+
+        foreach ($registeredEvents as $registeredEvent) {
+            if ($registeredEvent === '#' || $event === '#') {
+                return true;
+            }
+
+            // Check if registered wildcard matches the passed event
+            $regex = str_replace(
+                ['\#', '\*'],
+                ['.*', '[^.]+'],
+                preg_quote($registeredEvent, '/')
+            );
+            if (preg_match('/^' . $regex . '$/', $event)) {
+                return true;
+            }
+
+            // Check if passed wildcard matches the registered event
+            $regex = str_replace(
+                ['\#', '\*'],
+                ['.*', '[^.]+'],
+                preg_quote($event, '/')
+            );
+            if (preg_match('/^' . $regex . '$/', $registeredEvent)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function checkExtLoaded(): void

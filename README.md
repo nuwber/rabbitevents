@@ -21,7 +21,7 @@ Once again, the RabbitEvents library helps you publish an event and handle it in
 1. [Listener component](#listener)
 1. [Listeners & Payloads](#listeners-payloads)
 1. [Custom Serializers](#custom-serializers)
-1. [Extensions](#extensions)
+1. [Extensions & Ecosystem](#extensions)
 1. [Examples](./examples)
 1. [Speeding up RabbitEvents](#speeding-up-rabbitevents)
 1. [Testing](#testing)
@@ -213,9 +213,11 @@ $registry->register(new MySerializer());
 
 New serializers are prepended to the registry, so they can override default behavior if they claim the payload.
 
-## Extensions<a name="extensions"></a>
+## Extensions & Ecosystem<a name="extensions"></a>
 
-- [Protobuf Support](https://github.com/rabbitevents/protobuf) - Provides official Google Protobuf serialization support. Required for using Protobuf messages.
+- [Redis Streams Transport](https://github.com/rabbitevents/redis-transport) - Redis Streams transport driver for RabbitEvents.
+- [Symfony Bundle](https://github.com/rabbitevents/symfony-bundle) - Official Symfony integration bundle for RabbitEvents.
+- [Protobuf Support](https://github.com/rabbitevents/protobuf) - Official Google Protobuf serialization support for RabbitEvents. Required for using Protobuf messages.
 
 ## Speeding up RabbitEvents<a name="speeding-up-rabbitevents"></a>
 To enhance the performance of RabbitEvents, consider installing the `php-amqp` extension along with the `enqueue/amqp-ext` package. 

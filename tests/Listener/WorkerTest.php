@@ -5,8 +5,6 @@ namespace RabbitEvents\Tests\Listener;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Mockery as m;
-use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Before;
 use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Exceptions\ConnectionLostException;
 use RabbitEvents\Foundation\Message;
@@ -28,7 +26,6 @@ class WorkerTest extends TestCase
 
     private $options;
 
-    #[Before]
     protected function setUp(): void
     {
         $this->events = m::spy(Dispatcher::class);
@@ -40,7 +37,6 @@ class WorkerTest extends TestCase
         $container->instance(ExceptionHandler::class, $this->exceptionHandler);
     }
 
-    #[After]
     protected function tearDown(): void
     {
         Container::setInstance(null);
