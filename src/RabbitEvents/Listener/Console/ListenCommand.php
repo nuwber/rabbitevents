@@ -40,8 +40,7 @@ class ListenCommand extends Command
                             {--memory=128 : The memory limit in megabytes}
                             {--timeout=60 : The number of seconds a massage could be handled}
                             {--tries=1 : Number of times to attempt to handle a Message before logging it failed}
-                            {--sleep=5 : Sleep time in seconds before handling failed message next time}
-                            {--quiet : No console output}';
+                            {--sleep=5 : Sleep time in seconds before handling failed message next time}';
 
     /**
      * The console command description.
@@ -183,7 +182,7 @@ class ListenCommand extends Command
      */
     protected function registerLogWriters(): void
     {
-        if (!$this->option('quiet')) {
+        if (!$this->output->isQuiet()) {
             $this->logWriters[] = new Log\Output($this->laravel, $this->output);
         }
 
