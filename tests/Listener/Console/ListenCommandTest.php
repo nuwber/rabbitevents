@@ -45,7 +45,7 @@ class ListenCommandTest extends TestCase
 
         $result = $command->handle($context, $worker);
 
-        self::assertEquals(WorkerExitStatus::ERROR, $result);
+        self::assertSame(WorkerExitStatus::ERROR->value, $result);
         self::assertStringContainsString('No RabbitEvents listeners registered in the application', $bufferedOutput->fetch());
     }
 
@@ -72,7 +72,7 @@ class ListenCommandTest extends TestCase
 
         $result = $command->handle($context, $worker);
 
-        self::assertEquals(WorkerExitStatus::ERROR, $result);
+        self::assertSame(WorkerExitStatus::ERROR->value, $result);
         $outputContent = $bufferedOutput->fetch();
         self::assertStringContainsString('No listeners registered for event(s): non.existent.event', $outputContent);
         self::assertStringContainsString('Available registered events: user.registered', $outputContent);
@@ -111,7 +111,7 @@ class ListenCommandTest extends TestCase
 
         $result = $command->handle($context, $worker);
 
-        self::assertEquals(WorkerExitStatus::SUCCESS, $result);
+        self::assertSame(WorkerExitStatus::SUCCESS->value, $result);
         $outputContent = $bufferedOutput->fetch();
         self::assertStringContainsString('No listeners registered for event(s): missing.event', $outputContent);
     }
@@ -149,7 +149,7 @@ class ListenCommandTest extends TestCase
 
         $result = $command->handle($context, $worker);
 
-        self::assertEquals(WorkerExitStatus::SUCCESS, $result);
+        self::assertSame(WorkerExitStatus::SUCCESS->value, $result);
         self::assertStringNotContainsString('No listeners registered', $bufferedOutput->fetch());
     }
 

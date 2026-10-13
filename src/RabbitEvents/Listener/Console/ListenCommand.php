@@ -55,9 +55,9 @@ class ListenCommand extends Command
      * Execute the console command.
      * @param Context $context
      * @param Worker $worker
-     * @return WorkerExitStatus|int
+     * @return int
      */
-    public function handle(Context $context, Worker $worker)
+    public function handle(Context $context, Worker $worker): int
     {
         $this->checkExtLoaded();
 
@@ -69,7 +69,7 @@ class ListenCommand extends Command
         if (empty($options->events)) {
             $this->error('No RabbitEvents listeners registered in the application. Process aborted.');
 
-            return WorkerExitStatus::ERROR;
+            return WorkerExitStatus::ERROR->value;
         }
 
         $registeredEvents = $this->laravel[Dispatcher::class]->getEvents();
@@ -93,7 +93,7 @@ class ListenCommand extends Command
                     $this->line('Available registered events: ' . implode(', ', $registeredEvents));
                 }
 
-                return WorkerExitStatus::ERROR;
+                return WorkerExitStatus::ERROR->value;
             }
         }
 
@@ -116,7 +116,7 @@ class ListenCommand extends Command
             new Processor($handlerFactory, $this->laravel['events'], $this->laravel[Dispatcher::class]),
             $context->makeConsumer($queue),
             $options
-        );
+        )->value;
     }
 
     /**
