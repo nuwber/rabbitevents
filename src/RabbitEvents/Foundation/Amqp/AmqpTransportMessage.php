@@ -53,6 +53,36 @@ class AmqpTransportMessage implements TransportMessage
         $this->message->setTimestamp($timestamp);
     }
 
+    public function getMessageId(): ?string
+    {
+        return $this->message->getMessageId();
+    }
+
+    public function setMessageId(?string $messageId): void
+    {
+        $this->message->setMessageId($messageId);
+    }
+
+    public function getHeader(string $name, mixed $default = null): mixed
+    {
+        return $this->message->getHeader($name, $default);
+    }
+
+    public function getHeaders(): array
+    {
+        return $this->message->getHeaders();
+    }
+
+    public function setHeader(string $name, mixed $value): void
+    {
+        $this->message->setHeader($name, $value);
+    }
+
+    public function setHeaders(array $headers): void
+    {
+        $this->message->setHeaders($headers);
+    }
+
     public function __call(string $method, array $args)
     {
         return $this->message->$method(...$args);

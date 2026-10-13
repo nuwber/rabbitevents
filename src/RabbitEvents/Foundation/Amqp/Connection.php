@@ -12,9 +12,11 @@ use Interop\Amqp\AmqpContext;
 use Interop\Queue\Context;
 use Interop\Amqp\Impl\AmqpBind;
 use RabbitEvents\Foundation\Contracts\Connection as ConnectionContract;
+use RabbitEvents\Foundation\Contracts\Deduplicator;
 use RabbitEvents\Foundation\Contracts\Destination;
 use RabbitEvents\Foundation\Contracts\Producer;
 use RabbitEvents\Foundation\Contracts\QueueConsumer;
+use RabbitEvents\Listener\Deduplication\InMemoryDeduplicator;
 
 class Connection implements ConnectionContract
 {
@@ -34,6 +36,8 @@ class Connection implements ConnectionContract
      * @var Context
      */
     private $context;
+
+    private ?Deduplicator $deduplicationStrategy = null;
 
     public function __construct(array $config)
     {
@@ -116,6 +120,29 @@ class Connection implements ConnectionContract
         }
 
         return $this->delayStrategy;
+    }
+
+    public function setDeduplicationStrategy(Deduplicator $strategy): self
+    {
+        $this->deduplicationStrategy = $strategy;
+
+        return $this;
+    }
+
+    public function getDeduplicationStrategy(): Deduplicator
+    {
+        if (!$this->deduplicationStrategy) {
+            $class = $this->getConfig('deduplication_strategy', InMemoryDeduplicator::class);
+            $cacheSize = (int) $this->getConfig('deduplication_cache_size', 10000);
+
+            if ($class === InMemoryDeduplicator::class) {
+                $this->deduplicationStrategy = new InMemoryDeduplicator($cacheSize);
+            } else {
+                $this->deduplicationStrategy = new $class();
+            }
+        }
+
+        return $this->deduplicationStrategy;
     }
 
     public function getConfig($key = null, $default = null): mixed

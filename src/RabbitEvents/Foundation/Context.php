@@ -34,8 +34,10 @@ class Context
         );
     }
 
-    public function makeQueue(string $queueName, array $events, Destination $topic): Destination
+    public function makeQueue(string $queueName, array $events = [], ?Destination $topic = null): Destination
     {
+        $topic = $topic ?: $this->makeTopic();
+
         return $this->connection->makeQueue($queueName, $events, $topic);
     }
 }

@@ -63,6 +63,33 @@ class Message
         return $this->transportMessage()->$method(...$args);
     }
 
+    public function id(): ?string
+    {
+        return $this->transportMessage()->getMessageId();
+    }
+
+    public function header(string $name, mixed $default = null): mixed
+    {
+        $transport = $this->transportMessage();
+        if (method_exists($transport, 'getHeader')) {
+            return $transport->getHeader($name, $default);
+        }
+
+        $headers = $this->headers();
+        return $headers[$name] ?? $default;
+    }
+
+    public function headers(): array
+    {
+        $transport = $this->transportMessage();
+        if (method_exists($transport, 'getHeaders')) {
+            return $transport->getHeaders();
+        }
+
+        $properties = $transport->getProperties();
+        return is_array($properties['headers'] ?? null) ? $properties['headers'] : [];
+    }
+
     public function attempts(): int
     {
         return $this->getProperty('x-attempts', 0);

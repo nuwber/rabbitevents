@@ -89,6 +89,50 @@ class MiddlewareTest extends TestCase
         self::assertEquals(['event', $payload], $this->makeHandler($message, $this->makeCallback(ListenerStubForMiddleware::class, true))->handle());
     }
 
+    public function testExecutePipelineMiddlewareWithNextClosure(): void
+    {
+        $pipelineMiddleware = new class {
+            public bool $beforeCalled = false;
+            public bool $afterCalled = false;
+
+            public function handle($payload, \Closure $next)
+            {
+                $this->beforeCalled = true;
+                $result = $next($payload);
+                $this->afterCalled = true;
+                return "wrapped:{$result}";
+            }
+        };
+
+        $listener = new class ($pipelineMiddleware) {
+            public array $middleware = [];
+            public bool $handled = false;
+
+            public function __construct($middleware)
+            {
+                $this->middleware = [$middleware];
+            }
+
+            public function handle($payload): string
+            {
+                $this->handled = true;
+                return "result:{$payload}";
+            }
+        };
+
+        $dispatcher = new Dispatcher();
+        $callback = $dispatcher->makeListener([$listener, 'handle']);
+
+        $message = $this->makeMessage('data');
+        $handler = $this->makeHandler($message, $callback);
+
+        $result = $handler->handle();
+
+        self::assertEquals('wrapped:result:data', $result);
+        self::assertTrue($pipelineMiddleware->beforeCalled);
+        self::assertTrue($pipelineMiddleware->afterCalled);
+    }
+
     private function makeCallback($listenerClass, $wildcard = false): callable
     {
         return (new Dispatcher())->makeListener($listenerClass, $wildcard);

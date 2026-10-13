@@ -43,4 +43,12 @@ interface TransportMessage
     public function getTimestamp(): ?int;
 
     public function setTimestamp(int $timestamp): void;
+
+    public function getMessageId(): ?string;
+
+    public function setMessageId(?string $messageId): void;
+
+    public function getHeader(string $name, mixed $default = null): mixed;
+
+    public function getHeaders(): array;
 }

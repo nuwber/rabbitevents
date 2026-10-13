@@ -90,14 +90,39 @@ Sometimes, it is easier to use the helper function `publish` with an event key a
 ```php
 <?php
 
-publish(
+$messageId = publish(
     'payment.succeeded',
     [
         'user' => $request->user()->toArray(),
         'payment' => $payment->toArray(),
     ]
 );
+// $messageId is a unique RFC 4122 v4 UUID string (e.g. "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d")
 ```
+
+The `publish` helper returns the message ID (`?string`), which you can use for logging, distributed tracing, or auditing.
+
+### Transactional Publishing (`afterCommit`)
+
+If an event is published within a database transaction, you usually want to guarantee that the message is sent only after the database transaction commits successfully:
+
+```php
+class PaymentSucceededRabbitEvent implements ShouldPublish
+{
+    use Publishable;
+
+    public bool $afterCommit = true;
+
+    // ...
+}
+```
+
+When `$afterCommit = true`, RabbitEvents automatically delays publishing until the active database transaction commits. If the transaction rolls back, the event is not published.
+
+### Distributed Tracing & Context Propagation
+
+RabbitEvents automatically captures and propagates Laravel's `Context` data (Laravel 11+) via AMQP headers (`_laravel_context`). Any contextual attributes (such as trace IDs, request IDs, or authenticated user info) set before publishing will be hydrated automatically on the listener side.
+
 
 ### Publish an Event object with the `publish` function
 

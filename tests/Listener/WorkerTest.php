@@ -201,6 +201,24 @@ class WorkerTest extends TestCase
 
         self::assertTrue($worker->resetTimeoutHandler);
     }
+
+    public function testRestartWorker(): void
+    {
+        $cache = m::mock(\Illuminate\Contracts\Cache\Repository::class);
+        $cache->shouldReceive('get')->with('rabbitevents:restart')->andReturn(100, 200);
+
+        $worker = new Worker($this->exceptionHandler, $this->events, $cache);
+
+        $processor = m::spy(Processor::class);
+        $consumer = m::mock(Consumer::class)->makePartial();
+        $consumer->shouldReceive('nextMessage')->andReturn(null);
+
+        // First loop: resetRestartTimestamp fetches 100.
+        // In stopIfNecessary, getTimestampOfLastQueueRestart returns 200 != 100, so it stops with SUCCESS.
+        $status = $worker->work($processor, $consumer, $this->options);
+
+        self::assertEquals(WorkerExitStatus::SUCCESS, $status);
+    }
 }
 
 

@@ -43,6 +43,8 @@ class MessageFactoryTest extends TestCase
         self::assertEquals('some.event', $message->event);
         self::assertInstanceOf(Payload::class, $message->payload);
         self::assertEquals(Carbon::now()->getTimestamp(), $message->getTimestamp());
+        self::assertNotNull($message->id());
+        self::assertMatchesRegularExpression('/^[0-9a-f-]{36}$/', $message->id());
     }
 
     public function testMakeFromPayloadObject(): void
@@ -65,6 +67,7 @@ class MessageFactoryTest extends TestCase
 
         self::assertSame($payload, $message->payload);
         self::assertEquals(Carbon::now()->getTimestamp(), $message->getTimestamp());
+        self::assertNotNull($message->id());
     }
 }
 

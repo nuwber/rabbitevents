@@ -177,7 +177,74 @@ class ProcessorTest extends TestCase
             ->andReturn($listeners);
     }
 
+    public function testProcessSkipsDuplicateMessage()
+    {
+        $deduplicator = m::mock(\RabbitEvents\Foundation\Contracts\Deduplicator::class);
+        $deduplicator->shouldReceive('isDuplicate')
+            ->with($this->message->transportMessage())
+            ->once()
+            ->andReturn(true);
+        $deduplicator->shouldNotReceive('markHandled');
 
+        $processor = new Processor(
+            $handlerFactory = new FakeHandlerFactory(),
+            $this->events,
+            $this->dispatcher,
+            $deduplicator
+        );
+
+        $processor->process($this->message, $this->options());
+
+        self::assertCount(0, $handlerFactory->handlers);
+        $this->events->shouldNotHaveReceived('dispatch');
+    }
+
+    public function testListenerHandledEventContainsDuration()
+    {
+        $this->mockListeners([
+            static fn() => true,
+        ]);
+
+        $processor = new Processor(new FakeHandlerFactory(), $this->events, $this->dispatcher);
+        $processor->process($this->message, $this->options());
+
+        $this->events->shouldHaveReceived()->dispatch(m::on(function ($event) {
+            return $event instanceof ListenerHandled && is_float($event->duration) && $event->duration >= 0;
+        }))->once();
+    }
+
+    public function testContextHydrationAndFlush(): void
+    {
+        if (!class_exists(\Illuminate\Support\Facades\Context::class)) {
+            self::markTestSkipped('Context facade not available');
+        }
+
+        $app = new \Illuminate\Container\Container();
+        $contextMock = m::mock();
+        $contextMock->shouldReceive('hydrate')->with(['trace_id' => '12345'])->once();
+        $contextMock->shouldReceive('flush')->once();
+        $app->instance(\Illuminate\Log\Context\Repository::class, $contextMock);
+        \Illuminate\Support\Facades\Facade::setFacadeApplication($app);
+
+        try {
+            $transportMessage = m::mock(\RabbitEvents\Foundation\Contracts\TransportMessage::class);
+            $transportMessage->shouldReceive('getHeader')->with('_laravel_context', null)->andReturn([
+                'trace_id' => '12345',
+            ]);
+            $transportMessage->shouldReceive('getMessageId')->andReturn('msg-ctx');
+
+            $message = (new Message('test.event', new Payload([])))->setTransportMessage($transportMessage);
+
+            $this->mockListeners([
+                static fn() => true,
+            ]);
+
+            $processor = new Processor(new FakeHandlerFactory(), $this->events, $this->dispatcher);
+            $processor->process($message, $this->options());
+        } finally {
+            \Illuminate\Support\Facades\Facade::setFacadeApplication(null);
+        }
+    }
 }
 
 class FakeHandlerFactory extends HandlerFactory

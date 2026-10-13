@@ -7,6 +7,7 @@ namespace RabbitEvents\Publisher;
 use Illuminate\Support\Carbon;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Foundation\Serialization\SerializerRegistry;
+use RabbitEvents\Foundation\Support\Uuid;
 
 class MessageFactory
 {
@@ -22,7 +23,18 @@ class MessageFactory
         
         $properties = [
             'content_type' => (string) $payload->contentType(),
+            'message_id' => Uuid::generate(),
         ];
+
+        if (class_exists(\Illuminate\Support\Facades\Context::class) && \Illuminate\Support\Facades\Facade::getFacadeApplication()) {
+            try {
+                $contextData = \Illuminate\Support\Facades\Context::all();
+                if (!empty($contextData)) {
+                    $properties['headers']['_laravel_context'] = $contextData;
+                }
+            } catch (\Throwable) {
+            }
+        }
 
         if (is_object($rawPayload)) {
             $properties['type'] = get_class($rawPayload);

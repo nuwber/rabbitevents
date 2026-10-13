@@ -13,16 +13,22 @@ use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Events\ListenerHandling;
 use RabbitEvents\Listener\Exceptions\FailedException;
 
+use RabbitEvents\Foundation\Contracts\Deduplicator;
+use RabbitEvents\Listener\Deduplication\InMemoryDeduplicator;
 use RabbitEvents\Listener\ListenerOptions;
 use Throwable;
 
 class Processor
 {
+    private Deduplicator $deduplicator;
+
     public function __construct(
         private HandlerFactory $handlerFactory,
         private EventsDispatcher $events,
-        private Dispatcher $dispatcher
+        private Dispatcher $dispatcher,
+        ?Deduplicator $deduplicator = null
     ) {
+        $this->deduplicator = $deduplicator ?? new InMemoryDeduplicator();
     }
 
     /**
@@ -32,18 +38,50 @@ class Processor
      */
     public function process(Message $message, ListenerOptions $options): void
     {
-        foreach ($this->dispatcher->getListeners($message->event) as $listener) {
-            $response = $this->runHandler(
-                $this->handlerFactory->make($message, $listener, $this->getListenerClass($listener)),
-                $options
-            );
+        if ($this->deduplicator->isDuplicate($message->transportMessage())) {
+            return;
+        }
 
-            // If a boolean false is returned from a listener, we will stop propagating
-            // the event to any further listeners down in the chain, else we keep on
-            // looping through the listeners and run every one in our sequence.
-            if ($response === false) {
-                break;
+        $hasContext = class_exists(\Illuminate\Support\Facades\Context::class)
+            && \Illuminate\Support\Facades\Facade::getFacadeApplication();
+        if ($hasContext) {
+            $this->hydrateContext($message);
+        }
+
+        try {
+            foreach ($this->dispatcher->getListeners($message->event) as $listener) {
+                $response = $this->runHandler(
+                    $this->handlerFactory->make($message, $listener, $this->getListenerClass($listener)),
+                    $options
+                );
+
+                // If a boolean false is returned from a listener, we will stop propagating
+                // the event to any further listeners down in the chain, else we keep on
+                // looping through the listeners and run every one in our sequence.
+                if ($response === false) {
+                    break;
+                }
             }
+        } finally {
+            if ($hasContext) {
+                try {
+                    \Illuminate\Support\Facades\Context::flush();
+                } catch (\Throwable) {
+                }
+            }
+        }
+
+        $this->deduplicator->markHandled($message->transportMessage());
+    }
+
+    protected function hydrateContext(Message $message): void
+    {
+        try {
+            $context = $message->header('_laravel_context');
+            if (is_array($context)) {
+                \Illuminate\Support\Facades\Context::hydrate($context);
+            }
+        } catch (\Throwable) {
         }
     }
 
@@ -72,9 +110,11 @@ class Processor
         try {
             $this->raiseBeforeEvent($handler);
 
+            $startTime = hrtime(true);
             $response = $handler->handle();
+            $duration = (hrtime(true) - $startTime) / 1e6;
 
-            $this->raiseAfterEvent($handler);
+            $this->raiseAfterEvent($handler, $duration);
 
             return $response;
         } catch (Throwable $e) {
@@ -159,9 +199,9 @@ class Processor
     /**
      * Raise the after queue job event.
      */
-    protected function raiseAfterEvent(Handler $handler): void
+    protected function raiseAfterEvent(Handler $handler, ?float $duration = null): void
     {
-        $this->events->dispatch(new ListenerHandled($handler));
+        $this->events->dispatch(new ListenerHandled($handler, $duration));
     }
 
     /**

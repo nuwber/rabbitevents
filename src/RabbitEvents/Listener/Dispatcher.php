@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener;
 
 use Closure;
+use Illuminate\Container\Container;
+use Illuminate\Events\Dispatcher as BaseDispatcher;
+use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Illuminate\Events\Dispatcher as BaseDispatcher;
 
 class Dispatcher extends BaseDispatcher
 {
@@ -112,30 +114,70 @@ class Dispatcher extends BaseDispatcher
                 $payload = [$payload];
             }
 
-            foreach ($throughMiddleware as $middleware) {
-                $result = $wildcard
-                    ? ($middleware)($event, ...array_values($payload))
-                    : ($middleware)(...$payload);
-
-                if (false === $result) {
-                    return null;
-                }
+            if (empty($throughMiddleware)) {
+                return parent::makeListener($listener, $wildcard)($event, $payload);
             }
 
-            return parent::makeListener($listener, $wildcard)($event, $payload);
+            $pipes = array_map(
+                fn ($middleware) => $this->wrapMiddlewareIntoPipelineStage($middleware, $event, $wildcard),
+                $throughMiddleware
+            );
+
+            return (new Pipeline($this->container ?? Container::getInstance()))
+                ->send($payload)
+                ->through($pipes)
+                ->then(function ($payload) use ($listener, $wildcard, $event) {
+                    return parent::makeListener($listener, $wildcard)($event, $payload);
+                });
+        };
+    }
+
+    protected function wrapMiddlewareIntoPipelineStage(callable $middleware, string $event, bool $wildcard): Closure
+    {
+        return function ($passable, $next) use ($middleware, $event, $wildcard) {
+            $reflector = is_array($middleware)
+                ? new \ReflectionMethod($middleware[0], $middleware[1])
+                : new \ReflectionFunction(\Closure::fromCallable($middleware));
+
+            $parameters = $reflector->getParameters();
+            $lastParam = !empty($parameters) ? end($parameters) : null;
+            $expectsNext = $lastParam && (
+                $lastParam->getName() === 'next' ||
+                ($lastParam->hasType() && in_array((string) $lastParam->getType(), [\Closure::class, 'callable', '?\Closure']))
+            );
+
+            if ($expectsNext) {
+                return $wildcard
+                    ? ($middleware)($event, $passable, $next)
+                    : ($middleware)($passable, $next);
+            }
+
+            $result = $wildcard
+                ? ($middleware)($event, ...array_values($passable))
+                : ($middleware)(...$passable);
+
+            if (false === $result) {
+                return null;
+            }
+
+            return $next($passable);
         };
     }
 
     protected function makeListenerInstance($listener)
     {
+        if (is_array($listener)) {
+            return is_object($listener[0]) ? $listener[0] : $this->makeListenerInstance($listener[0]);
+        }
+
         if (is_string($listener)) {
             [$class,] = Str::parseCallback($listener);
 
-            return $this->container->instance($class, $this->container->make($class));
+            return $this->container ? $this->container->instance($class, $this->container->make($class)) : new $class();
         }
 
         if (is_object($listener)) {
-            return is_callable($listener) ? $listener : null;
+            return $listener;
         }
 
         return null;
@@ -170,6 +212,10 @@ class Dispatcher extends BaseDispatcher
     {
         if (is_object($mixed) && method_exists($mixed, 'middleware')) {
             return [$mixed, 'middleware'];
+        }
+
+        if (is_object($mixed) && method_exists($mixed, 'handle')) {
+            return [$mixed, 'handle'];
         }
 
         if (is_callable($mixed)) {

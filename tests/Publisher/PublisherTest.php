@@ -17,6 +17,7 @@ class PublisherTest extends TestCase
         $event = new SomeEvent(new SomeModel(), ['foo' => 'bar'], 'Hello!');
 
         $messageMock = m::mock(Message::class);
+        $messageMock->shouldReceive('id')->andReturn('mock-message-id');
 
         $messageFactory = m::mock(MessageFactory::class);
         $messageFactory->shouldReceive()
@@ -28,7 +29,38 @@ class PublisherTest extends TestCase
             ->once();
 
         $publisher = new Publisher($messageFactory, $sender);
-        $publisher->publish($event);
+        $result = $publisher->publish($event);
+
+        self::assertEquals('mock-message-id', $result);
+    }
+
+    public function testPublishAfterCommit(): void
+    {
+        $event = new SomeEvent(new SomeModel(), ['foo' => 'bar'], 'Hello!');
+        $event->afterCommit = true;
+
+        $dbMock = m::mock();
+        $dbMock->shouldReceive('afterCommit')->once()->andReturnUsing(function ($callback) {
+            $callback();
+        });
+
+        $container = new \Illuminate\Container\Container();
+        $container->instance('db', $dbMock);
+        \Illuminate\Container\Container::setInstance($container);
+
+        $messageMock = m::mock(Message::class);
+        $messageMock->shouldReceive('id')->andReturn('mock-message-id');
+
+        $messageFactory = m::mock(MessageFactory::class);
+        $messageFactory->shouldReceive()->make($event)->andReturn($messageMock);
+
+        $sender = m::mock(Transport::class);
+        $sender->shouldReceive()->send($messageMock)->once();
+
+        $publisher = new Publisher($messageFactory, $sender);
+        $result = $publisher->publish($event);
+
+        self::assertNull($result);
     }
 }
 

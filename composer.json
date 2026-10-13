@@ -1,6 +1,6 @@
 {
-  "name": "nuwber/rabbitevents",
-  "description": "The Nuwber RabbitEvents package",
+  "name": "rabbitevents/rabbitevents",
+  "description": "The RabbitEvents package for Laravel",
   "keywords": [
     "laravel",
     "rabbitmq",
@@ -34,6 +34,7 @@
     "illuminate/container": "10 - 13"
   },
   "replace": {
+    "nuwber/rabbitevents": "self.version",
     "rabbitevents/foundation": "self.version",
     "rabbitevents/publisher": "self.version",
     "rabbitevents/listener": "self.version"

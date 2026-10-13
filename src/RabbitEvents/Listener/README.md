@@ -266,11 +266,60 @@ class PaymentListener
 
 You can see that you are also able to specify which method of the attached middleware class should be called.
 
-This is just an illustration of how you could pass middleware to the listener. You could choose the way you prefer.
+### Pipeline Middleware (Onion-style)
+
+In addition to filter middleware, RabbitEvents supports Laravel's onion-style pipeline middleware accepting a `$next` closure:
+
+```php
+<?php
+
+namespace App\Listeners\RabbitEvents\Middleware;
+
+use Closure;
+
+class MeasureExecutionTime
+{
+    public function handle($payload, Closure $next)
+    {
+        $start = hrtime(true);
+
+        $response = $next($payload);
+
+        $elapsed = (hrtime(true) - $start) / 1e6;
+        \Log::info("Execution took {$elapsed}ms");
+
+        return $response;
+    }
+}
+```
 
 ## Stopping The Propagation Of An Event <a name="stopping-propagation"></a>
 
 Sometimes, you may wish to stop the propagation of an event to other listeners. You can do so by returning `false` from your listener's handle method.
+
+# Reliability & Idempotency <a name="reliability"></a>
+
+RabbitEvents is designed to work **100% out of the box** relying solely on RabbitMQ—no MySQL database tables, Redis instances, or external migrations are required.
+
+### Dead Letter Queue (DLQ)
+
+When messages exceed maximum retry attempts (`--tries`) or encounter fatal unhandled exceptions, RabbitEvents does not delete them silently. Instead:
+- It declares a topic Dead Letter Exchange (`rabbitevents.dlx`).
+- It binds a dedicated DLQ queue (`{queue}.failed`).
+- When a message fails, it is moved to `{queue}.failed` alongside diagnostic headers: `x-failed-at`, `x-original-routing-key`, `x-exception-message`, and `x-exception-class`.
+
+### Deduplication (Idempotency)
+
+To guard against duplicate message delivery, RabbitEvents includes a pluggable deduplication strategy system:
+- **`InMemoryDeduplicator` (Default)**: An in-memory LRU ring buffer per worker process tracking processed message IDs. Zero database or Redis setup required.
+- **`RabbitMqDeduplicationPluginStrategy`**: Delegates deduplication to the RabbitMQ broker via the `rabbitmq-message-deduplication` plugin using the `x-deduplication-header`.
+- **`NullDeduplicator`**: Disables deduplication if not needed.
+
+Configured in `config/rabbitevents.php`:
+```php
+'deduplication_strategy' => env('RABBITEVENTS_DEDUPLICATION_STRATEGY', \RabbitEvents\Listener\Deduplication\InMemoryDeduplicator::class),
+'deduplication_cache_size' => env('RABBITEVENTS_DEDUPLICATION_CACHE_SIZE', 5000),
+```
 
 # Console Commands <a name='commands'></a>
 
@@ -299,21 +348,56 @@ php artisan rabbitevents:listen event.one,event.two,event.n
 If the list of events is too long, the queue name will be created as an MD5 checksum of the lengthy queue name. 
 This was implemented because the AMQP driver does not accept longer names.
 
-You can start listening to an event only by using the `rabbitevents:listen` command, so you could use some system such as [Supervisor](http://supervisord.org/)
-
-or [pm2](http://pm2.keymetrics.io/) to control your listeners.
-
-If your listener crashes, then managers will rerun your listener, and all messages sent to a queue will be handled in the same order as they were sent. There is a known problem: as queues are separated and you have messages that affect the same entity, there's no guarantee that all actions will be done in an expected order. To avoid such problems, you can send message time as a part of the payload and handle it internally in your listeners.
+You can start listening to an event only by using the `rabbitevents:listen` command, so you could use some system such as [Supervisor](http://supervisord.org/) or [pm2](http://pm2.keymetrics.io/) to control your listeners.
 
 ### Options<a name="listen-options"></a>
 
 `--service=` - By default, it's `config('app.name')`. When a queue starts, the name of the service becomes a part of a queue name: `service:event.name`. You could override the first part of a queue name by this option.\
-`--memory=128` - The memory limit in megabytes. The RabbitEvents have restarting a worker if the limit is exceeded.\
+`--memory=128` - The memory limit in megabytes. The RabbitEvents worker restarts if the limit is exceeded.\
 `--timeout=60` - The length of time (in seconds) each Message should be allowed to be handled.\
-`--tries=1` - The Number of times to attempt to handle a Message before logging it failed.\
+`--tries=1` - The Number of times to attempt to handle a Message before routing it to the DLQ (`.failed`).\
 `--sleep=5` - How long in seconds a worker would wait before the next try to handle a failed message.\
 `--quiet` - Hide console output.\
 `-v` - Verbosity. Enables a stack trace for Exceptions.
+
+## Dead Letter Queue (DLQ) Commands
+
+Manage failed messages sitting in the Dead Letter Queue without needing MySQL or Redis:
+
+### View Failed Messages (`rabbitevents:failed`)
+```bash
+php artisan rabbitevents:failed
+php artisan rabbitevents:failed --queue=my-service:order.created
+```
+Displays a table of failed messages containing message ID, event name, failed timestamp, and exception details.
+
+### Retry Failed Messages (`rabbitevents:retry`)
+```bash
+# Retry a specific message by its UUID
+php artisan rabbitevents:retry 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+
+# Retry all failed messages
+php artisan rabbitevents:retry --all
+```
+Republishes failed message(s) back onto the RabbitEvents topic exchange with their original routing key and removes them from the failed queue.
+
+### Delete a Failed Message (`rabbitevents:forget`)
+```bash
+php artisan rabbitevents:forget 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+```
+
+### Flush All Failed Messages (`rabbitevents:flush`)
+```bash
+php artisan rabbitevents:flush
+```
+
+## Graceful Restart (`rabbitevents:restart`)
+
+To gracefully restart all background `rabbitevents:listen` worker processes after they finish handling their current message (ideal for zero-downtime CI/CD deployments):
+
+```bash
+php artisan rabbitevents:restart
+```
 
 ## Command `rabbitevents:list` <a name='command-list'></a>
 
@@ -344,13 +428,17 @@ php artisan rabbitevents:clear
 
 # Supervisor Configuration<a name="supervisor"></a>
 
-The Supervisor configuration is similar to [Laravel Queue](https://laravel.com/docs/5.1/queues#supervisor-configuration). We decided not to copy this doc here.
+The Supervisor configuration is similar to [Laravel Queue](https://laravel.com/docs/queues#supervisor-configuration).
 
-# Logging <a name='logging'></a>
+# Logging & Observability <a name='logging'></a>
 
-The package provides 2 ways to see what happens to your listener. By default, it writes `processing`, `processed`, `failed` messages, and occurred exceptions to console output. The message includes service, event, and listener name. To get the exception's trace, run the listener with verbosity >= 1, for example, `-v`.   
-If you want to turn this feature off, just run the listener with the `--quiet` option.
+The package provides 2 ways to see what happens to your listener:
+1. **Console Output**: Outputs color-coded logs including the unique Message ID and execution duration (in milliseconds):
+   ```
+   [9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d] Processing: app:payment.succeeded - App\Listeners\SendNotification
+   [9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d] Processed:  app:payment.succeeded - App\Listeners\SendNotification (12.45ms)
+   ```
+   To get exception stack traces, run with verbosity >= 1 (`-v`). To suppress output, use `--quiet`.
 
-The package also supports your application logger. To use it, set config value `rabbitevents.logging.enabled` to `true` and choose a log level.
+2. **Application Logger**: Set `rabbitevents.logging.enabled` to `true` to send events directly to your application log channel (`rabbitevents.logging.channel`).
 
-When choosing to use the application logger, you may configure the package's logging channel using the config value `rabbitevents.logging.channel`. By default, it will use the value from `logging.default`.

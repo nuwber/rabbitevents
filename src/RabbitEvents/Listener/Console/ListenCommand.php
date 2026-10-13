@@ -112,8 +112,12 @@ class ListenCommand extends Command
             new Releaser($queue, $context->createProducer())
         );
 
+        $deduplicator = (isset($context->connection) && method_exists($context->connection, 'getDeduplicationStrategy'))
+            ? $context->connection->getDeduplicationStrategy()
+            : null;
+
         return $worker->work(
-            new Processor($handlerFactory, $this->laravel['events'], $this->laravel[Dispatcher::class]),
+            new Processor($handlerFactory, $this->laravel['events'], $this->laravel[Dispatcher::class], $deduplicator),
             $context->makeConsumer($queue),
             $options
         )->value;

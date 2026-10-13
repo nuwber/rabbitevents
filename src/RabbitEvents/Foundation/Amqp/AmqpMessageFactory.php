@@ -23,6 +23,16 @@ class AmqpMessageFactory implements TransportMessageFactory
         $message->setRoutingKey($event);
         $message->setProperty('event', $event);
 
+        if (!empty($properties['headers']) && is_array($properties['headers'])) {
+            $message->setHeaders($properties['headers']);
+        }
+
+        if (!empty($properties['message_id'])) {
+            $message->setMessageId((string) $properties['message_id']);
+        }
+
+        $message->setDeliveryMode(AmqpMessage::DELIVERY_MODE_PERSISTENT);
+
         return new AmqpTransportMessage($message);
     }
 }

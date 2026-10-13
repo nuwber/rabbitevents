@@ -1,14 +1,14 @@
 # RabbitEvents
 
-[![Tests Status](https://github.com/nuwber/rabbitevents/workflows/Unit%20tests/badge.svg)](https://github.com/nuwber/rabbitevents/actions?query=branch%3Amaster+workflow%3A%22Unit+tests%22)
-[![codecov](https://codecov.io/gh/nuwber/rabbitevents/branch/master/graph/badge.svg?token=8E9CY6866R)](https://codecov.io/gh/nuwber/rabbitevents)
-[![Total Downloads](https://img.shields.io/packagist/dt/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
-[![Latest Version](https://img.shields.io/packagist/v/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
-[![License](https://img.shields.io/packagist/l/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
+[![Tests Status](https://github.com/rabbitevents/rabbitevents/workflows/Unit%20tests/badge.svg)](https://github.com/rabbitevents/rabbitevents/actions?query=branch%3Amaster+workflow%3A%22Unit+tests%22)
+[![codecov](https://codecov.io/gh/rabbitevents/rabbitevents/branch/master/graph/badge.svg?token=8E9CY6866R)](https://codecov.io/gh/rabbitevents/rabbitevents)
+[![Total Downloads](https://img.shields.io/packagist/dt/rabbitevents/rabbitevents)](https://packagist.org/packages/rabbitevents/rabbitevents)
+[![Latest Version](https://img.shields.io/packagist/v/rabbitevents/rabbitevents)](https://packagist.org/packages/rabbitevents/rabbitevents)
+[![License](https://img.shields.io/packagist/l/rabbitevents/rabbitevents)](https://packagist.org/packages/rabbitevents/rabbitevents)
 
 Let's imagine a use case: a User made a payment. You need to handle this payment, register the user, send him emails, send analytics data to your analysis system, and so on. The modern infrastructure requires you to create microservices that do their specific job and only it: one handles payments, one is for user management, one is the mailing system, one is for analysis. How to let all of them know that a payment succeeded and handle this message? The answer is "To use RabbitEvents".
 
-Once again, the RabbitEvents library helps you publish an event and handle it in another app. It doesn't make sense to use it in the same app because Laravel's Events work better for that.
+RabbitEvents helps you publish an event and handle it seamlessly in other applications across your microservice ecosystem.
 
 ## Demo
 ![rabbit-events-demo](https://github.com/nuwber/rabbitevents/assets/142213350/89df6194-e49d-4d58-8286-8932f182da4b)
@@ -16,9 +16,17 @@ Once again, the RabbitEvents library helps you publish an event and handle it in
 ## Table of Contents
 1. [Installation via Composer](#installation)
    * [Configuration](#configuration)
-1. [Upgrade from 8.x to 9.x](#upgrade_8.x-9.x)
-1. [Publisher component](#publisher)
-1. [Listener component](#listener)
+1. [Upgrade from 9.x to 10.x](#upgrade_9.x-10.x)
+1. [Quick Start](#quick-start)
+   * [Publishing Events](#quick-start-publisher)
+   * [Listening for Events](#quick-start-listener)
+1. [Reliability & Guarantees (Zero-DB Architecture)](#reliability)
+   * [Message IDs & Observability](#message-ids)
+   * [Idempotency & Deduplication](#deduplication)
+   * [Dead Letter Queue (DLQ) & Failed Message Management](#dead-letter-queue)
+   * [Transactional Publishing ($afterCommit)](#transactional-publishing)
+   * [Distributed Tracing & Context Propagation](#distributed-tracing)
+   * [Zero-Downtime Worker Restarts](#worker-restarts)
 1. [Listeners & Payloads](#listeners-payloads)
 1. [Custom Serializers](#custom-serializers)
 1. [Extensions & Ecosystem](#extensions)
@@ -32,36 +40,26 @@ Once again, the RabbitEvents library helps you publish an event and handle it in
 You can use Composer to install RabbitEvents into your Laravel project:
 
 ```bash
-composer require nuwber/rabbitevents
+composer require rabbitevents/rabbitevents
 ```
 
 ### Configuration<a name="configuration"></a>
-After installing RabbitEvents, publish its config and a service provider using the `rabbitevents:install` Artisan command:
+After installing RabbitEvents, publish its configuration file and service provider using the `rabbitevents:install` command:
 
 ```bash
 php artisan rabbitevents:install
 ```
 
-This command installs the config file at `config/rabbitevents.php` and the Service Provider file at `app/providers/RabbitEventsServiceProvider.php`.
-
-The config file is very similar to the queue connection, but with the separate config, you'll never be confused if you have another connection to RabbitMQ.
+This installs `config/rabbitevents.php` and `app/Providers/RabbitEventsServiceProvider.php`.
 
 ```php
 <?php
+
 use Enqueue\AmqpTools\RabbitMqDlxDelayStrategy;
 
 return [
     'default' => env('RABBITEVENTS_CONNECTION', 'rabbitmq'),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Default Serializer
-    |--------------------------------------------------------------------------
-    |
-    | The default serializer to use when publishing messages.
-    | Supported: "json", "protobuf" or any class implementing Serializer interface.
-    |
-    */
     'default_serializer' => \RabbitEvents\Foundation\Serialization\JsonSerializer::class,
 
     'connections' => [
@@ -75,6 +73,14 @@ return [
             'pass' => env('RABBITEVENTS_PASSWORD', 'guest'),
             'vhost' => env('RABBITEVENTS_VHOST', 'events'),
             'delay_strategy' => env('RABBITEVENTS_DELAY_STRATEGY', RabbitMqDlxDelayStrategy::class),
+            
+            // In-memory or plugin-based deduplication
+            'deduplication' => [
+                'enabled' => env('RABBITEVENTS_DEDUPLICATION_ENABLED', true),
+                'strategy' => \RabbitEvents\Listener\Deduplication\InMemoryDeduplicator::class,
+                'capacity' => 1000,
+            ],
+            
             'ssl' => [
                 'is_enabled' => env('RABBITEVENTS_SSL_ENABLED', false),
                 'verify_peer' => env('RABBITEVENTS_SSL_VERIFY_PEER', true),
@@ -83,9 +89,9 @@ return [
                 'local_key' => env('RABBITEVENTS_SSL_LOCAL_KEY'),
                 'passphrase' => env('RABBITEVENTS_SSL_PASSPHRASE', ''),
             ],
-            'read_timeout' => env('RABBITEVENTS_READ_TIMEOUT', 3.),
-            'write_timeout' => env('RABBITEVENTS_WRITE_TIMEOUT', 3.),
-            'connection_timeout' => env('RABBITEVENTS_CONNECTION_TIMEOUT', 3.),
+            'read_timeout' => env('RABBITEVENTS_READ_TIMEOUT', 3.0),
+            'write_timeout' => env('RABBITEVENTS_WRITE_TIMEOUT', 3.0),
+            'connection_timeout' => env('RABBITEVENTS_CONNECTION_TIMEOUT', 3.0),
             'heartbeat' => env('RABBITEVENTS_HEARTBEAT', 0),
             'persisted' => env('RABBITEVENTS_PERSISTED', false),
             'lazy' => env('RABBITEVENTS_LAZY', true),
@@ -93,7 +99,7 @@ return [
                 'global' => env('RABBITEVENTS_QOS_GLOBAL', false),
                 'prefetch_size' => env('RABBITEVENTS_QOS_PREFETCH_SIZE', 0),
                 'prefetch_count' => env('RABBITEVENTS_QOS_PREFETCH_COUNT', 1),
-            ]
+            ],
         ],
     ],
     'logging' => [
@@ -103,68 +109,251 @@ return [
     ],
 ];
 ```
-## Upgrade from 8.x to 9.x<a name="upgrade_8.x-9.x"></a>
 
-### PHP 8.2 required
-RabbitEvents now requires PHP 8.2 or greater. It uses `readonly` classes and Enums.
+## Upgrade from 9.x to 10.x<a name="upgrade_9.x-10.x"></a>
 
-### Payload System Refactor
-The internal payload handling has been refactored. `Message::payload()` now returns a `RabbitEvents\Foundation\Contracts\Payload` object.
-To get the raw value, use `$message->payload->value()`.
+### 1. New Composer Package Name
+RabbitEvents is now an independent project maintained under `rabbitevents/rabbitevents`.
+To upgrade, replace `nuwber/rabbitevents` in your `composer.json` or run:
 
-### Protobuf Support
-RabbitEvents supports [Google Protobuf](https://github.com/protocolbuffers/protobuf) messages via the `rabbitevents/protobuf` extension package.
-Once installed, simply publish a Protobuf Message object, and it will be automatically serialized and hydrated on the listener side.
-The system uses the `type` AMQP header to resolve the correct class.
-
-**Example:**
-```php
-use Google\Protobuf\StringValue;
-
-+$message = new StringValue();
-+$message->setValue('Hello World');
-+
-+publish('my.event', $message);
+```bash
+composer remove nuwber/rabbitevents
+composer require rabbitevents/rabbitevents:^10.0
 ```
 
-### Dynamic Serializers
-The correct serializer is now automatically selected based on the `content_type` header of the message.
-- `application/json` -> JSON Serializer
-- `application/x-protobuf` -> Protobuf Serializer
+> **Zero Breaking Changes in PHP Code:** The namespace remains `RabbitEvents\...`. You do **not** need to change any `use` statements or event classes in your codebase.
 
-### Supported Laravel versions
-RabbitEvents now supports Laravel 10.0 or greater.
+### 2. Return Value of `publish()`
+The `publish()` helper now returns the generated `string` Message ID (UUIDv4) or `null`, allowing you to record and track message delivery:
 
-### Architecture Decoupling
-Version 9.0 introduces a more abstract and extensible architecture.
-- **Decoupled Serialization**: Serializers now use an abstract `TransportMessage` contract instead of `Interop\Amqp\AmqpMessage`. This creates a cleaner separation between domain logic and the transport layer.
-- **Abstract Message Factory**: The `MessageFactory` has been moved to the Foundation layer and is now pluggable. You can implement your own `TransportMessageFactory` to create messages from different sources (e.g., tailored for testing or other transports).
-- **Transport Agnostic**: The core `Message` and `Sender` classes rely on internal contracts (`RabbitEvents\Foundation\Contracts\*`), avoiding strict dependencies on `queue-interop`. Adapters are provided for AMQP.
-- **Connection Class Moved**: `RabbitEvents\Foundation\Connection` has been moved to `RabbitEvents\Foundation\Amqp\Connection`. Update your type hints if you were using it directly.
+```php
+// In 9.x: returned void
+// In 10.x: returns ?string
+$messageId = publish('user.registered', $payload);
+```
 
-### Namespace Changes
-We have reorganized the namespace structure for better clarity and standard compliance:
-- **Commands**: All console commands have been moved to `Console` namespaces.
-  - `RabbitEvents\Foundation\Commands` -> `RabbitEvents\Foundation\Console`
-  - `RabbitEvents\Listener\Commands` -> `RabbitEvents\Listener\Console`
-  - `RabbitEvents\Publisher\Commands` -> `RabbitEvents\Publisher\Console`
-- **Releaser**: `RabbitEvents\Foundation\Support\Releaser` has been moved to `RabbitEvents\Listener\Support\Releaser` as it is a listener-specific component.
+### 3. Out-of-the-Box Deduplication
+Deduplication is now enabled by default using an in-memory ring-buffer (`InMemoryDeduplicator`). If you prefer to disable it or use the RabbitMQ deduplication broker plugin, configure the `deduplication` array in `config/rabbitevents.php`.
 
-### Removed `--connection` option from the `rabbitevents:listen` command
-The default connection is always used instead.
+### 4. Dead Letter Queue & Management Commands
+When event listeners fail after exhausting attempts, messages are automatically saved to `{queue}.failed` via the `rabbitevents.dlx` Dead Letter Exchange. You can now inspect, retry, or flush failed messages using Artisan commands:
+`php artisan rabbitevents:failed`, `retry`, `forget`, and `flush`.
 
-## RabbitEvents Publisher<a name="publisher"></a>
+### 5. Graceful Worker Restarts
+Like Laravel's `queue:restart`, background workers now listen for restart signals. Add `php artisan rabbitevents:restart` to your deployment script.
 
-The RabbitEvents Publisher component provides an API to publish events across the application structure. More information about how it works can be found on the RabbitEvents [Publisher page](https://github.com/rabbitevents/publisher).
+---
 
-## RabbitEvents Listener<a name="listener"></a>
+## Quick Start<a name="quick-start"></a>
 
-The RabbitEvents Listener component provides an API to handle events that were published across the application structure. More information about how it works can be found on the RabbitEvents [Listener page](https://github.com/rabbitevents/listener).
+### 1. Publishing Events<a name="quick-start-publisher"></a>
 
-It supports:
-- **Manual Registration:** using the `$listen` array.
-- **Attributes:** using `#[Listener]` on classes or methods.
-- **Auto-Discovery:** automatically finding `#[Listener]` attributes in your listeners directory.
+#### Method A: Using the `publish()` helper
+The quickest way to dispatch an event from anywhere in your application:
+
+```php
+use function RabbitEvents\Publisher\publish;
+
+$messageId = publish('user.registered', [
+    'user_id' => 123,
+    'email' => 'alex@example.com',
+    'created_at' => now()->toIso8601String(),
+]);
+
+logger()->info("Published event user.registered with ID: {$messageId}");
+```
+
+#### Method B: Using an Event Class
+Define a dedicated event class implementing `ShouldPublish`:
+
+```php
+namespace App\Events;
+
+use App\Models\User;
+use RabbitEvents\Publisher\ShouldPublish;
+use RabbitEvents\Publisher\Support\Publishable;
+
+class UserRegistered implements ShouldPublish
+{
+    use Publishable;
+
+    // Optional: publish only after the DB transaction commits
+    public bool $afterCommit = true;
+
+    public function __construct(public User $user)
+    {
+    }
+
+    public function publishEventKey(): string
+    {
+        return 'user.registered';
+    }
+
+    public function toPublish(): array
+    {
+        return [
+            'user_id' => $this->user->id,
+            'email' => $this->user->email,
+        ];
+    }
+}
+```
+
+Dispatch it just like standard Laravel events:
+
+```php
+UserRegistered::publish($user);
+// or: event(new UserRegistered($user));
+```
+
+---
+
+### 2. Listening for Events<a name="quick-start-listener"></a>
+
+#### Method A: Using PHP Attributes (Recommended)
+Define a listener and tag it with `#[Listener]`:
+
+```php
+namespace App\Listeners;
+
+use RabbitEvents\Listener\Attributes\Listener;
+
+#[Listener('user.registered')]
+class SendWelcomeEmail
+{
+    public function handle(array $payload): void
+    {
+        $userId = $payload['user_id'];
+        $email = $payload['email'];
+
+        // Send email or trigger internal processing...
+    }
+}
+```
+
+#### Method B: Using `RabbitEventsServiceProvider`
+Register listeners explicitly in `app/Providers/RabbitEventsServiceProvider.php`:
+
+```php
+protected $listen = [
+    'user.registered' => [
+        \App\Listeners\SendWelcomeEmail::class,
+    ],
+    'order.*' => [
+        \App\Listeners\OrderAuditSubscriber::class,
+    ],
+];
+```
+
+#### Start the Worker
+Run the listener worker from your terminal or process manager (Supervisor, Docker, Kubernetes):
+
+```bash
+php artisan rabbitevents:listen --events=user.registered
+```
+
+Or listen to multiple events or wildcard patterns:
+
+```bash
+php artisan rabbitevents:listen --events="user.*,order.completed"
+```
+
+---
+
+## Reliability & Guarantees (Zero-DB Architecture)<a name="reliability"></a>
+
+RabbitEvents is designed for microservice environments where services should remain isolated and autonomous. It provides enterprise-level reliability **without requiring MySQL tables, Redis, or database migrations**.
+
+### Message IDs & Observability<a name="message-ids"></a>
+Every published event automatically receives a unique RFC 4122 UUIDv4 `message_id`.
+
+```php
+$messageId = publish('payment.processed', ['amount' => 99.00]);
+// $messageId => "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+```
+
+Listener worker console logs display the message ID and execution time in real-time:
+```text
+[3fa85f64-5717-4562-b3fc-2c963f66afa6] Processing: payment.processed - App\Listeners\HandlePayment
+[3fa85f64-5717-4562-b3fc-2c963f66afa6] Processed:  payment.processed - App\Listeners\HandlePayment (14.22ms)
+```
+
+### Idempotency & Deduplication<a name="deduplication"></a>
+In distributed systems, network retries can cause duplicate message deliveries. RabbitEvents prevents duplicate execution:
+
+* **In-Memory Ring Buffer (Default)**: Automatically remembers the last `N` processed message IDs in worker memory. Requires **zero** dependencies.
+* **RabbitMQ Message Deduplication Plugin**: For broker-level deduplication across multiple horizontally scaled workers using the [rabbitmq-message-deduplication](https://github.com/noxdafox/rabbitmq-message-deduplication) plugin.
+
+Configure in `config/rabbitevents.php`:
+```php
+'deduplication' => [
+    'enabled' => true,
+    'strategy' => \RabbitEvents\Listener\Deduplication\InMemoryDeduplicator::class,
+    'capacity' => 1000,
+],
+```
+
+### Dead Letter Queue (DLQ) & Failed Message Management<a name="dead-letter-queue"></a>
+When an event listener fails and exhausts all retry attempts (`--tries=3`), RabbitEvents automatically diverts the message to a Dead Letter Exchange (`rabbitevents.dlx`) and stores it in `{queue}.failed`.
+
+The failed message retains its original payload, routing key, timestamp, and diagnostic headers (`x-exception-message`, `x-exception-class`).
+
+You can inspect and manage failed messages with built-in Artisan commands:
+
+```bash
+# List all failed messages
+php artisan rabbitevents:failed
+
+# Retry a specific failed event by its ID
+php artisan rabbitevents:retry 3fa85f64-5717-4562-b3fc-2c963f66afa6
+
+# Retry all failed events
+php artisan rabbitevents:retry --all
+
+# Delete a failed message from the failed queue
+php artisan rabbitevents:forget 3fa85f64-5717-4562-b3fc-2c963f66afa6
+
+# Flush (purge) all messages from the failed queue
+php artisan rabbitevents:flush
+```
+
+### Transactional Publishing (`$afterCommit`)<a name="transactional-publishing"></a>
+Prevent race conditions by ensuring events are published only after database transactions commit:
+
+```php
+use RabbitEvents\Publisher\ShouldPublish;
+use RabbitEvents\Publisher\Support\Publishable;
+
+class InvoicePaid implements ShouldPublish
+{
+    use Publishable;
+
+    public bool $afterCommit = true;
+
+    // ...
+}
+```
+
+### Distributed Tracing & Context Propagation<a name="distributed-tracing"></a>
+Laravel 11+ `Context` data is automatically serialized into AMQP headers on publish and hydrated on the listener side, allowing seamless distributed tracing:
+
+```php
+use Illuminate\Support\Facades\Context;
+
+// In Service A:
+Context::add('trace_id', (string) Str::uuid());
+publish('order.created', $orderData);
+
+// In Service B (Listener):
+// Context::get('trace_id') is automatically restored!
+```
+
+### Zero-Downtime Worker Restarts<a name="worker-restarts"></a>
+During continuous deployment, signal workers to finish their current job and restart gracefully:
+
+```bash
+php artisan rabbitevents:restart
+```
 
 ## Listeners & Payloads<a name="listeners-payloads"></a>
 
@@ -218,6 +407,24 @@ New serializers are prepended to the registry, so they can override default beha
 - [Redis Streams Transport](https://github.com/rabbitevents/redis-transport) - Redis Streams transport driver for RabbitEvents.
 - [Symfony Bundle](https://github.com/rabbitevents/symfony-bundle) - Official Symfony integration bundle for RabbitEvents.
 - [Protobuf Support](https://github.com/rabbitevents/protobuf) - Official Google Protobuf serialization support for RabbitEvents. Required for using Protobuf messages.
+
+## Examples<a name="examples"></a>
+
+Practical implementation examples and ready-to-use boilerplate classes are available in the [examples](./examples) directory:
+
+- **Publishers:**
+  - [`UserCreated.php`](./examples/UserCreated.php) - Standard publishable event with payload mapping and publishing helper.
+  - [`TransactionalEvent.php`](./examples/TransactionalEvent.php) - Transaction-safe event published only after DB commits (`$afterCommit = true`).
+  - [`ContextTracingEvent.php`](./examples/ContextTracingEvent.php) - Distributed tracing via Laravel `Context` and capturing the returned message ID.
+- **Listeners & Subscribers:**
+  - [`AttributeListener.php`](./examples/AttributeListener.php) - Clean attribute-based listener with `#[Listener]`.
+  - [`OrderEventsSubscriber.php`](./examples/OrderEventsSubscriber.php) - Handling multiple domain events within a single subscriber class.
+  - [`IdempotentPaymentListener.php`](./examples/IdempotentPaymentListener.php) - Safe, idempotent processing and trace ID extraction.
+  - [`WildcardListener.php`](./examples/WildcardListener.php) - Wildcard event pattern matching and conditional propagation.
+  - [`Listener.php`](./examples/Listener.php) - Standard listener with a custom middleware stack.
+- **Configuration & Providers:**
+  - [`RabbitEventsServiceProvider.php`](./examples/RabbitEventsServiceProvider.php) - Explicit listener mapping via the `$listen` array.
+  - [`ExampleMiddleware.php`](./examples/ExampleMiddleware.php) - Custom event middleware implementation.
 
 ## Speeding up RabbitEvents<a name="speeding-up-rabbitevents"></a>
 To enhance the performance of RabbitEvents, consider installing the `php-amqp` extension along with the `enqueue/amqp-ext` package. 
