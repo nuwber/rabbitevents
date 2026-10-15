@@ -20,26 +20,30 @@ All notable changes to this project will be documented in this file.
     - Automatic injection of `Illuminate\Support\Facades\Context::all()` into message headers (`trace_context`) on publishing.
     - Automatic restoration of trace context in `Processor::withContext()` during listener handling, with guaranteed `Context::flush()` on finish.
 - **Transactional Publishing**:
-    - `ShouldPublishAfterCommit` interface and `$afterCommit` property/method on `Publishable` trait to delay event publishing until the database transaction successfully commits.
+    - `ShouldPublishAfterCommit` interface and `$afterCommit` property / `afterCommit()` method on `Publishable` trait to delay event publishing until the database transaction successfully commits.
     - Prevents publishing if the transaction is rolled back.
 - **Testing Utilities**:
     - `PublishableEventTesting` trait providing `Event::fake()`, `Event::assertPublished()`, `Event::assertPublishedTimes(n)`, `Event::assertNotPublished()`, and `Event::assertNothingPublished()`.
-- **Model Observer Generator**:
-    - `rabbitevents:make:observer`: Artisan command to scaffold Eloquent model observers publishing RabbitEvents (`User.created`, `User.updated`, etc.).
-- **Transport Abstraction**:
-    - `Contracts\TransportMessage`, `Contracts\TransportMessageFactory`, and `Contracts\QueueConsumer` interfaces for pluggable transport implementations (such as `rabbitevents/redis-transport`).
-    - `AmqpTransportMessage` wrapping Interop AMQP message and unifying application headers and basic properties.
-    - `Publishable::publish()` now returns `?string` (the generated message UUID).
+- **Reference Implementations**:
+    - Added runnable examples in `examples/` for Context Tracing, Idempotent Listeners, Transactional Events, and Subscribers.
 
 ### Changed
-- **Framework Compatibility**: Added full support for Laravel 11.x, 12.x, and 13.x.
-- **Message Architecture**:
+- **Package Namespace Migration**: Renamed package to `rabbitevents/rabbitevents` (maintaining backward-compatible `"replace"` for `nuwber/rabbitevents`). PHP namespaces (`RabbitEvents\...`) remain identical.
+- **Framework Compatibility**: Added full support for Laravel 11.x, 12.x, and 13.x on PHP 8.2 – 8.4.
+- **Publishing Return Value**: `publish()` helper and `Publishable::publish()` now return the generated message UUID (`?string`) instead of `void`.
+- **Transport & Message Architecture**:
+    - `Contracts\TransportMessage` extended with `getMessageId()`, `setMessageId()`, `getHeader()`, `getHeaders()`, `setHeader()`, `setHeaders()`, and `setRoutingKey()`.
+    - `AmqpTransportMessage` unifies AMQP application headers and basic properties.
     - `Message` class decoupled from direct `Interop\Amqp\AmqpMessage` dependency, now wrapping `Contracts\TransportMessage`.
     - Added unified header accessors: `header()`, `headers()`, and `setHeader()`.
     - Added `id()`, `attempts()`, `increaseAttempts()`, and `hasFailed()` methods.
 - **JsonPayload**: Now implements `\JsonSerializable` for seamless serialization with `json_encode()`.
 - **Queue Declarations**: `QueueFactory` now automatically configures DLX bindings when durability and DLX are enabled.
 - **Worker & Processor**: Integrated deduplication checks and trace context lifecycle into message processing loop.
+- **CI & Quality**: Replaced external Codecov service with native GitHub Actions test reporting (`$GITHUB_STEP_SUMMARY`) and SVG coverage badge.
+
+### Removed
+- Obsolete `bin/splitsh-lite` binaries.
 
 ## [9.0.0]
 
