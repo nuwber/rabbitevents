@@ -32,7 +32,7 @@ All notable changes to this project will be documented in this file.
     - `Publishable::publish()` now returns `?string` (the generated message UUID).
 
 ### Changed
-- **Framework Compatibility**: Added full support for Laravel 11.x and 12.x.
+- **Framework Compatibility**: Added full support for Laravel 11.x, 12.x, and 13.x.
 - **Message Architecture**:
     - `Message` class decoupled from direct `Interop\Amqp\AmqpMessage` dependency, now wrapping `Contracts\TransportMessage`.
     - Added unified header accessors: `header()`, `headers()`, and `setHeader()`.
@@ -40,9 +40,6 @@ All notable changes to this project will be documented in this file.
 - **JsonPayload**: Now implements `\JsonSerializable` for seamless serialization with `json_encode()`.
 - **Queue Declarations**: `QueueFactory` now automatically configures DLX bindings when durability and DLX are enabled.
 - **Worker & Processor**: Integrated deduplication checks and trace context lifecycle into message processing loop.
-
-### Removed
-- Deprecated `rabbitevents:restart` console command.
 
 ## [9.0.0]
 
