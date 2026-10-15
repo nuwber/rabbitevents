@@ -6,6 +6,15 @@
 [![Latest Version](https://img.shields.io/packagist/v/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
 [![License](https://img.shields.io/packagist/l/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
 
+> [!IMPORTANT]
+> **Repository & Package Migration Announcement**
+>
+> RabbitEvents has moved to its own dedicated organization!
+> - **GitHub Repository**: [github.com/rabbitevents/rabbitevents](https://github.com/rabbitevents/rabbitevents) (formerly `nuwber/rabbitevents`)
+> - **Composer Package**: `rabbitevents/rabbitevents` (starting from version 10.0)
+>
+> Please update your `composer.json` to require `rabbitevents/rabbitevents:^10.0`. All PHP classes and namespaces (`RabbitEvents\...`) remain identical, so no application code changes are required.
+
 Let's imagine a use case: a User made a payment. You need to handle this payment, register the user, send him emails, send analytics data to your analysis system, and so on. The modern infrastructure requires you to create microservices that do their specific job and only it: one handles payments, one is for user management, one is the mailing system, one is for analysis. How to let all of them know that a payment succeeded and handle this message? The answer is "To use RabbitEvents".
 
 Once again, the RabbitEvents library helps you publish an event and handle it in another app. It doesn't make sense to use it in the same app because Laravel's Events work better for that.
