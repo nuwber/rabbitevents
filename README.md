@@ -2,7 +2,8 @@
 
 [![Tests Status](https://github.com/rabbitevents/rabbitevents/actions/workflows/testing.yml/badge.svg?branch=10.x)](https://github.com/rabbitevents/rabbitevents/actions/workflows/testing.yml?query=branch%3A10.x)
 [![Coverage Status](https://raw.githubusercontent.com/rabbitevents/rabbitevents/10.x/.github/badges/coverage.svg)](https://github.com/rabbitevents/rabbitevents/actions/workflows/testing.yml)
-[![Total Downloads](https://img.shields.io/packagist/dt/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
+[![Total Downloads at Nuwber](https://img.shields.io/packagist/dt/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
+[![Total Downloads](https://img.shields.io/packagist/dt/rabbitevents/rabbitevents)](https://packagist.org/packages/rabbitevents/rabbitevents)
 [![Latest Version](https://img.shields.io/packagist/v/rabbitevents/rabbitevents)](https://packagist.org/packages/rabbitevents/rabbitevents)
 [![License](https://img.shields.io/packagist/l/rabbitevents/rabbitevents)](https://packagist.org/packages/rabbitevents/rabbitevents)
 
