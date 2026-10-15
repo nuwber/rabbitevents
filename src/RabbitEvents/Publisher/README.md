@@ -1,6 +1,6 @@
 # RabbitEvents Publisher
 
-The RabbitEvents Publisher component provides an API for publishing events across the application structure. More information is available in the [Nuwber's RabbitEvents documentation](https://github.com/nuwber/rabbitevents).
+The RabbitEvents Publisher component provides an API for publishing events across the application structure. More information is available in the [RabbitEvents documentation](https://github.com/rabbitevents/rabbitevents).
 
 The RabbitEvents Publisher is the part that informs all other microservices that a payment has succeeded.
 
@@ -9,6 +9,12 @@ The RabbitEvents Publisher is the part that informs all other microservices that
 1. [Installation via Composer](#installation)
 2. [Configuration](#configuration)
 3. [Publishing](#how-to-publish)
+   - [Using an Event class](#using-an-event-class)
+   - [Using the `publish` function](#using-the-publish-function)
+   - [Transactional Publishing (`afterCommit`)](#transactional-publishing-aftercommit)
+   - [Distributed Tracing & Context Propagation](#distributed-tracing--context-propagation)
+   - [Publish an Event object with the `publish` function](#publish-an-event-object-with-the-publish-function)
+   - [Publishing Protobuf Messages](#publishing-protobuf-messages)
 4. [Testing](#testing)
 
 ## Installation via Composer<a name="installation"></a>
@@ -27,7 +33,7 @@ php artisan rabbitevents:install
 
 ## Configuration <a name="configuration"></a>
 
-Details about the configuration are described in the library [documentation](https://github.com/nuwber/rabbitevents#configuration).
+Details about the configuration are described in the library [documentation](https://github.com/rabbitevents/rabbitevents#configuration).
 
 ## Publishing<a name="how-to-publish"></a>
 

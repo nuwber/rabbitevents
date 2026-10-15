@@ -1,6 +1,6 @@
 # RabbitEvents Listener
 
-The RabbitEvents Listener component provides an API for handling events published across the application structure. More information is available in the [Nuwber's RabbitEvents documentation](https://github.com/nuwber/rabbitevents).
+The RabbitEvents Listener component provides an API for handling events published across the application structure. More information is available in the [RabbitEvents documentation](https://github.com/rabbitevents/rabbitevents).
 
 If you only need to handle events, you can use the RabbitEvents `Listener` separately from the main library.
 
@@ -14,14 +14,19 @@ If you only need to handle events, you can use the RabbitEvents `Listener` separ
 4. [Defining Listeners](#defining-listeners)
    - [Handling Protobuf Messages](#handling-protobuf-messages)
 5. [Middleware](#listener-middleware)
+   - [Pipeline Middleware (Onion-style)](#pipeline-middleware-onion-style)
 6. [Stopping The Propagation Of An Event](#stopping-propagation)
-7. [Console Commands](#commands)
+7. [Reliability & Idempotency](#reliability)
+   - [Dead Letter Queue (DLQ)](#dead-letter-queue)
+   - [Deduplication (Idempotency)](#deduplication-idempotency)
+8. [Console Commands](#commands)
    - [Command `rabbitevents:listen`](#command-listen)
      - [Options](#listen-options)
+   - [Dead Letter Queue (DLQ) Commands](#dead-letter-queue-dlq-commands)
    - [Command `rabbitevents:list`](#command-list)
    - [Event Discovery Caching](#discovery-caching)
-8. [Supervisor Configuration](#supervisor)
-9. [Logging](#logging)
+9. [Supervisor Configuration](#supervisor)
+10. [Logging & Observability](#logging)
 
 ## Installation via Composer<a name="installation"></a>
 
@@ -39,7 +44,7 @@ php artisan rabbitevents:install
 
 ## Configuration <a name="configuration"></a>
 
-Details about the configuration are described in the library [documentation](https://github.com/nuwber/rabbitevents#configuration).
+Details about the configuration are described in the library [documentation](https://github.com/rabbitevents/rabbitevents#configuration).
 
 ## Register a Listener <a name="register"></a>
 
