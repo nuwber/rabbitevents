@@ -6,15 +6,16 @@ namespace RabbitEvents\Listener\Message;
 
 use Illuminate\Events\Dispatcher as EventsDispatcher;
 use RabbitEvents\Listener\Dispatcher;
+use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\Facade;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Listener\Events\ListenerHandled;
 use RabbitEvents\Listener\Events\ListenerHandleFailed;
 use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Events\ListenerHandling;
-use RabbitEvents\Listener\Exceptions\FailedException;
-
 use RabbitEvents\Foundation\Contracts\Deduplicator;
-use RabbitEvents\Listener\Deduplication\InMemoryDeduplicator;
+use RabbitEvents\Foundation\Deduplication\NullDeduplicator;
+use RabbitEvents\Listener\Exceptions\FailedException;
 use RabbitEvents\Listener\ListenerOptions;
 use Throwable;
 
@@ -28,7 +29,7 @@ class Processor
         private Dispatcher $dispatcher,
         ?Deduplicator $deduplicator = null
     ) {
-        $this->deduplicator = $deduplicator ?? new InMemoryDeduplicator();
+        $this->deduplicator = $deduplicator ?? new NullDeduplicator();
     }
 
     /**
@@ -42,46 +43,36 @@ class Processor
             return;
         }
 
-        $hasContext = class_exists(\Illuminate\Support\Facades\Context::class)
-            && \Illuminate\Support\Facades\Facade::getFacadeApplication();
-        if ($hasContext) {
-            $this->hydrateContext($message);
-        }
-
-        try {
+        $this->withContext($message, function () use ($message, $options) {
             foreach ($this->dispatcher->getListeners($message->event) as $listener) {
                 $response = $this->runHandler(
                     $this->handlerFactory->make($message, $listener, $this->getListenerClass($listener)),
                     $options
                 );
 
-                // If a boolean false is returned from a listener, we will stop propagating
-                // the event to any further listeners down in the chain, else we keep on
-                // looping through the listeners and run every one in our sequence.
                 if ($response === false) {
                     break;
                 }
             }
-        } finally {
-            if ($hasContext) {
-                try {
-                    \Illuminate\Support\Facades\Context::flush();
-                } catch (\Throwable) {
-                }
-            }
-        }
+        });
 
         $this->deduplicator->markHandled($message->transportMessage());
     }
 
-    protected function hydrateContext(Message $message): void
+    protected function withContext(Message $message, callable $callback): mixed
     {
+        if (!Facade::getFacadeApplication()) {
+            return $callback();
+        }
+
+        if ($context = $message->header('trace_context')) {
+            Context::add((array) $context);
+        }
+
         try {
-            $context = $message->header('_laravel_context');
-            if (is_array($context)) {
-                \Illuminate\Support\Facades\Context::hydrate($context);
-            }
-        } catch (\Throwable) {
+            return $callback();
+        } finally {
+            Context::flush();
         }
     }
 

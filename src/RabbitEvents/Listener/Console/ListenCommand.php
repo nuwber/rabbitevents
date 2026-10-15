@@ -101,8 +101,10 @@ class ListenCommand extends Command
             $context = $this->laravel[ConnectionManager::class]->context($options->connectionName);
         }
 
+        $queueName = $this->option('queue') ?: QueueName::resolve($options->service, $options->events);
+
         $queue = $context->makeQueue(
-            $this->option('queue') ?: QueueName::resolve($options->service, $options->events),
+            $queueName,
             $options->events,
             $context->makeTopic()
         );
@@ -112,12 +114,13 @@ class ListenCommand extends Command
             new Releaser($queue, $context->createProducer())
         );
 
-        $deduplicator = (isset($context->connection) && method_exists($context->connection, 'getDeduplicationStrategy'))
-            ? $context->connection->getDeduplicationStrategy()
-            : null;
-
         return $worker->work(
-            new Processor($handlerFactory, $this->laravel['events'], $this->laravel[Dispatcher::class], $deduplicator),
+            new Processor(
+                $handlerFactory,
+                $this->laravel['events'],
+                $this->laravel[Dispatcher::class],
+                $context->getDeduplicator()
+            ),
             $context->makeConsumer($queue),
             $options
         )->value;

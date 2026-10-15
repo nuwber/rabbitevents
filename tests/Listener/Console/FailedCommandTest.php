@@ -7,12 +7,14 @@ namespace RabbitEvents\Tests\Listener\Console;
 use ArrayAccess;
 use Illuminate\Console\OutputStyle;
 use Illuminate\Container\Container;
-use Mockery as m;
-use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Context;
-use RabbitEvents\Foundation\Contracts\Destination;
-use RabbitEvents\Foundation\Message;
+use RabbitEvents\Foundation\Serialization\JsonSerializer;
+use RabbitEvents\Foundation\Serialization\SerializerRegistry;
 use RabbitEvents\Listener\Console\FailedCommand;
+use RabbitEvents\Tests\Foundation\Stubs\ConnectionStub;
+use RabbitEvents\Tests\Foundation\Stubs\ProducerStub;
+use RabbitEvents\Tests\Foundation\Stubs\QueueConsumerStub;
+use RabbitEvents\Tests\Foundation\Stubs\TransportMessageStub;
 use RabbitEvents\Tests\Listener\TestCase;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -39,20 +41,50 @@ class FailedCommandTest extends TestCase
         return $app;
     }
 
+    private function createContext(array $messages = []): array
+    {
+        $consumer = new QueueConsumerStub($messages);
+        $producer = new ProducerStub();
+
+        $connection = new ConnectionStub();
+        $connection->consumer = $consumer;
+        $connection->producer = $producer;
+
+        $registry = new SerializerRegistry();
+        $registry->register(new JsonSerializer());
+
+        $context = new Context($connection, $registry);
+
+        return [$context, $producer, $consumer];
+    }
+
+    private function createFailedTransportMessage(
+        string $id,
+        string $event = 'order.created',
+        string $failedAt = '1700000000',
+        string $exception = 'Database timeout'
+    ): TransportMessageStub {
+        return new TransportMessageStub(
+            body: json_encode(['data' => 'test']),
+            properties: [
+                'message_id' => $id,
+                'content_type' => 'application/json',
+                'event' => $event,
+                'routing_key' => $event,
+                'headers' => [
+                    'x-original-routing-key' => $event,
+                    'x-failed-at' => $failedAt,
+                    'x-exception-message' => $exception,
+                ],
+            ]
+        );
+    }
+
     public function test_displays_message_when_no_failed_events_found(): void
     {
         $app = $this->createMockApplication();
 
-        $consumer = m::mock(Consumer::class);
-        $consumer->shouldReceive('nextMessage')->with(500)->andReturn(null);
-
-        $destination = m::mock(Destination::class);
-        $topic = m::mock(Destination::class);
-        $context = m::mock(Context::class);
-        $context->shouldReceive('makeTopic')->andReturn($topic);
-        $context->shouldReceive('makeQueue')->with('test-service:.failed', [], $topic)->andReturn($destination);
-        $context->shouldReceive('makeConsumer')->with($destination)->andReturn($consumer);
-
+        [$context] = $this->createContext([]);
         $app->instance(Context::class, $context);
 
         $command = new FailedCommand();
@@ -76,23 +108,8 @@ class FailedCommandTest extends TestCase
     {
         $app = $this->createMockApplication();
 
-        $message = m::mock(Message::class);
-        $message->shouldReceive('id')->andReturn('uuid-1234');
-        $message->shouldReceive('event')->andReturn('order.created');
-        $message->shouldReceive('header')->with('x-failed-at')->andReturn('1700000000');
-        $message->shouldReceive('header')->with('x-exception-message')->andReturn('Database timeout');
-
-        $consumer = m::mock(Consumer::class);
-        $consumer->shouldReceive('nextMessage')->with(500)->andReturn($message, null);
-        $consumer->shouldReceive('reject')->with($message, true)->once();
-
-        $destination = m::mock(Destination::class);
-        $topic = m::mock(Destination::class);
-        $context = m::mock(Context::class);
-        $context->shouldReceive('makeTopic')->andReturn($topic);
-        $context->shouldReceive('makeQueue')->with('custom-queue.failed', [], $topic)->andReturn($destination);
-        $context->shouldReceive('makeConsumer')->with($destination)->andReturn($consumer);
-
+        $transportMsg = $this->createFailedTransportMessage('uuid-1234', 'order.created', '1700000000', 'Database timeout');
+        [$context, , $consumer] = $this->createContext([$transportMsg]);
         $app->instance(Context::class, $context);
 
         $command = new FailedCommand();
@@ -113,5 +130,9 @@ class FailedCommandTest extends TestCase
         self::assertStringContainsString('uuid-1234', $outputContent);
         self::assertStringContainsString('order.created', $outputContent);
         self::assertStringContainsString('Database timeout', $outputContent);
+
+        // Verify real message was requeued (rejected with requeue=true) so it stays in failed queue
+        self::assertCount(1, $consumer->rejected);
+        self::assertTrue($consumer->rejected[0]['requeue']);
     }
 }

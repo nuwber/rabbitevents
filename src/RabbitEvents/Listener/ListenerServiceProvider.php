@@ -31,7 +31,6 @@ class ListenerServiceProvider extends BaseServiceProvider
 
         $this->commands([
             Console\ListenCommand::class,
-            Console\RestartCommand::class,
             Console\EventsListCommand::class,
             Console\EventsCacheCommand::class,
             Console\EventsClearCommand::class,

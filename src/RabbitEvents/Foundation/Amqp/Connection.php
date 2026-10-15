@@ -16,7 +16,8 @@ use RabbitEvents\Foundation\Contracts\Deduplicator;
 use RabbitEvents\Foundation\Contracts\Destination;
 use RabbitEvents\Foundation\Contracts\Producer;
 use RabbitEvents\Foundation\Contracts\QueueConsumer;
-use RabbitEvents\Listener\Deduplication\InMemoryDeduplicator;
+use RabbitEvents\Foundation\Deduplication\InMemoryDeduplicator;
+use RabbitEvents\Foundation\Deduplication\NullDeduplicator;
 
 class Connection implements ConnectionContract
 {
@@ -132,10 +133,14 @@ class Connection implements ConnectionContract
     public function getDeduplicationStrategy(): Deduplicator
     {
         if (!$this->deduplicationStrategy) {
-            $class = $this->getConfig('deduplication_strategy', InMemoryDeduplicator::class);
-            $cacheSize = (int) $this->getConfig('deduplication_cache_size', 10000);
+            if (!$this->getConfig('deduplication.enabled', true)) {
+                return $this->deduplicationStrategy = new NullDeduplicator();
+            }
+
+            $class = $this->getConfig('deduplication.strategy', InMemoryDeduplicator::class);
 
             if ($class === InMemoryDeduplicator::class) {
+                $cacheSize = (int) $this->getConfig('deduplication.cache_size', 10000);
                 $this->deduplicationStrategy = new InMemoryDeduplicator($cacheSize);
             } else {
                 $this->deduplicationStrategy = new $class();

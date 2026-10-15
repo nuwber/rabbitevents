@@ -24,6 +24,9 @@ class AmqpMessageFactory implements TransportMessageFactory
         $message->setProperty('event', $event);
 
         if (!empty($properties['headers']) && is_array($properties['headers'])) {
+            foreach ($properties['headers'] as $headerKey => $headerVal) {
+                $message->setProperty((string) $headerKey, $headerVal);
+            }
             $message->setHeaders($properties['headers']);
         }
 

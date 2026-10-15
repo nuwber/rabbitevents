@@ -42,6 +42,14 @@ class WorkerTest extends TestCase
         Container::setInstance(null);
     }
 
+    protected function createMessageMock(): Message
+    {
+        $message = m::mock(Message::class);
+        $message->shouldReceive('hasFailed')->byDefault()->andReturn(false);
+
+        return $message;
+    }
+
     public function testInstantiable(): void
     {
         self::assertInstanceOf(Worker::class, new Worker($this->exceptionHandler, $this->events));
@@ -53,7 +61,7 @@ class WorkerTest extends TestCase
         $worker->shouldQuit = true; //For one tick only
 
         $processor = m::spy(Processor::class);
-        $message = m::mock(Message::class);
+        $message = $this->createMessageMock();
         $consumer = m::mock(Consumer::class)->makePartial();
         $consumer->shouldReceive('nextMessage')
             ->andReturn($message);
@@ -74,7 +82,7 @@ class WorkerTest extends TestCase
 
         $consumer = m::mock(Consumer::class);
         $consumer->shouldReceive('nextMessage')
-            ->andReturn(m::mock(Message::class));
+            ->andReturn($this->createMessageMock());
         $consumer->shouldReceive('acknowledge')->once();
 
         $status = $worker->work(m::spy(Processor::class), $consumer, $options);
@@ -112,7 +120,7 @@ class WorkerTest extends TestCase
         $processor->shouldReceive('process')
             ->andThrow($exception);
 
-        $message = m::mock(Message::class);
+        $message = $this->createMessageMock();
         $consumer = m::mock(Consumer::class);
         $consumer->shouldReceive('nextMessage')
             ->andReturn($message);
@@ -128,17 +136,19 @@ class WorkerTest extends TestCase
         $this->events->shouldHaveReceived()->dispatch(m::type(WorkerStopping::class))->once();
     }
 
-    public function testProcessNotStartedIfExceededMaxAttempts()
+    public function testProcessNotStartedIfExceededMaxAttempts(): void
     {
-        $message = m::mock(Message::class);
+        $message = $this->createMessageMock();
         $message->shouldReceive('attempts')
             ->andReturn(3);
+        $message->shouldReceive('markAsFailed')->once();
+        $message->shouldReceive('hasFailed')->andReturn(true);
 
         $consumer = m::mock(Consumer::class);
         $consumer->shouldReceive()
             ->nextMessage(1000)
             ->andReturn($message);
-        $consumer->shouldReceive('acknowledge')->once();
+        $consumer->shouldReceive('reject')->with($message, false)->once();
 
         $processor = m::spy(Processor::class);
 
@@ -154,13 +164,17 @@ class WorkerTest extends TestCase
         $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessingFailed::class))->once();
     }
 
-    public function testExitIfTimedOut()
+    public function testExitIfTimedOut(): void
     {
+        $message = $this->createMessageMock();
+        $message->shouldReceive('markAsFailed')->once();
+
         $consumer = m::mock(Consumer::class);
         $consumer->shouldReceive('nextMessage')
-            ->andReturn(m::mock(Message::class));
+            ->andReturn($message);
 
-        $consumer->shouldReceive('acknowledge')->twice(); //The second is because of $shouldQuite === true
+        $consumer->shouldReceive('reject')->with($message, false)->once();
+        $consumer->shouldReceive('acknowledge')->once(); //The second is because of $shouldQuit === true
 
         $processor = m::mock(Processor::class);
         $processor->shouldReceive('process')
@@ -181,11 +195,11 @@ class WorkerTest extends TestCase
         $this->events->shouldHaveReceived()->dispatch(m::type(MessageProcessingFailed::class))->once();
     }
 
-    public function testTimeoutResetIfProcessEndedWithException()
+    public function testTimeoutResetIfProcessEndedWithException(): void
     {
         $consumer = m::mock(Consumer::class);
         $consumer->shouldReceive('nextMessage')
-            ->andReturn(m::mock(Message::class));
+            ->andReturn($this->createMessageMock());
 
         $consumer->shouldReceive('acknowledge')->once();
 
@@ -201,26 +215,7 @@ class WorkerTest extends TestCase
 
         self::assertTrue($worker->resetTimeoutHandler);
     }
-
-    public function testRestartWorker(): void
-    {
-        $cache = m::mock(\Illuminate\Contracts\Cache\Repository::class);
-        $cache->shouldReceive('get')->with('rabbitevents:restart')->andReturn(100, 200);
-
-        $worker = new Worker($this->exceptionHandler, $this->events, $cache);
-
-        $processor = m::spy(Processor::class);
-        $consumer = m::mock(Consumer::class)->makePartial();
-        $consumer->shouldReceive('nextMessage')->andReturn(null);
-
-        // First loop: resetRestartTimestamp fetches 100.
-        // In stopIfNecessary, getTimestampOfLastQueueRestart returns 200 != 100, so it stops with SUCCESS.
-        $status = $worker->work($processor, $consumer, $this->options);
-
-        self::assertEquals(WorkerExitStatus::SUCCESS, $status);
-    }
 }
-
 
 class TestWorker extends Worker
 {

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace RabbitEvents\Publisher;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\Facade;
+use Illuminate\Support\Str;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Foundation\Serialization\SerializerRegistry;
-use RabbitEvents\Foundation\Support\Uuid;
 
 class MessageFactory
 {
@@ -21,19 +23,18 @@ class MessageFactory
         $serializer = $this->registry->resolve($rawPayload);
         $payload = $serializer->serialize($rawPayload);
         
+        $messageId = (string) Str::uuid();
+
         $properties = [
             'content_type' => (string) $payload->contentType(),
-            'message_id' => Uuid::generate(),
+            'message_id' => $messageId,
+            'headers' => [
+                'x-deduplication-header' => $messageId,
+            ],
         ];
 
-        if (class_exists(\Illuminate\Support\Facades\Context::class) && \Illuminate\Support\Facades\Facade::getFacadeApplication()) {
-            try {
-                $contextData = \Illuminate\Support\Facades\Context::all();
-                if (!empty($contextData)) {
-                    $properties['headers']['_laravel_context'] = $contextData;
-                }
-            } catch (\Throwable) {
-            }
+        if (Facade::getFacadeApplication() && ($contextData = Context::all())) {
+            $properties['headers']['trace_context'] = $contextData;
         }
 
         if (is_object($rawPayload)) {

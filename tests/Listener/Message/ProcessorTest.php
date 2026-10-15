@@ -221,14 +221,14 @@ class ProcessorTest extends TestCase
 
         $app = new \Illuminate\Container\Container();
         $contextMock = m::mock();
-        $contextMock->shouldReceive('hydrate')->with(['trace_id' => '12345'])->once();
+        $contextMock->shouldReceive('add')->with(['trace_id' => '12345'])->once();
         $contextMock->shouldReceive('flush')->once();
         $app->instance(\Illuminate\Log\Context\Repository::class, $contextMock);
         \Illuminate\Support\Facades\Facade::setFacadeApplication($app);
 
         try {
             $transportMessage = m::mock(\RabbitEvents\Foundation\Contracts\TransportMessage::class);
-            $transportMessage->shouldReceive('getHeader')->with('_laravel_context', null)->andReturn([
+            $transportMessage->shouldReceive('getHeader')->with('trace_context', null)->andReturn([
                 'trace_id' => '12345',
             ]);
             $transportMessage->shouldReceive('getMessageId')->andReturn('msg-ctx');
@@ -242,6 +242,7 @@ class ProcessorTest extends TestCase
             $processor = new Processor(new FakeHandlerFactory(), $this->events, $this->dispatcher);
             $processor->process($message, $this->options());
         } finally {
+            \Illuminate\Support\Facades\Facade::clearResolvedInstances();
             \Illuminate\Support\Facades\Facade::setFacadeApplication(null);
         }
     }

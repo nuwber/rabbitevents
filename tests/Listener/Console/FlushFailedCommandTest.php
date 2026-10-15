@@ -7,25 +7,27 @@ namespace RabbitEvents\Tests\Listener\Console;
 use ArrayAccess;
 use Illuminate\Console\OutputStyle;
 use Illuminate\Container\Container;
-use Mockery as m;
-use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Context;
-use RabbitEvents\Foundation\Contracts\Destination;
-use RabbitEvents\Foundation\Message;
+use RabbitEvents\Foundation\Serialization\JsonSerializer;
+use RabbitEvents\Foundation\Serialization\SerializerRegistry;
 use RabbitEvents\Listener\Console\FlushFailedCommand;
+use RabbitEvents\Tests\Foundation\Stubs\ConnectionStub;
+use RabbitEvents\Tests\Foundation\Stubs\ProducerStub;
+use RabbitEvents\Tests\Foundation\Stubs\QueueConsumerStub;
+use RabbitEvents\Tests\Foundation\Stubs\TransportMessageStub;
 use RabbitEvents\Tests\Listener\TestCase;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 
 class FlushFailedCommandTest extends TestCase
 {
-    private function createMockApplication(): Container
+    private function createMockApplication(array $config = []): Container
     {
         $app = new Container();
-        $configObj = new class([
+        $configObj = new class(array_merge([
             'app.name' => 'test-service',
             'rabbitevents.default' => 'rabbitmq',
-        ]) implements ArrayAccess {
+        ], $config)) implements ArrayAccess {
             public function __construct(private array $items) {}
             public function offsetExists($offset): bool { return isset($this->items[$offset]); }
             public function offsetGet($offset): mixed { return $this->items[$offset] ?? null; }
@@ -39,26 +41,48 @@ class FlushFailedCommandTest extends TestCase
         return $app;
     }
 
+    private function createContext(array $messages = []): array
+    {
+        $consumer = new QueueConsumerStub($messages);
+        $producer = new ProducerStub();
+
+        $connection = new ConnectionStub();
+        $connection->consumer = $consumer;
+        $connection->producer = $producer;
+
+        $registry = new SerializerRegistry();
+        $registry->register(new JsonSerializer());
+
+        $context = new Context($connection, $registry);
+
+        return [$context, $producer, $consumer];
+    }
+
+    private function createFailedTransportMessage(string $id, string $event = 'order.created'): TransportMessageStub
+    {
+        return new TransportMessageStub(
+            body: json_encode(['data' => 'test']),
+            properties: [
+                'message_id' => $id,
+                'content_type' => 'application/json',
+                'event' => $event,
+                'routing_key' => $event,
+                'headers' => [
+                    'x-original-routing-key' => $event,
+                    'x-failed-at' => (string) time(),
+                    'x-exception-message' => 'Something failed',
+                ],
+            ]
+        );
+    }
+
     public function test_flushes_all_failed_messages(): void
     {
         $app = $this->createMockApplication();
 
-        $msg1 = m::mock(Message::class);
-        $msg2 = m::mock(Message::class);
-
-        $consumer = m::mock(Consumer::class);
-        $consumer->shouldReceive('nextMessage')->with(500)->andReturn($msg1, $msg2, null);
-        $consumer->shouldReceive('acknowledge')->with($msg1)->once();
-        $consumer->shouldReceive('acknowledge')->with($msg2)->once();
-
-        $topic = m::mock(Destination::class);
-        $queueDestination = m::mock(Destination::class);
-
-        $context = m::mock(Context::class);
-        $context->shouldReceive('makeTopic')->andReturn($topic);
-        $context->shouldReceive('makeQueue')->with('test-service:.failed', [], $topic)->andReturn($queueDestination);
-        $context->shouldReceive('makeConsumer')->with($queueDestination)->andReturn($consumer);
-
+        $msg1 = $this->createFailedTransportMessage('msg-1');
+        $msg2 = $this->createFailedTransportMessage('msg-2');
+        [$context, , $consumer] = $this->createContext([$msg1, $msg2]);
         $app->instance(Context::class, $context);
 
         $command = new FlushFailedCommand();
@@ -76,5 +100,6 @@ class FlushFailedCommandTest extends TestCase
 
         self::assertEquals(0, $result);
         self::assertStringContainsString('All [2] failed messages deleted from [test-service:.failed].', $bufferedOutput->fetch());
+        self::assertCount(2, $consumer->acknowledged);
     }
 }

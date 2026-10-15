@@ -7,6 +7,7 @@ namespace RabbitEvents\Listener\Console\Log;
 use Illuminate\Console\OutputStyle;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Carbon;
+use RabbitEvents\Listener\Events\ListenerHandled;
 use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Message\Handler;
 use Symfony\Component\Console\Application as ConsoleApplication;
@@ -23,7 +24,7 @@ class Output extends Writer
     public function log($event): void
     {
         $status = $this->getStatus($event);
-        $duration = $event instanceof \RabbitEvents\Listener\Events\ListenerHandled ? $event->duration : null;
+        $duration = $event instanceof ListenerHandled ? $event->duration : null;
 
         $this->writeStatus($event->handler, $status, $this->getType($status), $duration);
 

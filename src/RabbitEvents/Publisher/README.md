@@ -121,7 +121,7 @@ When `$afterCommit = true`, RabbitEvents automatically delays publishing until t
 
 ### Distributed Tracing & Context Propagation
 
-RabbitEvents automatically captures and propagates Laravel's `Context` data (Laravel 11+) via AMQP headers (`_laravel_context`). Any contextual attributes (such as trace IDs, request IDs, or authenticated user info) set before publishing will be hydrated automatically on the listener side.
+RabbitEvents automatically captures and propagates Laravel's `Context` data (Laravel 11+) via AMQP headers (`trace_context`). Any contextual attributes (such as trace IDs, request IDs, or authenticated user info) set before publishing will be hydrated automatically on the listener side.
 
 
 ### Publish an Event object with the `publish` function
@@ -199,17 +199,24 @@ use \App\RabbitEvents\AnotherEvent;
 
 Event::fake();
 
-$payload = [
-    'key1' => 'value1',
-    'key2' => 'value2',
-];
+Event::publish(['key1' => 'value1', 'key2' => 'value2']);
 
-Event::publish($payload);
+// Assert event was published (without repeating the event name)
+Event::assertPublished();
 
-Event::assertPublished('something.happened', $payload);
+// Assert with closure
+Event::assertPublished(function ($event, $payload) {
+    return $payload['key1'] === 'value1';
+});
 
+// Assert published exact number of times
+Event::assertPublishedTimes(1);
+
+// Assert an event was not published
 AnotherEvent::assertNotPublished();
+
+// Assert nothing was published at all
+Event::assertNothingPublished();
 ```
 
-If the assertion does not pass, `Mockery\Exception\InvalidCountException` will be thrown.\
 Don't forget to call `\Mockery::close()` in `tearDown` or similar methods of your tests.

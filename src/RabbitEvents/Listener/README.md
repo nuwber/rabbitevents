@@ -317,8 +317,11 @@ To guard against duplicate message delivery, RabbitEvents includes a pluggable d
 
 Configured in `config/rabbitevents.php`:
 ```php
-'deduplication_strategy' => env('RABBITEVENTS_DEDUPLICATION_STRATEGY', \RabbitEvents\Listener\Deduplication\InMemoryDeduplicator::class),
-'deduplication_cache_size' => env('RABBITEVENTS_DEDUPLICATION_CACHE_SIZE', 5000),
+'deduplication' => [
+    'enabled' => env('RABBITEVENTS_DEDUPLICATION_ENABLED', true),
+    'strategy' => env('RABBITEVENTS_DEDUPLICATION_STRATEGY', \RabbitEvents\Foundation\Deduplication\InMemoryDeduplicator::class),
+    'cache_size' => env('RABBITEVENTS_DEDUPLICATION_CACHE_SIZE', 10000),
+],
 ```
 
 # Console Commands <a name='commands'></a>
@@ -379,7 +382,7 @@ php artisan rabbitevents:retry 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
 # Retry all failed messages
 php artisan rabbitevents:retry --all
 ```
-Republishes failed message(s) back onto the RabbitEvents topic exchange with their original routing key and removes them from the failed queue.
+Republishes failed message(s) back onto the original queue where it failed (with attempts reset) and removes them from the failed queue.
 
 ### Delete a Failed Message (`rabbitevents:forget`)
 ```bash
@@ -389,14 +392,6 @@ php artisan rabbitevents:forget 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
 ### Flush All Failed Messages (`rabbitevents:flush`)
 ```bash
 php artisan rabbitevents:flush
-```
-
-## Graceful Restart (`rabbitevents:restart`)
-
-To gracefully restart all background `rabbitevents:listen` worker processes after they finish handling their current message (ideal for zero-downtime CI/CD deployments):
-
-```bash
-php artisan rabbitevents:restart
 ```
 
 ## Command `rabbitevents:list` <a name='command-list'></a>

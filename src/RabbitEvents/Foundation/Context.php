@@ -34,10 +34,13 @@ class Context
         );
     }
 
-    public function makeQueue(string $queueName, array $events = [], ?Destination $topic = null): Destination
+    public function makeQueue(string $queueName, array $events, Destination $topic): Destination
     {
-        $topic = $topic ?: $this->makeTopic();
-
         return $this->connection->makeQueue($queueName, $events, $topic);
+    }
+
+    public function getDeduplicator(): Contracts\Deduplicator
+    {
+        return $this->connection->getDeduplicationStrategy();
     }
 }

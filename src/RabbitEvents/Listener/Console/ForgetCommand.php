@@ -35,47 +35,34 @@ class ForgetCommand extends Command
      */
     public function handle(): int
     {
-        $id = $this->argument('id');
-        $queueName = $this->getFailedQueueName();
-        $context = $this->getContext();
-        $consumer = $this->getConsumer($context, $queueName);
+        $id = (string) $this->argument('id');
 
-        $found = false;
-        $seen = [];
-
-        while (true) {
-            $message = $consumer->nextMessage(500);
-
-            if (!$message) {
-                break;
-            }
-
-            $msgId = $message->id();
-
-            if ($msgId === $id) {
-                $consumer->acknowledge($message);
-                $this->info("Failed message [{$id}] deleted successfully.");
-                $found = true;
-                break;
-            }
-
-            if ($msgId && isset($seen[$msgId])) {
-                $consumer->reject($message, true);
-                break;
-            }
-
-            if ($msgId) {
-                $seen[$msgId] = true;
-            }
-
-            $consumer->reject($message, true);
-        }
-
-        if (!$found) {
-            $this->error("Unable to find failed message with ID [{$id}] in [{$queueName}].");
+        if (!$this->forgetMessage($id)) {
+            $this->error("Unable to find failed message with ID [{$id}].");
             return 1;
         }
 
+        $this->info("Failed message [{$id}] deleted successfully.");
+
         return 0;
+    }
+
+    protected function forgetMessage(string $id): bool
+    {
+        $found = false;
+
+        $this->eachFailedMessage(function ($message, $consumer) use ($id, &$found) {
+            if ($message->id() === $id) {
+                $consumer->acknowledge($message);
+                $found = true;
+                return false;
+            }
+
+            $consumer->reject($message, true);
+            
+            return true;
+        });
+
+        return $found;
     }
 }

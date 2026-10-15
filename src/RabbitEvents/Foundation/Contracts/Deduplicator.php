@@ -21,4 +21,12 @@ interface Deduplicator
      * @return void
      */
     public function markHandled(TransportMessage $message): void;
+
+    /**
+     * Prepare the destination queue for this deduplication strategy.
+     *
+     * @param mixed $queue
+     * @return void
+     */
+    public function prepareQueue(mixed $queue): void;
 }

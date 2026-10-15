@@ -15,22 +15,85 @@ trait PublishableEventTesting
         Container::getInstance()->instance(Publisher::class, \Mockery::spy(Publisher::class));
     }
 
-    public static function assertPublished(string $event, ?array $payload = null): void
-    {
+    public static function assertPublished(
+        callable|string|array|null $event = null,
+        ?array $payload = null
+    ): void {
         Container::getInstance()->get(Publisher::class)
             ->shouldHaveReceived()
-            ->publish(\Mockery::on(static function (ShouldPublish $object) use ($event, $payload) {
-                return $object instanceof static
-                    && $object->publishEventKey() === $event
-                    && (is_null($payload) || $object->toPublish() === $payload);
-            }))
+            ->publish(static::createPublishMatcher($event, $payload))
+            ->atLeast()
             ->once();
     }
 
-    public static function assertNotPublished(): void
+    public static function assertPublishedTimes(
+        int $times,
+        callable|string|array|null $event = null,
+        ?array $payload = null
+    ): void {
+        Container::getInstance()->get(Publisher::class)
+            ->shouldHaveReceived()
+            ->publish(static::createPublishMatcher($event, $payload))
+            ->times($times);
+    }
+
+    private static function createPublishMatcher(
+        callable|string|array|null $event = null,
+        ?array $payload = null
+    ): \Mockery\Matcher\Closure {
+        return \Mockery::on(static function (ShouldPublish $object) use ($event, $payload) {
+            if (!$object instanceof static) {
+                return false;
+            }
+
+            if (is_callable($event)) {
+                return (bool) $event($object, $object->toPublish());
+            }
+
+            if (is_array($event) && is_null($payload)) {
+                $payload = $event;
+                $event = null;
+            }
+
+            if (is_string($event) && $object->publishEventKey() !== $event) {
+                return false;
+            }
+
+            return is_null($payload) || $object->toPublish() === $payload;
+        });
+    }
+
+    public static function assertNotPublished(callable|string|null $callback = null): void
     {
+        if (is_callable($callback)) {
+            Container::getInstance()->make(Publisher::class)
+                ->shouldNotHaveReceived()
+                ->publish(\Mockery::on(static function (ShouldPublish $object) use ($callback) {
+                    return $object instanceof static && (bool) $callback($object, $object->toPublish());
+                }));
+
+            return;
+        }
+
+        if (is_string($callback)) {
+            Container::getInstance()->make(Publisher::class)
+                ->shouldNotHaveReceived()
+                ->publish(\Mockery::on(static function (ShouldPublish $object) use ($callback) {
+                    return $object instanceof static && $object->publishEventKey() === $callback;
+                }));
+
+            return;
+        }
+
         Container::getInstance()->make(Publisher::class)
             ->shouldNotHaveReceived()
             ->publish(\Mockery::type(static::class));
+    }
+
+    public static function assertNothingPublished(): void
+    {
+        Container::getInstance()->make(Publisher::class)
+            ->shouldNotHaveReceived()
+            ->publish();
     }
 }

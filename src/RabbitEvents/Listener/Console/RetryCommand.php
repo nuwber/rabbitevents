@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener\Console;
 
 use Illuminate\Console\Command;
+use RabbitEvents\Foundation\Context;
+use RabbitEvents\Foundation\Contracts\Destination;
 use RabbitEvents\Foundation\Message;
 
 class RetryCommand extends Command
@@ -17,7 +19,7 @@ class RetryCommand extends Command
      * @var string
      */
     protected $signature = 'rabbitevents:retry
-                            {id? : The ID of the failed message to retry}
+                            {id? : The ID of the failed message to retry or "all"}
                             {--all : Retry all failed messages}
                             {--queue= : The failed queue name}
                             {--connection= : The connection name}
@@ -28,7 +30,7 @@ class RetryCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Retry a failed RabbitEvents message from the Dead Letter Queue';
+    protected $description = 'Retry a failed message or all failed messages back onto the queue';
 
     /**
      * Execute the console command.
@@ -37,7 +39,7 @@ class RetryCommand extends Command
      */
     public function handle(): int
     {
-        $id = $this->argument('id');
+        $id = (string) $this->argument('id');
         $all = (bool) $this->option('all') || $id === 'all';
 
         if (!$all && empty($id)) {
@@ -45,63 +47,65 @@ class RetryCommand extends Command
             return 1;
         }
 
-        $queueName = $this->getFailedQueueName();
-        $context = $this->getContext();
-        $consumer = $this->getConsumer($context, $queueName);
-        $producer = $context->createProducer();
-        $topic = $context->makeTopic();
+        $targetId = $all ? null : $id;
+        $retried = $this->retryMessages($targetId);
 
-        $retriedCount = 0;
-        $found = false;
-        $seen = [];
-
-        while (true) {
-            $message = $consumer->nextMessage(500);
-
-            if (!$message) {
-                break;
-            }
-
-            $msgId = $message->id();
-
-            if ($all || $msgId === $id) {
-                $routingKey = (string) ($message->header('x-original-routing-key') ?: $message->event());
-                $transportMessage = $message->transportMessage();
-                $transportMessage->setRoutingKey($routingKey);
-
-                $producer->send($topic, $transportMessage);
-                $consumer->acknowledge($message);
-
-                $retriedCount++;
-                $this->info("The failed message [{$msgId}] has been pushed back onto the exchange!");
-
-                if (!$all) {
-                    $found = true;
-                    break;
-                }
-            } else {
-                if ($msgId && isset($seen[$msgId])) {
-                    $consumer->reject($message, true);
-                    break;
-                }
-
-                if ($msgId) {
-                    $seen[$msgId] = true;
-                }
-
-                $consumer->reject($message, true);
-            }
-        }
-
-        if (!$all && !$found) {
-            $this->error("Unable to find failed message with ID [{$id}] in [{$queueName}].");
+        if (!$all && $retried === 0) {
+            $this->error("Failed message [{$id}] not found.");
             return 1;
         }
 
         if ($all) {
-            $this->info("Retried {$retriedCount} failed message(s).");
+            $this->info("Retried {$retried} failed message(s).");
         }
 
         return 0;
+    }
+
+    protected function retryMessages(?string $targetId): int
+    {
+        $context = $this->getContext();
+        $producer = $context->createProducer();
+        $retried = 0;
+
+        $this->eachFailedMessage(function ($message, $consumer) use ($targetId, $producer, $context, &$retried) {
+            $msgId = $message->id();
+
+            if (is_null($targetId) || $msgId === $targetId) {
+                $targetQueue = $this->getTargetQueue($context, $message);
+                $this->republishMessage($message, $producer, $targetQueue);
+                $consumer->acknowledge($message);
+
+                $retried++;
+                $this->info("The failed message [{$msgId}] has been pushed back onto the queue!");
+
+                if (!is_null($targetId)) {
+                    return false;
+                }
+            } else {
+                $consumer->reject($message, true);
+            }
+
+            return true;
+        });
+
+        return $retried;
+    }
+
+    protected function getTargetQueue(Context $context, Message $message): Destination
+    {
+        $queueName = $this->getOriginalQueueName($message);
+
+        return $context->makeQueue($queueName, [], $context->makeTopic());
+    }
+
+    protected function republishMessage($message, $producer, $destination): void
+    {
+        $routingKey = $this->extractEvent($message);
+        $transportMessage = $message->transportMessage();
+        $transportMessage->setRoutingKey($routingKey);
+        $transportMessage->setProperty('x-attempts', 0);
+
+        $producer->send($destination, $transportMessage);
     }
 }

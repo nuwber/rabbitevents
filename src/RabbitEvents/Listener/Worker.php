@@ -23,15 +23,9 @@ class Worker
      */
     public bool $shouldQuit = false;
 
-    /**
-     * The timestamp of the last queue restart.
-     */
-    protected ?int $restartTimestamp = null;
-
     public function __construct(
         private ExceptionHandler $exceptions,
-        private EventsDispatcher $events,
-        private ?\Illuminate\Contracts\Cache\Repository $cache = null
+        private EventsDispatcher $events
     ) {
     }
 
@@ -40,8 +34,6 @@ class Worker
      */
     public function work(Processor $processor, Consumer $consumer, ListenerOptions $options): WorkerExitStatus
     {
-        $this->resetRestartTimestamp();
-
         if ($supportsAsyncSignals = $this->supportsAsyncSignals()) {
             $this->listenForSignals();
         }
@@ -52,14 +44,14 @@ class Worker
                     $this->registerTimeoutHandler($message, $consumer, $options);
                 }
 
-                $throwable = $this->processMessage($processor, $message, $options);
+                $this->processMessage($processor, $message, $options);
 
                 if ($supportsAsyncSignals) {
                     $this->resetTimeoutHandler();
                 }
 
-                if ($throwable !== null && !($consumer instanceof \Mockery\MockInterface) && $consumer->handlesFailedMessages()) {
-                    $consumer->fail($message, $throwable);
+                if ($message->hasFailed()) {
+                    $consumer->reject($message, false);
                 } else {
                     $consumer->acknowledge($message);
                 }
@@ -94,20 +86,16 @@ class Worker
      * @param Processor $processor
      * @param Message $message
      * @param ListenerOptions $options
-     * @return Throwable|null
+     * @return void
      */
-    private function processMessage(Processor $processor, Message $message, ListenerOptions $options): ?Throwable
+    private function processMessage(Processor $processor, Message $message, ListenerOptions $options): void
     {
         try {
             $this->skipIfAlreadyExceedsMaxAttempts($message, $options);
 
             $processor->process($message, $options);
-
-            return null;
         } catch (Throwable $throwable) {
             $this->exceptions->report($throwable);
-
-            return $throwable;
         }
     }
 
@@ -124,7 +112,8 @@ class Worker
                 'Worker has timed out.'
             )));
 
-            $consumer->acknowledge($message);
+            $message->markAsFailed();
+            $consumer->reject($message, false);
 
             $this->kill(WorkerExitStatus::ERROR);
         });
@@ -137,6 +126,8 @@ class Worker
         if ($options->maxTries === 0 || $message->attempts() <= $options->maxTries) {
             return;
         }
+
+        $message->markAsFailed();
 
         $this->events->dispatch(new MessageProcessingFailed($message, $e = new MaxAttemptsExceededException(
             'The Message handle tries has been attempted too many times.'
@@ -176,37 +167,6 @@ class Worker
 
         if ($this->memoryExceeded($options->memory)) {
             return WorkerExitStatus::MEMORY_LIMIT;
-        }
-
-        if ($this->queueShouldRestart($this->restartTimestamp)) {
-            return WorkerExitStatus::SUCCESS;
-        }
-
-        return null; // Explicit return null
-    }
-
-    public function resetRestartTimestamp(): void
-    {
-        $this->restartTimestamp = $this->getTimestampOfLastQueueRestart();
-    }
-
-    protected function queueShouldRestart(?int $lastRestart): bool
-    {
-        return $this->getTimestampOfLastQueueRestart() !== $lastRestart;
-    }
-
-    protected function getTimestampOfLastQueueRestart(): ?int
-    {
-        if ($this->cache) {
-            return (int) $this->cache->get('rabbitevents:restart');
-        }
-
-        if (\Illuminate\Container\Container::getInstance() && \Illuminate\Container\Container::getInstance()->bound('cache')) {
-            try {
-                return (int) \Illuminate\Container\Container::getInstance()->make('cache')->get('rabbitevents:restart');
-            } catch (Throwable) {
-                return null;
-            }
         }
 
         return null;

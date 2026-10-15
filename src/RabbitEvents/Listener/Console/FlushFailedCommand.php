@@ -35,9 +35,17 @@ class FlushFailedCommand extends Command
     public function handle(): int
     {
         $queueName = $this->getFailedQueueName();
+        $count = $this->flushQueue($queueName);
+
+        $this->info("All [{$count}] failed messages deleted from [{$queueName}].");
+
+        return 0;
+    }
+
+    protected function flushQueue(string $queueName): int
+    {
         $context = $this->getContext();
         $consumer = $this->getConsumer($context, $queueName);
-
         $count = 0;
 
         while ($message = $consumer->nextMessage(500)) {
@@ -45,8 +53,6 @@ class FlushFailedCommand extends Command
             $count++;
         }
 
-        $this->info("All [{$count}] failed messages deleted from [{$queueName}].");
-
-        return 0;
+        return $count;
     }
 }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\RabbitEvents;
 
 use Illuminate\Support\Facades\DB;
-use RabbitEvents\Publisher\ShouldPublish;
+use RabbitEvents\Publisher\ShouldPublishAfterCommit;
 use RabbitEvents\Publisher\Support\Publishable;
 
 /**
@@ -13,14 +13,9 @@ use RabbitEvents\Publisher\Support\Publishable;
  * This prevents race conditions where another microservice handles the message
  * before data is committed in the database.
  */
-class TransactionalEvent implements ShouldPublish
+class TransactionalEvent implements ShouldPublishAfterCommit
 {
     use Publishable;
-
-    /**
-     * Publish this event only after the active DB transaction successfully commits.
-     */
-    public bool $afterCommit = true;
 
     public function __construct(
         public readonly int $orderId,

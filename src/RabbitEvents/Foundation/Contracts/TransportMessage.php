@@ -40,6 +40,8 @@ interface TransportMessage
 
     public function getRoutingKey(): ?string;
 
+    public function setRoutingKey(?string $routingKey): void;
+
     public function getTimestamp(): ?int;
 
     public function setTimestamp(int $timestamp): void;
@@ -51,4 +53,8 @@ interface TransportMessage
     public function getHeader(string $name, mixed $default = null): mixed;
 
     public function getHeaders(): array;
+
+    public function setHeader(string $name, mixed $value): void;
+
+    public function setHeaders(array $headers): void;
 }

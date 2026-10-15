@@ -11,9 +11,6 @@ class Listener
 {
     public function __construct(
         public readonly string $event,
-        public readonly ?int $tries = null,
-        public readonly ?int $timeout = null,
-        public readonly int|array|null $backoff = null,
     ) {
     }
 }

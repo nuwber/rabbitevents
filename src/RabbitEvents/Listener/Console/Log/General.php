@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener\Console\Log;
 
 use Illuminate\Contracts\Container\Container;
+use RabbitEvents\Listener\Events\ListenerHandled;
 use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 
 class General extends Writer
@@ -42,7 +43,7 @@ class General extends Writer
             'status' => $status,
         ];
 
-        if ($event instanceof \RabbitEvents\Listener\Events\ListenerHandled && $event->duration !== null) {
+        if ($event instanceof ListenerHandled && $event->duration !== null) {
             $payload['duration'] = $event->duration;
         }
 

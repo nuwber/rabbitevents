@@ -6,6 +6,7 @@ namespace RabbitEvents\Listener\Message;
 
 
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use RabbitEvents\Foundation\Contracts\DelaysDelivery;
 use RabbitEvents\Foundation\Contracts\Transport;
 use RabbitEvents\Foundation\Message;
@@ -63,6 +64,7 @@ class Handler
     public function fail(Throwable $exception): void
     {
         $this->markAsFailed();
+        $this->message->markAsFailed();
 
         if ($this->failedCallback && is_callable($this->failedCallback)) {
             ($this->failedCallback)($this->payload(), $exception);
@@ -96,9 +98,13 @@ class Handler
             $this->transport->setDelay($delay);
         }
 
-        $this->transport->send(
-            Message::createFromTransportMessage($this->message->transportMessage())
-        );
+        $retryMessage = Message::createFromTransportMessage($this->message->transportMessage());
+
+        if ($retryMessage->header('x-deduplication-header')) {
+            $retryMessage->setHeader('x-deduplication-header', (string) Str::uuid());
+        }
+
+        $this->transport->send($retryMessage);
 
         $this->released = true;
     }

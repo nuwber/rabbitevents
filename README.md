@@ -6,6 +6,15 @@
 [![Latest Version](https://img.shields.io/packagist/v/rabbitevents/rabbitevents)](https://packagist.org/packages/rabbitevents/rabbitevents)
 [![License](https://img.shields.io/packagist/l/rabbitevents/rabbitevents)](https://packagist.org/packages/rabbitevents/rabbitevents)
 
+> [!IMPORTANT]
+> **Repository & Package Migration Announcement**
+>
+> RabbitEvents has moved to its own dedicated organization!
+> - **GitHub Repository**: [github.com/rabbitevents/rabbitevents](https://github.com/rabbitevents/rabbitevents) (formerly `nuwber/rabbitevents`)
+> - **Composer Package**: `rabbitevents/rabbitevents` (starting from version 10.0)
+>
+> Please update your `composer.json` to require `rabbitevents/rabbitevents:^10.0`. All PHP classes and namespaces (`RabbitEvents\...`) remain identical, so no application code changes are required.
+
 Let's imagine a use case: a User made a payment. You need to handle this payment, register the user, send him emails, send analytics data to your analysis system, and so on. The modern infrastructure requires you to create microservices that do their specific job and only it: one handles payments, one is for user management, one is the mailing system, one is for analysis. How to let all of them know that a payment succeeded and handle this message? The answer is "To use RabbitEvents".
 
 RabbitEvents helps you publish an event and handle it seamlessly in other applications across your microservice ecosystem.
@@ -24,9 +33,8 @@ RabbitEvents helps you publish an event and handle it seamlessly in other applic
    * [Message IDs & Observability](#message-ids)
    * [Idempotency & Deduplication](#deduplication)
    * [Dead Letter Queue (DLQ) & Failed Message Management](#dead-letter-queue)
-   * [Transactional Publishing ($afterCommit)](#transactional-publishing)
+   * [Transactional Publishing (ShouldPublishAfterCommit)](#transactional-publishing)
    * [Distributed Tracing & Context Propagation](#distributed-tracing)
-   * [Zero-Downtime Worker Restarts](#worker-restarts)
 1. [Listeners & Payloads](#listeners-payloads)
 1. [Custom Serializers](#custom-serializers)
 1. [Extensions & Ecosystem](#extensions)
@@ -74,11 +82,15 @@ return [
             'vhost' => env('RABBITEVENTS_VHOST', 'events'),
             'delay_strategy' => env('RABBITEVENTS_DELAY_STRATEGY', RabbitMqDlxDelayStrategy::class),
             
-            // In-memory or plugin-based deduplication
             'deduplication' => [
                 'enabled' => env('RABBITEVENTS_DEDUPLICATION_ENABLED', true),
-                'strategy' => \RabbitEvents\Listener\Deduplication\InMemoryDeduplicator::class,
-                'capacity' => 1000,
+                'strategy' => \RabbitEvents\Foundation\Deduplication\InMemoryDeduplicator::class,
+                'cache_size' => env('RABBITEVENTS_DEDUPLICATION_CACHE_SIZE', 10000),
+            ],
+            
+            'dlx' => [
+                'enabled' => env('RABBITEVENTS_DLX_ENABLED', true),
+                'exchange' => env('RABBITEVENTS_DLX_EXCHANGE', 'rabbitevents.dlx'),
             ],
             
             'ssl' => [
@@ -112,7 +124,9 @@ return [
 
 ## Upgrade from 9.x to 10.x<a name="upgrade_9.x-10.x"></a>
 
-### 1. New Composer Package Name
+### Breaking Changes & Requirements
+
+#### 1. Composer Package Name Changed
 RabbitEvents is now an independent project maintained under `rabbitevents/rabbitevents`.
 To upgrade, replace `nuwber/rabbitevents` in your `composer.json` or run:
 
@@ -121,26 +135,37 @@ composer remove nuwber/rabbitevents
 composer require rabbitevents/rabbitevents:^10.0
 ```
 
-> **Zero Breaking Changes in PHP Code:** The namespace remains `RabbitEvents\...`. You do **not** need to change any `use` statements or event classes in your codebase.
+> **Zero Namespace Changes:** The PHP namespace remains `RabbitEvents\...`. You do **not** need to change any `use` statements or event classes in your codebase.
 
-### 2. Return Value of `publish()`
-The `publish()` helper now returns the generated `string` Message ID (UUIDv4) or `null`, allowing you to record and track message delivery:
+#### 2. PHP 8.2+ and Laravel 11+ Required
+RabbitEvents 10.x requires PHP 8.2 or greater and Laravel 11.0 or greater. Distributed tracing automatically utilizes Laravel's native `Context` facade.
+
+#### 3. Return Value of `publish()`
+The `publish()` helper now returns the generated `string` Message ID (UUIDv4) or `null` instead of `void`:
 
 ```php
 // In 9.x: returned void
-// In 10.x: returns ?string
+// In 10.x: returns ?string ($messageId)
 $messageId = publish('user.registered', $payload);
 ```
 
-### 3. Out-of-the-Box Deduplication
-Deduplication is now enabled by default using an in-memory ring-buffer (`InMemoryDeduplicator`). If you prefer to disable it or use the RabbitMQ deduplication broker plugin, configure the `deduplication` array in `config/rabbitevents.php`.
+#### 4. Existing RabbitMQ Queues & Dead Letter Exchange (DLX)
+In 10.x, Dead Letter Queue routing is enabled by default (`x-dead-letter-exchange: rabbitevents.dlx`).
+Because RabbitMQ queue declaration arguments are immutable:
+* If you have existing queues created by 9.x, RabbitMQ will reject the new declaration with a `PRECONDITION_FAILED` error.
+* **To upgrade smoothly**, either recreate the worker queues (delete them so RabbitEvents redeclares them with DLX) or disable DLX in `config/rabbitevents.php` by setting `'dlx.enabled' => false` (or `RABBITEVENTS_DLX_ENABLED=false`).
 
-### 4. Dead Letter Queue & Management Commands
-When event listeners fail after exhausting attempts, messages are automatically saved to `{queue}.failed` via the `rabbitevents.dlx` Dead Letter Exchange. You can now inspect, retry, or flush failed messages using Artisan commands:
-`php artisan rabbitevents:failed`, `retry`, `forget`, and `flush`.
+#### 5. Removed `rabbitevents:restart` Command
+The deprecated `rabbitevents:restart` command has been removed. Use your process supervisor (Supervisor, Kubernetes, Docker) to restart listener workers gracefully.
 
-### 5. Graceful Worker Restarts
-Like Laravel's `queue:restart`, background workers now listen for restart signals. Add `php artisan rabbitevents:restart` to your deployment script.
+---
+
+### What's New in 10.0
+
+* **Out-of-the-Box Deduplication:** Automatically drops duplicate messages using an in-memory ring buffer (`InMemoryDeduplicator`) without needing MySQL or Redis.
+* **Dead Letter Queue (DLQ) & CLI Management:** Failed messages sitting in `{queue}.failed` can be inspected and managed with `php artisan rabbitevents:failed`, `retry`, `forget`, and `flush`.
+* **Transactional Publishing (`afterCommit`):** Publish events only after database transactions commit via `ShouldPublishAfterCommit` or `$afterCommit = true`.
+* **Distributed Tracing:** Seamlessly propagates Laravel 11 `Context` data across services via `trace_context` headers.
 
 ---
 
@@ -176,9 +201,6 @@ use RabbitEvents\Publisher\Support\Publishable;
 class UserRegistered implements ShouldPublish
 {
     use Publishable;
-
-    // Optional: publish only after the DB transaction commits
-    public bool $afterCommit = true;
 
     public function __construct(public User $user)
     {
@@ -288,15 +310,15 @@ Configure in `config/rabbitevents.php`:
 ```php
 'deduplication' => [
     'enabled' => true,
-    'strategy' => \RabbitEvents\Listener\Deduplication\InMemoryDeduplicator::class,
-    'capacity' => 1000,
+    'strategy' => \RabbitEvents\Foundation\Deduplication\InMemoryDeduplicator::class,
+    'cache_size' => 10000,
 ],
 ```
 
 ### Dead Letter Queue (DLQ) & Failed Message Management<a name="dead-letter-queue"></a>
-When an event listener fails and exhausts all retry attempts (`--tries=3`), RabbitEvents automatically diverts the message to a Dead Letter Exchange (`rabbitevents.dlx`) and stores it in `{queue}.failed`.
+When an event listener fails and exhausts all retry attempts (`--tries=3`), RabbitEvents automatically stores the message in `{queue}.failed`.
 
-The failed message retains its original payload, routing key, timestamp, and diagnostic headers (`x-exception-message`, `x-exception-class`).
+The failed message retains its original payload, routing key, timestamp, and diagnostic headers (`x-exception-message`, `x-exception-class`, `x-failed-at`, `x-original-routing-key`, `x-listener`).
 
 You can inspect and manage failed messages with built-in Artisan commands:
 
@@ -317,25 +339,31 @@ php artisan rabbitevents:forget 3fa85f64-5717-4562-b3fc-2c963f66afa6
 php artisan rabbitevents:flush
 ```
 
-### Transactional Publishing (`$afterCommit`)<a name="transactional-publishing"></a>
-Prevent race conditions by ensuring events are published only after database transactions commit:
+### Transactional Publishing (`afterCommit`)<a name="transactional-publishing"></a>
+Prevent race conditions by ensuring events are published only after database transactions commit. You can implement `ShouldPublishAfterCommit`, set `$afterCommit = true`, or call `->afterCommit()`:
 
 ```php
 use RabbitEvents\Publisher\ShouldPublish;
+use RabbitEvents\Publisher\ShouldPublishAfterCommit;
 use RabbitEvents\Publisher\Support\Publishable;
 
-class InvoicePaid implements ShouldPublish
+// Option 1: Marker interface
+class InvoicePaid implements ShouldPublishAfterCommit
+{
+    use Publishable;
+}
+
+// Option 2: Property or method via Publishable trait
+class OrderShipped implements ShouldPublish
 {
     use Publishable;
 
     public bool $afterCommit = true;
-
-    // ...
 }
 ```
 
 ### Distributed Tracing & Context Propagation<a name="distributed-tracing"></a>
-Laravel 11+ `Context` data is automatically serialized into AMQP headers on publish and hydrated on the listener side, allowing seamless distributed tracing:
+Laravel 11+ `Context` data is automatically serialized into AMQP `trace_context` headers on publish and hydrated on the listener side, allowing seamless distributed tracing:
 
 ```php
 use Illuminate\Support\Facades\Context;
@@ -346,13 +374,6 @@ publish('order.created', $orderData);
 
 // In Service B (Listener):
 // Context::get('trace_id') is automatically restored!
-```
-
-### Zero-Downtime Worker Restarts<a name="worker-restarts"></a>
-During continuous deployment, signal workers to finish their current job and restart gracefully:
-
-```bash
-php artisan rabbitevents:restart
 ```
 
 ## Listeners & Payloads<a name="listeners-payloads"></a>
@@ -491,19 +512,26 @@ use \App\RabbitEvents\AnotherEvent;
 
 Event::fake();
 
-$payload = [
-    'key1' => 'value1',
-    'key2' => 'value2',
-];
+Event::publish(['key1' => 'value1', 'key2' => 'value2']);
 
-Event::publish($payload);
+// Assert event was published
+Event::assertPublished();
 
-Event::assertPublished('something.happened', $payload);
+// Assert with closure
+Event::assertPublished(function ($event, $payload) {
+    return $payload['key1'] === 'value1';
+});
 
+// Assert published exact number of times
+Event::assertPublishedTimes(1);
+
+// Assert an event was not published
 AnotherEvent::assertNotPublished();
+
+// Assert nothing was published
+Event::assertNothingPublished();
 ```
 
-If the assertion does not pass, `Mockery\Exception\InvalidCountException` will be thrown.\
 Don't forget to call `\Mockery::close()` in `tearDown` or similar methods of your tests.
 
 ## Non-standard use <a name="non-standard-use"></a>

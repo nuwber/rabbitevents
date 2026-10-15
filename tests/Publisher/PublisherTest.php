@@ -36,17 +36,12 @@ class PublisherTest extends TestCase
 
     public function testPublishAfterCommit(): void
     {
-        $event = new SomeEvent(new SomeModel(), ['foo' => 'bar'], 'Hello!');
-        $event->afterCommit = true;
+        $event = new SomeEventAfterCommit(new SomeModel(), ['foo' => 'bar'], 'Hello!');
 
         $dbMock = m::mock();
-        $dbMock->shouldReceive('afterCommit')->once()->andReturnUsing(function ($callback) {
+        $dbMock->shouldReceive('addCallback')->once()->andReturnUsing(function ($callback) {
             $callback();
         });
-
-        $container = new \Illuminate\Container\Container();
-        $container->instance('db', $dbMock);
-        \Illuminate\Container\Container::setInstance($container);
 
         $messageMock = m::mock(Message::class);
         $messageMock->shouldReceive('id')->andReturn('mock-message-id');
@@ -57,11 +52,42 @@ class PublisherTest extends TestCase
         $sender = m::mock(Transport::class);
         $sender->shouldReceive()->send($messageMock)->once();
 
-        $publisher = new Publisher($messageFactory, $sender);
+        $publisher = (new Publisher($messageFactory, $sender))
+            ->setTransactionManagerResolver(fn() => $dbMock);
         $result = $publisher->publish($event);
 
         self::assertNull($result);
     }
+
+    public function testPublishAfterCommitViaProperty(): void
+    {
+        $event = (new SomeEvent(new SomeModel(), ['foo' => 'bar'], 'Hello!'))->afterCommit();
+
+        $managerMock = m::mock();
+        $managerMock->shouldReceive('addCallback')->once()->andReturnUsing(function ($callback) {
+            $callback();
+        });
+
+        $messageMock = m::mock(Message::class);
+        $messageMock->shouldReceive('id')->andReturn('mock-message-id');
+
+        $messageFactory = m::mock(MessageFactory::class);
+        $messageFactory->shouldReceive()->make($event)->andReturn($messageMock);
+
+        $sender = m::mock(Transport::class);
+        $sender->shouldReceive()->send($messageMock)->once();
+
+        $publisher = (new Publisher($messageFactory, $sender))
+            ->setTransactionManagerResolver(fn() => $managerMock);
+
+        $result = $publisher->publish($event);
+
+        self::assertNull($result);
+    }
+}
+
+class SomeEventAfterCommit extends SomeEvent implements \RabbitEvents\Publisher\ShouldPublishAfterCommit
+{
 }
 
 class SomeEvent extends AbstractPublishableEvent

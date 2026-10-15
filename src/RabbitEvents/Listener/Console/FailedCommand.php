@@ -6,7 +6,6 @@ namespace RabbitEvents\Listener\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
-use RabbitEvents\Foundation\Message;
 
 class FailedCommand extends Command
 {
@@ -37,55 +36,45 @@ class FailedCommand extends Command
      */
     public function handle(): int
     {
-        $queueName = $this->getFailedQueueName();
-        $context = $this->getContext();
-        $consumer = $this->getConsumer($context, $queueName);
-
-        $limit = (int) $this->option('limit');
-        $rows = [];
-        $seen = [];
-
-        while (count($rows) < $limit) {
-            $message = $consumer->nextMessage(500);
-
-            if (!$message) {
-                break;
-            }
-
-            $id = $message->id() ?? 'N/A';
-
-            if (isset($seen[$id])) {
-                $consumer->reject($message, true);
-                break;
-            }
-
-            $seen[$id] = true;
-
-            $failedAt = $message->header('x-failed-at');
-            $failedAtStr = $failedAt ? Carbon::createFromTimestamp((int) $failedAt)->toDateTimeString() : 'Unknown';
-
-            $exception = $message->header('x-exception-message')
-                ?? $message->header('x-exception-class')
-                ?? 'Unknown exception';
-
-            $rows[] = [
-                $id,
-                $message->event(),
-                $failedAtStr,
-                $exception,
-            ];
-
-            // Requeue so the message is not deleted
-            $consumer->reject($message, true);
-        }
+        $rows = $this->getFailedMessages((int) $this->option('limit'));
 
         if (empty($rows)) {
-            $this->info("No failed messages found in [{$queueName}].");
+            $this->info("No failed messages found in [{$this->getFailedQueueName()}].");
             return 0;
         }
 
-        $this->table(['ID', 'Event', 'Failed At', 'Exception'], $rows);
+        $this->displayFailedMessages($rows);
 
         return 0;
+    }
+
+    protected function getFailedMessages(int $limit): array
+    {
+        $rows = [];
+
+        $this->eachFailedMessage(function ($message, $consumer) use (&$rows, $limit) {
+            $rows[] = $this->formatRow($message);
+
+            $consumer->reject($message, true);
+
+            return count($rows) < $limit;
+        });
+
+        return $rows;
+    }
+
+    protected function formatRow($message): array
+    {
+        return [
+            $message->id() ?? 'N/A',
+            $this->extractEvent($message),
+            $this->extractFailedAt($message),
+            $this->extractException($message),
+        ];
+    }
+
+    protected function displayFailedMessages(array $rows): void
+    {
+        $this->table(['ID', 'Event', 'Failed At', 'Exception'], $rows);
     }
 }

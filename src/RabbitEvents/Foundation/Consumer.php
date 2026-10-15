@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace RabbitEvents\Foundation;
 
 use Illuminate\Support\Carbon;
-use RabbitEvents\Foundation\Contracts\HandlesFailedMessages;
 use RabbitEvents\Foundation\Contracts\QueueConsumer;
 use RabbitEvents\Foundation\Contracts\Serializer;
 use RabbitEvents\Foundation\Contracts\TransportMessage;
@@ -74,19 +73,5 @@ class Consumer
     public function reject(Message $message, bool $requeue = false): void
     {
         $this->consumer->reject($message->transportMessage(), $requeue);
-    }
-
-    public function fail(Message $message, \Throwable $exception): void
-    {
-        if ($this->consumer instanceof HandlesFailedMessages) {
-            $this->consumer->fail($message->transportMessage(), $exception);
-        } else {
-            $this->acknowledge($message);
-        }
-    }
-
-    public function handlesFailedMessages(): bool
-    {
-        return $this->consumer instanceof HandlesFailedMessages;
     }
 }

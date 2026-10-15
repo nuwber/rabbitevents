@@ -19,6 +19,8 @@ class Message
      */
     private ?TransportMessage $transportMessage = null;
 
+    private bool $failed = false;
+
     public function __construct(
         public readonly string $event,
         public readonly Payload $payload,
@@ -70,24 +72,19 @@ class Message
 
     public function header(string $name, mixed $default = null): mixed
     {
-        $transport = $this->transportMessage();
-        if (method_exists($transport, 'getHeader')) {
-            return $transport->getHeader($name, $default);
-        }
-
-        $headers = $this->headers();
-        return $headers[$name] ?? $default;
+        return $this->transportMessage()->getHeader($name, $default);
     }
 
     public function headers(): array
     {
-        $transport = $this->transportMessage();
-        if (method_exists($transport, 'getHeaders')) {
-            return $transport->getHeaders();
-        }
+        return $this->transportMessage()->getHeaders();
+    }
 
-        $properties = $transport->getProperties();
-        return is_array($properties['headers'] ?? null) ? $properties['headers'] : [];
+    public function setHeader(string $name, mixed $value): self
+    {
+        $this->transportMessage()->setHeader($name, $value);
+
+        return $this;
     }
 
     public function attempts(): int
@@ -111,5 +108,17 @@ class Message
         $this->transportMessage = $transportMessage;
 
         return $this;
+    }
+
+    public function markAsFailed(): self
+    {
+        $this->failed = true;
+
+        return $this;
+    }
+
+    public function hasFailed(): bool
+    {
+        return $this->failed;
     }
 }

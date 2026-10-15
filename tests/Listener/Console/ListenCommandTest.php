@@ -106,6 +106,7 @@ class ListenCommandTest extends TestCase
         $context->shouldReceive('makeQueue')->once()->andReturn($destination);
         $context->shouldReceive('createProducer')->once()->andReturn($producer);
         $context->shouldReceive('makeConsumer')->once()->andReturn($consumer);
+        $context->shouldReceive('getDeduplicator')->once()->andReturn(new \RabbitEvents\Foundation\Deduplication\NullDeduplicator());
 
         $worker->shouldReceive('work')->once()->andReturn(WorkerExitStatus::SUCCESS);
 
@@ -144,6 +145,7 @@ class ListenCommandTest extends TestCase
         $context->shouldReceive('makeQueue')->once()->andReturn($destination);
         $context->shouldReceive('createProducer')->once()->andReturn($producer);
         $context->shouldReceive('makeConsumer')->once()->andReturn($consumer);
+        $context->shouldReceive('getDeduplicator')->once()->andReturn(new \RabbitEvents\Foundation\Deduplication\NullDeduplicator());
 
         $worker->shouldReceive('work')->once()->andReturn(WorkerExitStatus::SUCCESS);
 

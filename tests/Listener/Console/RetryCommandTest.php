@@ -7,27 +7,27 @@ namespace RabbitEvents\Tests\Listener\Console;
 use ArrayAccess;
 use Illuminate\Console\OutputStyle;
 use Illuminate\Container\Container;
-use Mockery as m;
-use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Context;
-use RabbitEvents\Foundation\Contracts\Destination;
-use RabbitEvents\Foundation\Contracts\Producer;
-use RabbitEvents\Foundation\Contracts\TransportMessage;
-use RabbitEvents\Foundation\Message;
+use RabbitEvents\Foundation\Serialization\JsonSerializer;
+use RabbitEvents\Foundation\Serialization\SerializerRegistry;
 use RabbitEvents\Listener\Console\RetryCommand;
+use RabbitEvents\Tests\Foundation\Stubs\ConnectionStub;
+use RabbitEvents\Tests\Foundation\Stubs\ProducerStub;
+use RabbitEvents\Tests\Foundation\Stubs\QueueConsumerStub;
+use RabbitEvents\Tests\Foundation\Stubs\TransportMessageStub;
 use RabbitEvents\Tests\Listener\TestCase;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 
 class RetryCommandTest extends TestCase
 {
-    private function createMockApplication(): Container
+    private function createMockApplication(array $config = []): Container
     {
         $app = new Container();
-        $configObj = new class([
+        $configObj = new class(array_merge([
             'app.name' => 'test-service',
             'rabbitevents.default' => 'rabbitmq',
-        ]) implements ArrayAccess {
+        ], $config)) implements ArrayAccess {
             public function __construct(private array $items) {}
             public function offsetExists($offset): bool { return isset($this->items[$offset]); }
             public function offsetGet($offset): mixed { return $this->items[$offset] ?? null; }
@@ -39,6 +39,51 @@ class RetryCommandTest extends TestCase
         $app->instance('config', $configObj);
 
         return $app;
+    }
+
+    private function createContext(array $messages = []): array
+    {
+        $consumer = new QueueConsumerStub($messages);
+        $producer = new ProducerStub();
+
+        $connection = new ConnectionStub();
+        $connection->consumer = $consumer;
+        $connection->producer = $producer;
+
+        $registry = new SerializerRegistry();
+        $registry->register(new JsonSerializer());
+
+        $context = new Context($connection, $registry);
+
+        return [$context, $producer, $consumer];
+    }
+
+    private function createFailedTransportMessage(
+        string $id,
+        string $event = 'order.created',
+        ?string $originalQueue = null
+    ): TransportMessageStub {
+        $headers = [
+            'x-original-routing-key' => $event,
+            'x-failed-at' => (string) time(),
+            'x-exception-message' => 'Something failed',
+        ];
+
+        if ($originalQueue) {
+            $headers['x-death'] = [['queue' => $originalQueue, 'reason' => 'rejected']];
+        }
+
+        return new TransportMessageStub(
+            body: json_encode(['data' => 'test']),
+            properties: [
+                'message_id' => $id,
+                'content_type' => 'application/json',
+                'event' => $event,
+                'routing_key' => $event,
+                'x-attempts' => 3,
+                'headers' => $headers,
+            ]
+        );
     }
 
     public function test_requires_id_or_all_flag(): void
@@ -65,31 +110,8 @@ class RetryCommandTest extends TestCase
     {
         $app = $this->createMockApplication();
 
-        $transportMessage = m::mock(TransportMessage::class);
-        $transportMessage->shouldReceive('setRoutingKey')->with('order.created')->once();
-
-        $message = m::mock(Message::class);
-        $message->shouldReceive('id')->andReturn('msg-123');
-        $message->shouldReceive('event')->andReturn('order.created');
-        $message->shouldReceive('header')->with('x-original-routing-key')->andReturn('order.created');
-        $message->shouldReceive('transportMessage')->andReturn($transportMessage);
-
-        $consumer = m::mock(Consumer::class);
-        $consumer->shouldReceive('nextMessage')->with(500)->andReturn($message);
-        $consumer->shouldReceive('acknowledge')->with($message)->once();
-
-        $topic = m::mock(Destination::class);
-        $queueDestination = m::mock(Destination::class);
-
-        $producer = m::mock(Producer::class);
-        $producer->shouldReceive('send')->with($topic, $transportMessage)->once();
-
-        $context = m::mock(Context::class);
-        $context->shouldReceive('makeTopic')->andReturn($topic);
-        $context->shouldReceive('makeQueue')->with('test-service:.failed', [], $topic)->andReturn($queueDestination);
-        $context->shouldReceive('makeConsumer')->with($queueDestination)->andReturn($consumer);
-        $context->shouldReceive('createProducer')->andReturn($producer);
-
+        $transportMsg = $this->createFailedTransportMessage('msg-123', 'order.created');
+        [$context, $producer, $consumer] = $this->createContext([$transportMsg]);
         $app->instance(Context::class, $context);
 
         $command = new RetryCommand();
@@ -106,38 +128,22 @@ class RetryCommandTest extends TestCase
         $result = $command->handle();
 
         self::assertEquals(0, $result);
-        self::assertStringContainsString('The failed message [msg-123] has been pushed back onto the exchange!', $bufferedOutput->fetch());
+        self::assertStringContainsString('The failed message [msg-123] has been pushed back onto the queue!', $bufferedOutput->fetch());
+
+        self::assertCount(1, $producer->sent);
+        self::assertEquals('test-service:', $producer->sent[0]['destination']->getName());
+        self::assertEquals(0, $producer->sent[0]['message']->getProperty('x-attempts'));
+        self::assertEquals('order.created', $producer->sent[0]['message']->getRoutingKey());
+        self::assertCount(1, $consumer->acknowledged);
     }
 
     public function test_retries_all_messages(): void
     {
         $app = $this->createMockApplication();
 
-        $transportMsg1 = m::mock(TransportMessage::class);
-        $transportMsg1->shouldReceive('setRoutingKey')->with('order.created')->once();
-
-        $msg1 = m::mock(Message::class);
-        $msg1->shouldReceive('id')->andReturn('msg-1');
-        $msg1->shouldReceive('event')->andReturn('order.created');
-        $msg1->shouldReceive('header')->with('x-original-routing-key')->andReturn('order.created');
-        $msg1->shouldReceive('transportMessage')->andReturn($transportMsg1);
-
-        $consumer = m::mock(Consumer::class);
-        $consumer->shouldReceive('nextMessage')->with(500)->andReturn($msg1, null);
-        $consumer->shouldReceive('acknowledge')->with($msg1)->once();
-
-        $topic = m::mock(Destination::class);
-        $queueDestination = m::mock(Destination::class);
-
-        $producer = m::mock(Producer::class);
-        $producer->shouldReceive('send')->with($topic, $transportMsg1)->once();
-
-        $context = m::mock(Context::class);
-        $context->shouldReceive('makeTopic')->andReturn($topic);
-        $context->shouldReceive('makeQueue')->with('test-service:.failed', [], $topic)->andReturn($queueDestination);
-        $context->shouldReceive('makeConsumer')->with($queueDestination)->andReturn($consumer);
-        $context->shouldReceive('createProducer')->andReturn($producer);
-
+        $msg1 = $this->createFailedTransportMessage('msg-1', 'order.created');
+        $msg2 = $this->createFailedTransportMessage('msg-2', 'user.registered');
+        [$context, $producer, $consumer] = $this->createContext([$msg1, $msg2]);
         $app->instance(Context::class, $context);
 
         $command = new RetryCommand();
@@ -155,7 +161,68 @@ class RetryCommandTest extends TestCase
 
         self::assertEquals(0, $result);
         $outputContent = $bufferedOutput->fetch();
-        self::assertStringContainsString('The failed message [msg-1] has been pushed back onto the exchange!', $outputContent);
-        self::assertStringContainsString('Retried 1 failed message(s).', $outputContent);
+        self::assertStringContainsString('The failed message [msg-1] has been pushed back onto the queue!', $outputContent);
+        self::assertStringContainsString('The failed message [msg-2] has been pushed back onto the queue!', $outputContent);
+        self::assertStringContainsString('Retried 2 failed message(s).', $outputContent);
+
+        self::assertCount(2, $producer->sent);
+        self::assertCount(2, $consumer->acknowledged);
+    }
+
+    public function test_retries_message_to_queue_extracted_from_x_death(): void
+    {
+        $app = $this->createMockApplication();
+
+        $transportMsg = $this->createFailedTransportMessage('msg-999', 'order.created', 'custom-worker-queue');
+        [$context, $producer, $consumer] = $this->createContext([$transportMsg]);
+        $app->instance(Context::class, $context);
+
+        $command = new RetryCommand();
+        $command->setLaravel($app);
+
+        $input = new ArrayInput(['id' => 'msg-999']);
+        $bufferedOutput = new BufferedOutput();
+        $output = new OutputStyle($input, $bufferedOutput);
+
+        $input->bind($command->getDefinition());
+        $command->setInput($input);
+        $command->setOutput($output);
+
+        $result = $command->handle();
+
+        self::assertEquals(0, $result);
+        self::assertStringContainsString('The failed message [msg-999] has been pushed back onto the queue!', $bufferedOutput->fetch());
+
+        self::assertCount(1, $producer->sent);
+        self::assertEquals('custom-worker-queue', $producer->sent[0]['destination']->getName());
+        self::assertEquals(0, $producer->sent[0]['message']->getProperty('x-attempts'));
+        self::assertCount(1, $consumer->acknowledged);
+    }
+
+    public function test_reports_error_when_message_id_not_found(): void
+    {
+        $app = $this->createMockApplication();
+
+        $msg1 = $this->createFailedTransportMessage('msg-1', 'order.created');
+        [$context, $producer, $consumer] = $this->createContext([$msg1]);
+        $app->instance(Context::class, $context);
+
+        $command = new RetryCommand();
+        $command->setLaravel($app);
+
+        $input = new ArrayInput(['id' => 'nonexistent-id']);
+        $bufferedOutput = new BufferedOutput();
+        $output = new OutputStyle($input, $bufferedOutput);
+
+        $input->bind($command->getDefinition());
+        $command->setInput($input);
+        $command->setOutput($output);
+
+        $result = $command->handle();
+
+        self::assertEquals(1, $result);
+        self::assertStringContainsString('Failed message [nonexistent-id] not found.', $bufferedOutput->fetch());
+        self::assertCount(0, $producer->sent);
+        self::assertCount(1, $consumer->rejected);
     }
 }

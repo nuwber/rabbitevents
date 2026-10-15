@@ -6,6 +6,7 @@ namespace RabbitEvents\Listener;
 
 use Closure;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Container\Container as ContainerContract;
 use Illuminate\Events\Dispatcher as BaseDispatcher;
 use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\Arr;
@@ -13,6 +14,11 @@ use Illuminate\Support\Str;
 
 class Dispatcher extends BaseDispatcher
 {
+    public function __construct(?ContainerContract $container = null)
+    {
+        parent::__construct($container ?? new Container());
+    }
+
     /**
      * @return array
      */
@@ -123,7 +129,7 @@ class Dispatcher extends BaseDispatcher
                 $throughMiddleware
             );
 
-            return (new Pipeline($this->container ?? Container::getInstance()))
+            return (new Pipeline($this->container))
                 ->send($payload)
                 ->through($pipes)
                 ->then(function ($payload) use ($listener, $wildcard, $event) {
@@ -173,7 +179,7 @@ class Dispatcher extends BaseDispatcher
         if (is_string($listener)) {
             [$class,] = Str::parseCallback($listener);
 
-            return $this->container ? $this->container->instance($class, $this->container->make($class)) : new $class();
+            return $this->container->instance($class, $this->container->make($class));
         }
 
         if (is_object($listener)) {
@@ -202,7 +208,7 @@ class Dispatcher extends BaseDispatcher
         }
 
         if (method_exists($instance, 'middleware')) {
-            $result[] = $this->createMiddlewareCallable($instance);
+            $result[] = [$instance, 'middleware'];
         }
 
         return $result;
@@ -210,16 +216,16 @@ class Dispatcher extends BaseDispatcher
 
     protected function createMiddlewareCallable($mixed): callable
     {
-        if (is_object($mixed) && method_exists($mixed, 'middleware')) {
-            return [$mixed, 'middleware'];
+        if (is_callable($mixed)) {
+            return $mixed;
         }
 
         if (is_object($mixed) && method_exists($mixed, 'handle')) {
             return [$mixed, 'handle'];
         }
 
-        if (is_callable($mixed)) {
-            return $mixed;
+        if (is_object($mixed) && method_exists($mixed, 'middleware')) {
+            return [$mixed, 'middleware'];
         }
 
         if (is_string($mixed)) {

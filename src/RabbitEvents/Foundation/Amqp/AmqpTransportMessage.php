@@ -43,6 +43,11 @@ class AmqpTransportMessage implements TransportMessage
         return $this->message->getRoutingKey();
     }
 
+    public function setRoutingKey(?string $routingKey): void
+    {
+        $this->message->setRoutingKey($routingKey);
+    }
+
     public function getTimestamp(): ?int
     {
         return $this->message->getTimestamp();
@@ -65,22 +70,45 @@ class AmqpTransportMessage implements TransportMessage
 
     public function getHeader(string $name, mixed $default = null): mixed
     {
-        return $this->message->getHeader($name, $default);
+        $headers = $this->getHeaders();
+
+        return $headers[$name] ?? $default;
     }
 
     public function getHeaders(): array
     {
-        return $this->message->getHeaders();
+        $headers = $this->message->getHeaders();
+        $properties = $this->message->getProperties();
+
+        $nestedHeaders = is_array($properties['headers'] ?? null) ? $properties['headers'] : [];
+
+        return array_merge($properties, $headers, $nestedHeaders);
     }
 
     public function setHeader(string $name, mixed $value): void
     {
         $this->message->setHeader($name, $value);
+        $this->message->setProperty($name, $value);
+
+        $properties = $this->message->getProperties();
+        if (isset($properties['headers']) && is_array($properties['headers'])) {
+            $properties['headers'][$name] = $value;
+            $this->message->setProperty('headers', $properties['headers']);
+        }
     }
 
     public function setHeaders(array $headers): void
     {
         $this->message->setHeaders($headers);
+        foreach ($headers as $name => $value) {
+            $this->message->setProperty((string) $name, $value);
+        }
+
+        $properties = $this->message->getProperties();
+        if (isset($properties['headers']) && is_array($properties['headers'])) {
+            $properties['headers'] = array_merge($properties['headers'], $headers);
+            $this->message->setProperty('headers', $properties['headers']);
+        }
     }
 
     public function __call(string $method, array $args)

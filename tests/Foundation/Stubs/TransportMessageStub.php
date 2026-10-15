@@ -47,6 +47,11 @@ class TransportMessageStub implements TransportMessage
         return $this->getProperty('routing_key', $this->getProperty('event'));
     }
 
+    public function setRoutingKey(?string $routingKey): void
+    {
+        $this->setProperty('routing_key', $routingKey);
+    }
+
     public function getTimestamp(): ?int
     {
         return $this->getProperty('timestamp');
@@ -76,5 +81,17 @@ class TransportMessageStub implements TransportMessage
     public function getHeaders(): array
     {
         return (array) $this->getProperty('headers', []);
+    }
+
+    public function setHeader(string $name, mixed $value): void
+    {
+        $headers = $this->getHeaders();
+        $headers[$name] = $value;
+        $this->setHeaders($headers);
+    }
+
+    public function setHeaders(array $headers): void
+    {
+        $this->setProperty('headers', $headers);
     }
 }
