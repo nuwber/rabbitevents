@@ -1,7 +1,6 @@
 # RabbitEvents
 
-[![Tests Status](https://github.com/rabbitevents/rabbitevents/workflows/Unit%20tests/badge.svg)](https://github.com/rabbitevents/rabbitevents/actions?query=branch%3Amaster+workflow%3A%22Unit+tests%22)
-[![codecov](https://codecov.io/gh/rabbitevents/rabbitevents/branch/master/graph/badge.svg?token=8E9CY6866R)](https://codecov.io/gh/rabbitevents/rabbitevents)
+[![Tests Status](https://github.com/rabbitevents/rabbitevents/workflows/Unit%20tests/badge.svg?branch=10.x)](https://github.com/rabbitevents/rabbitevents/actions?query=branch%3A10.x+workflow%3A%22Unit+tests%22)
 [![Total Downloads](https://img.shields.io/packagist/dt/nuwber/rabbitevents)](https://packagist.org/packages/nuwber/rabbitevents)
 [![Latest Version](https://img.shields.io/packagist/v/rabbitevents/rabbitevents)](https://packagist.org/packages/rabbitevents/rabbitevents)
 [![License](https://img.shields.io/packagist/l/rabbitevents/rabbitevents)](https://packagist.org/packages/rabbitevents/rabbitevents)

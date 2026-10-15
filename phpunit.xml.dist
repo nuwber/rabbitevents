@@ -11,7 +11,9 @@
       <directory suffix="Test.php">./tests</directory>
     </testsuite>
   </testsuites>
-  <logging/>
+  <logging>
+    <junit outputFile="junit.xml"/>
+  </logging>
   <source>
     <include>
       <directory suffix=".php">src</directory>
