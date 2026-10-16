@@ -16,9 +16,9 @@ class Context
     ) {
     }
 
-    public function makeTopic(): Destination
+    public function makeTopic(?string $name = null): Destination
     {
-        return $this->connection->makeTopic();
+        return $this->connection->makeTopic($name);
     }
 
     public function createProducer(): Producer

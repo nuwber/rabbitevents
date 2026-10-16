@@ -23,7 +23,7 @@ jobs:
         run: composer install -o -q
 
       - name: phpunit
-        run: phpunit -c phpunit.xml.dist
+        run: phpunit -c phpunit.xml.dist --log-junit junit.xml
 
       - name: Publish Test & Coverage Summary
         if: always()

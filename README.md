@@ -304,7 +304,7 @@ Listener worker console logs display the message ID and execution time in real-t
 ### Idempotency & Deduplication<a name="deduplication"></a>
 In distributed systems, network retries can cause duplicate message deliveries. RabbitEvents prevents duplicate execution:
 
-* **In-Memory Ring Buffer (Default)**: Automatically remembers the last `N` processed message IDs in worker memory. Requires **zero** dependencies.
+* **In-Memory Ring Buffer (Default)**: Automatically remembers the last `N` processed message IDs in the current worker process's memory. Requires **zero** dependencies. Note: Because it is per-process and lost on worker restart, it protects against redelivery to the same worker after all listeners have succeeded. For cross-worker or persistent deduplication, use the RabbitMQ plugin or ensure your listeners are idempotent.
 * **RabbitMQ Message Deduplication Plugin**: For broker-level deduplication across multiple horizontally scaled workers using the [rabbitmq-message-deduplication](https://github.com/noxdafox/rabbitmq-message-deduplication) plugin.
 
 Configure in `config/rabbitevents.php`:
@@ -319,19 +319,25 @@ Configure in `config/rabbitevents.php`:
 ### Dead Letter Queue (DLQ) & Failed Message Management<a name="dead-letter-queue"></a>
 When an event listener fails and exhausts all retry attempts (`--tries=3`), RabbitEvents automatically stores the message in `{queue}.failed`.
 
-The failed message retains its original payload, routing key, timestamp, and diagnostic headers (`x-exception-message`, `x-exception-class`, `x-failed-at`, `x-original-routing-key`, `x-listener`).
+The failed message retains its original payload, routing key, timestamp, and diagnostic headers (`x-exception-message`, `x-exception-class`, `x-exception-trace`, `x-failed-at`, `x-original-routing-key`, `x-listener`, `trace_context`).
 
 You can inspect and manage failed messages with built-in Artisan commands:
 
 ```bash
 # List all failed messages
 php artisan rabbitevents:failed
+# Or target a specific queue or registered events
+php artisan rabbitevents:failed --events="user.registered,order.*"
+php artisan rabbitevents:failed --queue=my-custom-queue
 
 # Retry a specific failed event by its ID
 php artisan rabbitevents:retry 3fa85f64-5717-4562-b3fc-2c963f66afa6
+# Or retry within a specific queue/event scope
+php artisan rabbitevents:retry 3fa85f64-5717-4562-b3fc-2c963f66afa6 --events="user.registered"
 
 # Retry all failed events
 php artisan rabbitevents:retry --all
+php artisan rabbitevents:retry --all --events="user.registered"
 
 # Delete a failed message from the failed queue
 php artisan rabbitevents:forget 3fa85f64-5717-4562-b3fc-2c963f66afa6
@@ -339,6 +345,11 @@ php artisan rabbitevents:forget 3fa85f64-5717-4562-b3fc-2c963f66afa6
 # Flush (purge) all messages from the failed queue
 php artisan rabbitevents:flush
 ```
+
+> [!TIP]
+> **Zero-Downtime Coexistence with RabbitEvents 9.x**
+> Existing queues declared under RabbitEvents 9.x continue working seamlessly without requiring manual queue deletion or migration. If an existing queue lacks RabbitMQ DLX arguments, RabbitEvents 10.x logs a warning and automatically activates application-level dead-letter routing to deliver failed messages to `{queue}.failed`.
+
 
 ### Transactional Publishing (`afterCommit`)<a name="transactional-publishing"></a>
 Prevent race conditions by ensuring events are published only after database transactions commit. You can implement `ShouldPublishAfterCommit`, set `$afterCommit = true`, or call `->afterCommit()`:

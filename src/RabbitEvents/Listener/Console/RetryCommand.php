@@ -20,8 +20,10 @@ class RetryCommand extends Command
      */
     protected $signature = 'rabbitevents:retry
                             {id? : The ID of the failed message to retry or "all"}
+                            {events? : The events the queue was listening for}
+                            {--events= : The events the queue was listening for}
                             {--all : Retry all failed messages}
-                            {--queue= : The failed queue name}
+                            {--queue= : The failed queue name (e.g. service:events.failed)}
                             {--connection= : The connection name}
                             {--service= : The service name}';
 
@@ -82,8 +84,6 @@ class RetryCommand extends Command
                 if (!is_null($targetId)) {
                     return false;
                 }
-            } else {
-                $consumer->reject($message, true);
             }
 
             return true;

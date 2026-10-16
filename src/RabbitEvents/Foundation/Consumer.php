@@ -67,6 +67,7 @@ class Consumer
 
     public function acknowledge(Message $message): void
     {
+        $message->markAsAcknowledged();
         $this->consumer->acknowledge($message->transportMessage());
     }
 

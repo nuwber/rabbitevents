@@ -102,12 +102,13 @@ class ListenCommandTest extends TestCase
         $consumer = m::mock(\RabbitEvents\Foundation\Consumer::class);
         $producer = m::mock(Producer::class);
 
-        $context->shouldReceive('makeTopic')->once()->andReturn($destination);
+        $context->shouldReceive('makeTopic')->andReturn($destination);
         $context->shouldReceive('makeQueue')->once()->andReturn($destination);
-        $context->shouldReceive('createProducer')->once()->andReturn($producer);
+        $context->shouldReceive('createProducer')->andReturn($producer);
         $context->shouldReceive('makeConsumer')->once()->andReturn($consumer);
         $context->shouldReceive('getDeduplicator')->once()->andReturn(new \RabbitEvents\Foundation\Deduplication\NullDeduplicator());
 
+        $worker->shouldReceive('setFailer')->once();
         $worker->shouldReceive('work')->once()->andReturn(WorkerExitStatus::SUCCESS);
 
         $result = $command->handle($context, $worker);
@@ -141,12 +142,13 @@ class ListenCommandTest extends TestCase
         $consumer = m::mock(\RabbitEvents\Foundation\Consumer::class);
         $producer = m::mock(Producer::class);
 
-        $context->shouldReceive('makeTopic')->once()->andReturn($destination);
+        $context->shouldReceive('makeTopic')->andReturn($destination);
         $context->shouldReceive('makeQueue')->once()->andReturn($destination);
-        $context->shouldReceive('createProducer')->once()->andReturn($producer);
+        $context->shouldReceive('createProducer')->andReturn($producer);
         $context->shouldReceive('makeConsumer')->once()->andReturn($consumer);
         $context->shouldReceive('getDeduplicator')->once()->andReturn(new \RabbitEvents\Foundation\Deduplication\NullDeduplicator());
 
+        $worker->shouldReceive('setFailer')->once();
         $worker->shouldReceive('work')->once()->andReturn(WorkerExitStatus::SUCCESS);
 
         $result = $command->handle($context, $worker);

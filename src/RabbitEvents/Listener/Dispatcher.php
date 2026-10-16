@@ -138,20 +138,13 @@ class Dispatcher extends BaseDispatcher
         };
     }
 
+    protected static array $middlewareExpectsNextCache = [];
+
     protected function wrapMiddlewareIntoPipelineStage(callable $middleware, string $event, bool $wildcard): Closure
     {
-        return function ($passable, $next) use ($middleware, $event, $wildcard) {
-            $reflector = is_array($middleware)
-                ? new \ReflectionMethod($middleware[0], $middleware[1])
-                : new \ReflectionFunction(\Closure::fromCallable($middleware));
+        $expectsNext = $this->middlewareExpectsNext($middleware);
 
-            $parameters = $reflector->getParameters();
-            $lastParam = !empty($parameters) ? end($parameters) : null;
-            $expectsNext = $lastParam && (
-                $lastParam->getName() === 'next' ||
-                ($lastParam->hasType() && in_array((string) $lastParam->getType(), [\Closure::class, 'callable', '?\Closure']))
-            );
-
+        return function ($passable, $next) use ($middleware, $event, $wildcard, $expectsNext) {
             if ($expectsNext) {
                 return $wildcard
                     ? ($middleware)($event, $passable, $next)
@@ -168,6 +161,45 @@ class Dispatcher extends BaseDispatcher
 
             return $next($passable);
         };
+    }
+
+    protected function middlewareExpectsNext(callable $middleware): bool
+    {
+        $key = is_array($middleware)
+            ? (is_object($middleware[0]) ? get_class($middleware[0]) : $middleware[0]) . '@' . $middleware[1]
+            : ($middleware instanceof \Closure ? spl_object_hash($middleware) : (string) $middleware);
+
+        if (isset(static::$middlewareExpectsNextCache[$key])) {
+            return static::$middlewareExpectsNextCache[$key];
+        }
+
+        $reflector = is_array($middleware)
+            ? new \ReflectionMethod($middleware[0], $middleware[1])
+            : new \ReflectionFunction(\Closure::fromCallable($middleware));
+
+        $parameters = $reflector->getParameters();
+        $lastParam = !empty($parameters) ? end($parameters) : null;
+
+        $expectsNext = false;
+        if ($lastParam) {
+            if ($lastParam->getName() === 'next') {
+                $expectsNext = true;
+            } elseif ($lastParam->hasType()) {
+                $type = $lastParam->getType();
+                $types = $type instanceof \ReflectionUnionType ? $type->getTypes() : [$type];
+                foreach ($types as $namedType) {
+                    if ($namedType instanceof \ReflectionNamedType) {
+                        $typeName = ltrim($namedType->getName(), '\\');
+                        if (in_array($typeName, ['Closure', 'callable'], true)) {
+                            $expectsNext = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return static::$middlewareExpectsNextCache[$key] = $expectsNext;
     }
 
     protected function makeListenerInstance($listener)
@@ -216,16 +248,16 @@ class Dispatcher extends BaseDispatcher
 
     protected function createMiddlewareCallable($mixed): callable
     {
-        if (is_callable($mixed)) {
-            return $mixed;
+        if (is_object($mixed) && method_exists($mixed, 'middleware')) {
+            return [$mixed, 'middleware'];
         }
 
         if (is_object($mixed) && method_exists($mixed, 'handle')) {
             return [$mixed, 'handle'];
         }
 
-        if (is_object($mixed) && method_exists($mixed, 'middleware')) {
-            return [$mixed, 'middleware'];
+        if (is_callable($mixed)) {
+            return $mixed;
         }
 
         if (is_string($mixed)) {

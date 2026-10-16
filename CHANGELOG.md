@@ -38,7 +38,22 @@ All notable changes to this project will be documented in this file.
     - Added unified header accessors: `header()`, `headers()`, and `setHeader()`.
     - Added `id()`, `attempts()`, `increaseAttempts()`, and `hasFailed()` methods.
 - **JsonPayload**: Now implements `\JsonSerializable` for seamless serialization with `json_encode()`.
-- **Queue Declarations**: `QueueFactory` now automatically configures DLX bindings when durability and DLX are enabled.
+- **Queue Declarations & Seamless 9.x Coexistence**:
+    - `QueueFactory` now automatically configures DLX bindings when durability and DLX are enabled.
+    - Graceful fallback: If an existing queue was declared without DLX arguments (e.g. from RabbitEvents 9.x), `QueueFactory` catches the AMQP 406 `PRECONDITION_FAILED` error, logs a helpful warning, and cleanly binds to the existing queue without requiring destructive queue migrations or queue deletion.
+    - `Failer`: Worker routes failed messages with diagnostic headers (`x-exception-message`, `x-exception-class`, `x-exception-trace`, `x-failed-at`, `x-original-routing-key`, `x-listener`, `trace_context`) into `rabbitevents.dlx` exchange, delivering to `{queue}.failed` reliably across both broker-level and application-level DLX configurations.
+- **Failed Queue Commands Overhaul**:
+    - `InteractsWithFailedQueue`: Fixed browsing loop to keep messages unacknowledged during iteration and only requeue unhandled messages upon completion, preventing infinite single-message requeue loops on RabbitMQ.
+    - Added `--queue` and `--events` options to `rabbitevents:failed`, `rabbitevents:retry`, `rabbitevents:forget`, and `rabbitevents:flush` for precise queue targeting.
+- **Context Tracing & Safety**:
+    - Sanitizes non-scalar objects in Laravel `Context` before attaching to AMQP headers to avoid AMQPTable serialization exceptions.
+    - Preserves worker-level Context data across message processing without clearing out the parent worker context.
+- **Performance & Reliability**:
+    - Restored `delay_strategy` configuration in `config/rabbitevents.php`.
+    - Restored `$message->event()` accessor on `Message` for backward compatibility.
+    - Cached reflection checks in `Dispatcher` for listener middleware execution.
+    - Captured synchronous message ID when publishing events configured with `afterCommit` outside of active database transactions.
+    - Added explicit `illuminate/log` dependency in `composer.json`.
 - **Worker & Processor**: Integrated deduplication checks and trace context lifecycle into message processing loop.
 - **CI & Quality**: Replaced external Codecov service with native GitHub Actions test reporting (`$GITHUB_STEP_SUMMARY`) and SVG coverage badge.
 

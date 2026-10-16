@@ -311,12 +311,12 @@ RabbitEvents is designed to work **100% out of the box** relying solely on Rabbi
 When messages exceed maximum retry attempts (`--tries`) or encounter fatal unhandled exceptions, RabbitEvents does not delete them silently. Instead:
 - It declares a topic Dead Letter Exchange (`rabbitevents.dlx`).
 - It binds a dedicated DLQ queue (`{queue}.failed`).
-- When a message fails, it is moved to `{queue}.failed` alongside diagnostic headers: `x-failed-at`, `x-original-routing-key`, `x-exception-message`, and `x-exception-class`.
+- When a message fails, it is moved to `{queue}.failed` alongside diagnostic headers: `x-failed-at`, `x-original-routing-key`, `x-exception-message`, `x-exception-class`, `x-exception-trace`, and `x-listener`. Earlier listeners that already succeeded on the message are recorded in `x-succeeded-listeners` and skipped on retry; however, listeners should still be designed to be idempotent.
 
 ### Deduplication (Idempotency)
 
 To guard against duplicate message delivery, RabbitEvents includes a pluggable deduplication strategy system:
-- **`InMemoryDeduplicator` (Default)**: An in-memory LRU ring buffer per worker process tracking processed message IDs. Zero database or Redis setup required.
+- **`InMemoryDeduplicator` (Default)**: An in-memory LRU ring buffer per worker process tracking processed message IDs. Zero database or Redis setup required. Note: This is per-process and lost on worker restart, protecting against redelivery to the same worker after all listeners succeed.
 - **`RabbitMqDeduplicationPluginStrategy`**: Delegates deduplication to the RabbitMQ broker via the `rabbitmq-message-deduplication` plugin using the `x-deduplication-header`.
 - **`NullDeduplicator`**: Disables deduplication if not needed.
 
@@ -375,6 +375,7 @@ Manage failed messages sitting in the Dead Letter Queue without needing MySQL or
 ### View Failed Messages (`rabbitevents:failed`)
 ```bash
 php artisan rabbitevents:failed
+php artisan rabbitevents:failed --events="order.created,order.shipped"
 php artisan rabbitevents:failed --queue=my-service:order.created
 ```
 Displays a table of failed messages containing message ID, event name, failed timestamp, and exception details.
@@ -386,6 +387,7 @@ php artisan rabbitevents:retry 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
 
 # Retry all failed messages
 php artisan rabbitevents:retry --all
+php artisan rabbitevents:retry --all --events="order.created"
 ```
 Republishes failed message(s) back onto the original queue where it failed (with attempts reset) and removes them from the failed queue.
 
@@ -397,6 +399,7 @@ php artisan rabbitevents:forget 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
 ### Flush All Failed Messages (`rabbitevents:flush`)
 ```bash
 php artisan rabbitevents:flush
+php artisan rabbitevents:flush --events="order.created"
 ```
 
 ## Command `rabbitevents:list` <a name='command-list'></a>

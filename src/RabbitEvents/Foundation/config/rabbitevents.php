@@ -29,6 +29,7 @@ return [
             'user' => env('RABBITEVENTS_USER', 'guest'),
             'pass' => env('RABBITEVENTS_PASSWORD', 'guest'),
             'vhost' => env('RABBITEVENTS_VHOST', 'events'),
+            'delay_strategy' => env('RABBITEVENTS_DELAY_STRATEGY', RabbitMqDlxDelayStrategy::class),
             'deduplication' => [
                 'enabled' => env('RABBITEVENTS_DEDUPLICATION_ENABLED', true),
                 'strategy' => env('RABBITEVENTS_DEDUPLICATION_STRATEGY', InMemoryDeduplicator::class),
@@ -36,6 +37,7 @@ return [
             ],
             'dlx' => [
                 'enabled' => env('RABBITEVENTS_DLX_ENABLED', true),
+                'driver' => env('RABBITEVENTS_DLX_DRIVER', 'application'),
                 'exchange' => env('RABBITEVENTS_DLX_EXCHANGE', 'rabbitevents.dlx'),
             ],
             'ssl' => [

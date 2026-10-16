@@ -28,6 +28,7 @@ class DeadLetterConfigurator
         $failedQueue = $this->declareFailedQueue($queueName);
 
         $this->bindFailedQueue($exchange, $failedQueue, $queueName);
+
         $this->applyDeadLetterArguments($queue, $exchange->getTopicName(), $queueName);
     }
 

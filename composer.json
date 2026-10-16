@@ -31,6 +31,7 @@
     "illuminate/console": "^11.0|^12.0|^13.0",
     "illuminate/container": "^11.0|^12.0|^13.0",
     "illuminate/events": "^11.0|^12.0|^13.0",
+    "illuminate/log": "^11.0|^12.0|^13.0",
     "illuminate/support": "^11.0|^12.0|^13.0",
     "ramsey/uuid": "^4.7"
   },
@@ -43,7 +44,7 @@
   "require-dev": {
     "mockery/mockery": "^1.6.0",
     "phpstan/phpstan": "^2.1",
-    "phpunit/phpunit": "^10.5|^11.0|^12.0",
+    "phpunit/phpunit": "^10.5|^11.0|^12.0|^13.0",
     "vlucas/phpdotenv": "^v5.6"
   },
   "autoload": {

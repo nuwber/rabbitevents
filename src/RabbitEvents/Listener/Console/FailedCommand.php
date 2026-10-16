@@ -17,7 +17,9 @@ class FailedCommand extends Command
      * @var string
      */
     protected $signature = 'rabbitevents:failed
-                            {--queue= : The failed queue name}
+                            {events? : The events the queue was listening for}
+                            {--events= : The events the queue was listening for}
+                            {--queue= : The failed queue name (e.g. service:events.failed)}
                             {--connection= : The connection name}
                             {--service= : The service name}
                             {--limit=50 : The maximum number of failed messages to display}';
@@ -52,10 +54,8 @@ class FailedCommand extends Command
     {
         $rows = [];
 
-        $this->eachFailedMessage(function ($message, $consumer) use (&$rows, $limit) {
+        $this->eachFailedMessage(function ($message) use (&$rows, $limit) {
             $rows[] = $this->formatRow($message);
-
-            $consumer->reject($message, true);
 
             return count($rows) < $limit;
         });

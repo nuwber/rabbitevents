@@ -10,7 +10,7 @@ interface Connection
 
     public function makeConsumer(Destination $queue): QueueConsumer;
 
-    public function makeTopic(): Destination;
+    public function makeTopic(?string $name = null): Destination;
 
     public function makeQueue(string $queueName, array $events, Destination $topic): Destination;
 

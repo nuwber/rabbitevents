@@ -69,6 +69,13 @@ class Connection implements ConnectionContract
         return $this->context;
     }
 
+    public function recreateContext(): Context
+    {
+        $this->context = null;
+
+        return $this->createContext();
+    }
+
     public function createProducer(): Producer
     {
         return new AmqpProducerAdapter($this->createContext()->createProducer());
@@ -79,10 +86,10 @@ class Connection implements ConnectionContract
         return new AmqpConsumerAdapter($this->createContext()->createConsumer($queue->getOrigin()));
     }
 
-    public function makeTopic(): Destination
+    public function makeTopic(?string $name = null): Destination
     {
         $topic = (new DestinationTopicFactory($this->createContext(), $this))
-            ->makeAndDeclare($this->getConfig('exchange'));
+            ->makeAndDeclare($name ?? $this->getConfig('exchange'));
 
         return new AmqpDestinationAdapter($topic);
     }

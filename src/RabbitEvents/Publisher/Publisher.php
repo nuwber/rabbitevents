@@ -57,11 +57,13 @@ class Publisher
     public function publish(ShouldPublish $event): ?string
     {
         if ($this->shouldPublishAfterCommit($event) && $transactions = $this->resolveTransactionManager()) {
-            $transactions->addCallback(function () use ($event) {
-                $this->executePublish($event);
+            $publishedId = null;
+
+            $transactions->addCallback(function () use ($event, &$publishedId) {
+                $publishedId = $this->executePublish($event);
             });
 
-            return null;
+            return $publishedId;
         }
 
         return $this->executePublish($event);

@@ -64,7 +64,7 @@ class Handler
     public function fail(Throwable $exception): void
     {
         $this->markAsFailed();
-        $this->message->markAsFailed();
+        $this->message->markAsFailed($exception, $this->listenerClass);
 
         if ($this->failedCallback && is_callable($this->failedCallback)) {
             ($this->failedCallback)($this->payload(), $exception);

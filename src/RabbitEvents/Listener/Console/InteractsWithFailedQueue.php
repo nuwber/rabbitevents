@@ -20,7 +20,15 @@ trait InteractsWithFailedQueue
 
         if (!$queue) {
             $service = (string) ($this->option('service') ?: ($this->laravel['config']->get('app.name') ?: 'rabbitevents'));
-            $events = $this->laravel->bound(Dispatcher::class) ? $this->laravel[Dispatcher::class]->getEvents() : [];
+            $eventsInput = null;
+            if ($this->hasOption('events') && $this->option('events')) {
+                $eventsInput = (string) $this->option('events');
+            } elseif ($this->hasArgument('events') && $this->argument('events')) {
+                $eventsInput = (string) $this->argument('events');
+            }
+            $events = $eventsInput
+                ? explode(',', $eventsInput)
+                : ($this->laravel->bound(Dispatcher::class) ? $this->laravel[Dispatcher::class]->getEvents() : []);
             $queue = QueueName::resolve($service, $events);
         }
 
@@ -49,23 +57,22 @@ trait InteractsWithFailedQueue
     {
         $context = $this->getContext();
         $consumer = $this->getConsumer($context, $this->getFailedQueueName());
-        $seen = [];
+        $unhandled = [];
 
         while ($message = $consumer->nextMessage($timeout)) {
-            $id = $message->id();
-            if ($id && isset($seen[$id])) {
-                $consumer->reject($message, true);
-                break;
-            }
-
-            if ($id) {
-                $seen[$id] = true;
-            }
-
             $continue = $callback($message, $consumer, $context);
+
+            if (!$message->isAcknowledged()) {
+                $unhandled[] = $message;
+            }
+
             if ($continue === false) {
                 break;
             }
+        }
+
+        foreach ($unhandled as $unhandledMessage) {
+            $consumer->reject($unhandledMessage, true);
         }
     }
 
@@ -101,7 +108,7 @@ trait InteractsWithFailedQueue
             }
         }
 
-        return $message->event();
+        return $message->event;
     }
 
     protected function extractException(Message $message): string

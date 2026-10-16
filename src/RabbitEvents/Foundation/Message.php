@@ -21,6 +21,8 @@ class Message
 
     private bool $failed = false;
 
+    private bool $acknowledged = false;
+
     public function __construct(
         public readonly string $event,
         public readonly Payload $payload,
@@ -110,9 +112,22 @@ class Message
         return $this;
     }
 
-    public function markAsFailed(): self
+    private ?\Throwable $failureException = null;
+
+    private ?string $failedListener = null;
+
+    public function event(): string
+    {
+        return $this->event;
+    }
+
+    public function markAsFailed(?\Throwable $exception = null, ?string $failedListener = null): self
     {
         $this->failed = true;
+        $this->failureException = $exception;
+        if ($failedListener !== null) {
+            $this->failedListener = $failedListener;
+        }
 
         return $this;
     }
@@ -120,5 +135,27 @@ class Message
     public function hasFailed(): bool
     {
         return $this->failed;
+    }
+
+    public function failureException(): ?\Throwable
+    {
+        return $this->failureException;
+    }
+
+    public function failedListener(): ?string
+    {
+        return $this->failedListener;
+    }
+
+    public function markAsAcknowledged(): self
+    {
+        $this->acknowledged = true;
+
+        return $this;
+    }
+
+    public function isAcknowledged(): bool
+    {
+        return $this->acknowledged;
     }
 }

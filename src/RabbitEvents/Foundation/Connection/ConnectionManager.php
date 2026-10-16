@@ -169,9 +169,9 @@ class ConnectionManager implements Connection
         return $this->connection()->makeConsumer($queue);
     }
 
-    public function makeTopic(): Destination
+    public function makeTopic(?string $name = null): Destination
     {
-        return $this->connection()->makeTopic();
+        return $this->connection()->makeTopic($name);
     }
 
     public function makeQueue(string $queueName, array $events, Destination $topic): Destination

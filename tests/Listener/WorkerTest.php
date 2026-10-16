@@ -215,6 +215,30 @@ class WorkerTest extends TestCase
 
         self::assertTrue($worker->resetTimeoutHandler);
     }
+
+    public function testWorkUsesFailerWhenMessageHasFailed(): void
+    {
+        $worker = new Worker($this->exceptionHandler, $this->events);
+        $worker->shouldQuit = true;
+
+        $failer = m::mock(\RabbitEvents\Foundation\Contracts\Transport::class);
+        $worker->setFailer($failer);
+
+        $processor = m::spy(Processor::class);
+        $message = m::mock(Message::class);
+        $message->shouldReceive('attempts')->andReturn(1);
+        $message->shouldReceive('hasFailed')->andReturn(true);
+
+        $consumer = m::mock(Consumer::class);
+        $consumer->shouldReceive('nextMessage')->andReturn($message);
+        $failer->shouldReceive('send')->with($message)->once();
+        $consumer->shouldReceive('acknowledge')->with($message)->once();
+        $consumer->shouldNotReceive('reject');
+
+        $status = $worker->work($processor, $consumer, $this->options);
+
+        self::assertEquals(WorkerExitStatus::SUCCESS, $status);
+    }
 }
 
 class TestWorker extends Worker

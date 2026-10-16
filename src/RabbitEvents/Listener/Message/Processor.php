@@ -44,11 +44,24 @@ class Processor
         }
 
         $this->withContext($message, function () use ($message, $options) {
+            $succeededListeners = (array) $message->header('x-succeeded-listeners', []);
+
             foreach ($this->dispatcher->getListeners($message->event) as $listener) {
+                $listenerClass = $this->getListenerClass($listener);
+
+                if ($listenerClass !== 'Closure' && in_array($listenerClass, $succeededListeners, true)) {
+                    continue;
+                }
+
                 $response = $this->runHandler(
-                    $this->handlerFactory->make($message, $listener, $this->getListenerClass($listener)),
+                    $this->handlerFactory->make($message, $listener, $listenerClass),
                     $options
                 );
+
+                if ($listenerClass !== 'Closure') {
+                    $succeededListeners[] = $listenerClass;
+                    $message->setHeader('x-succeeded-listeners', array_values(array_unique($succeededListeners)));
+                }
 
                 if ($response === false) {
                     break;
@@ -65,6 +78,9 @@ class Processor
             return $callback();
         }
 
+        $previous = Context::all();
+        $previousHidden = Context::allHidden();
+
         if ($context = $message->header('trace_context')) {
             Context::add((array) $context);
         }
@@ -73,6 +89,14 @@ class Processor
             return $callback();
         } finally {
             Context::flush();
+
+            if (!empty($previous)) {
+                Context::add($previous);
+            }
+
+            if (!empty($previousHidden)) {
+                Context::addHidden($previousHidden);
+            }
         }
     }
 

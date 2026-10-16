@@ -117,4 +117,33 @@ class QueueFactoryTest extends TestCase
 
         self::assertTrue($queue->getArgument('x-message-deduplication'));
     }
+
+    public function test_make_queue_falls_back_on_precondition_failed(): void
+    {
+        $queueName = 'legacy-queue';
+        $amqpQueue = new AmqpQueue($queueName);
+        $fallbackQueue = new AmqpQueue($queueName);
+
+        $amqpContext = m::mock(AmqpContext::class);
+        $amqpContext->shouldReceive('createQueue')->with($queueName)->andReturn($amqpQueue);
+        $amqpContext->shouldReceive('declareQueue')->with($amqpQueue)->andThrow(new \Exception('PRECONDITION_FAILED - inequivalent arg', 406));
+
+        $freshContext = m::mock(AmqpContext::class);
+        $freshContext->shouldReceive('createQueue')->with($queueName)->andReturn($fallbackQueue);
+        $freshContext->shouldReceive('declareQueue')->with($fallbackQueue)->once();
+
+        $connection = m::mock(Connection::class);
+        $connection->shouldReceive('getConfig')->with('durable', true)->andReturn(true);
+        $connection->shouldReceive('getConfig')->with('dlx.enabled', true)->andReturn(false);
+        $connection->shouldReceive('getDeduplicationStrategy')->andReturn(new NullDeduplicator());
+        $connection->shouldReceive('recreateContext')->once()->andReturn($freshContext);
+
+        $factory = new QueueFactory($amqpContext, $connection);
+
+        $result = $factory->makeAndDeclare($queueName);
+
+        self::assertSame($fallbackQueue, $result);
+        self::assertEquals(AmqpDestination::FLAG_DURABLE, $result->getFlags());
+    }
 }
+

@@ -34,7 +34,27 @@ class PublisherTest extends TestCase
         self::assertEquals('mock-message-id', $result);
     }
 
-    public function testPublishAfterCommit(): void
+    public function testPublishAfterCommitDeferred(): void
+    {
+        $event = new SomeEventAfterCommit(new SomeModel(), ['foo' => 'bar'], 'Hello!');
+
+        $dbMock = m::mock();
+        $dbMock->shouldReceive('addCallback')->once(); // Callback deferred until transaction commit
+
+        $messageFactory = m::mock(MessageFactory::class);
+        $messageFactory->shouldNotReceive('make');
+
+        $sender = m::mock(Transport::class);
+        $sender->shouldNotReceive('send');
+
+        $publisher = (new Publisher($messageFactory, $sender))
+            ->setTransactionManagerResolver(fn() => $dbMock);
+        $result = $publisher->publish($event);
+
+        self::assertNull($result);
+    }
+
+    public function testPublishAfterCommitImmediate(): void
     {
         $event = new SomeEventAfterCommit(new SomeModel(), ['foo' => 'bar'], 'Hello!');
 
@@ -56,7 +76,7 @@ class PublisherTest extends TestCase
             ->setTransactionManagerResolver(fn() => $dbMock);
         $result = $publisher->publish($event);
 
-        self::assertNull($result);
+        self::assertEquals('mock-message-id', $result);
     }
 
     public function testPublishAfterCommitViaProperty(): void
@@ -64,18 +84,13 @@ class PublisherTest extends TestCase
         $event = (new SomeEvent(new SomeModel(), ['foo' => 'bar'], 'Hello!'))->afterCommit();
 
         $managerMock = m::mock();
-        $managerMock->shouldReceive('addCallback')->once()->andReturnUsing(function ($callback) {
-            $callback();
-        });
-
-        $messageMock = m::mock(Message::class);
-        $messageMock->shouldReceive('id')->andReturn('mock-message-id');
+        $managerMock->shouldReceive('addCallback')->once(); // Deferred
 
         $messageFactory = m::mock(MessageFactory::class);
-        $messageFactory->shouldReceive()->make($event)->andReturn($messageMock);
+        $messageFactory->shouldNotReceive('make');
 
         $sender = m::mock(Transport::class);
-        $sender->shouldReceive()->send($messageMock)->once();
+        $sender->shouldNotReceive('send');
 
         $publisher = (new Publisher($messageFactory, $sender))
             ->setTransactionManagerResolver(fn() => $managerMock);

@@ -28,10 +28,11 @@ class ConnectionStub implements Connection
         return $this->consumer ?? new QueueConsumerStub();
     }
 
-    public function makeTopic(): Destination
+    public function makeTopic(?string $name = null): Destination
     {
-        $this->createdTopics[] = 'topic';
-        return new DestinationStub('topic');
+        $topicName = $name ?? 'topic';
+        $this->createdTopics[] = $topicName;
+        return new DestinationStub($topicName);
     }
 
     public function makeQueue(string $queueName, array $events, Destination $topic): Destination
