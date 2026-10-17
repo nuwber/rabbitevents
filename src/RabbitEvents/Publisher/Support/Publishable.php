@@ -9,11 +9,31 @@ use function publish;
 trait Publishable
 {
     /**
-     * @return void
+     * Indicates if the event should be published after the active database transaction commits.
+     *
+     * @var bool|null
+     */
+    public ?bool $afterCommit = null;
+
+    /**
+     * @return string|null
      * @throws \Throwable
      */
-    public static function publish(): void
+    public static function publish(): ?string
     {
-        publish(new static(...func_get_args()));
+        return publish(new static(...func_get_args()));
+    }
+
+    /**
+     * Indicate that the event should be published after the database transaction commits.
+     *
+     * @param bool $afterCommit
+     * @return $this
+     */
+    public function afterCommit(bool $afterCommit = true): static
+    {
+        $this->afterCommit = $afterCommit;
+
+        return $this;
     }
 }

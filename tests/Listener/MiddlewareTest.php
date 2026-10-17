@@ -89,6 +89,130 @@ class MiddlewareTest extends TestCase
         self::assertEquals(['event', $payload], $this->makeHandler($message, $this->makeCallback(ListenerStubForMiddleware::class, true))->handle());
     }
 
+    public function testExecutePipelineMiddlewareWithNextClosure(): void
+    {
+        $pipelineMiddleware = new class {
+            public bool $beforeCalled = false;
+            public bool $afterCalled = false;
+
+            public function handle($payload, \Closure $next)
+            {
+                $this->beforeCalled = true;
+                $result = $next($payload);
+                $this->afterCalled = true;
+                return "wrapped:{$result}";
+            }
+        };
+
+        $listener = new class ($pipelineMiddleware) {
+            public array $middleware = [];
+            public bool $handled = false;
+
+            public function __construct($middleware)
+            {
+                $this->middleware = [$middleware];
+            }
+
+            public function handle($payload): string
+            {
+                $this->handled = true;
+                return "result:{$payload}";
+            }
+        };
+
+        $dispatcher = new Dispatcher();
+        $callback = $dispatcher->makeListener([$listener, 'handle']);
+
+        $message = $this->makeMessage('data');
+        $handler = $this->makeHandler($message, $callback);
+
+        $result = $handler->handle();
+
+        self::assertEquals('wrapped:result:data', $result);
+        self::assertTrue($pipelineMiddleware->beforeCalled);
+        self::assertTrue($pipelineMiddleware->afterCalled);
+    }
+
+    public function testExecutePipelineMiddlewareWithNullableClosure(): void
+    {
+        $pipelineMiddleware = new class {
+            public bool $called = false;
+
+            public function handle($payload, ?\Closure $next = null)
+            {
+                $this->called = true;
+                return $next ? 'nullable:' . $next($payload) : 'no-next';
+            }
+        };
+
+        $listener = new class ($pipelineMiddleware) {
+            public array $middleware = [];
+
+            public function __construct($middleware)
+            {
+                $this->middleware = [$middleware];
+            }
+
+            public function handle($payload): string
+            {
+                return "ok:{$payload}";
+            }
+        };
+
+        $dispatcher = new Dispatcher();
+        $callback = $dispatcher->makeListener([$listener, 'handle']);
+        $handler = $this->makeHandler($this->makeMessage('val'), $callback);
+
+        self::assertEquals('nullable:ok:val', $handler->handle());
+        self::assertTrue($pipelineMiddleware->called);
+    }
+
+    public function testMiddlewareResolutionOrderPrefersMiddlewareMethodOverHandleAndInvoke(): void
+    {
+        $multiMethodMiddleware = new class {
+            public string $calledMethod = '';
+
+            public function middleware($payload)
+            {
+                $this->calledMethod = 'middleware';
+                return true;
+            }
+
+            public function handle($payload)
+            {
+                $this->calledMethod = 'handle';
+                return true;
+            }
+
+            public function __invoke($payload)
+            {
+                $this->calledMethod = '__invoke';
+                return true;
+            }
+        };
+
+        $listener = new class ($multiMethodMiddleware) {
+            public array $middleware = [];
+
+            public function __construct($middleware)
+            {
+                $this->middleware = [$middleware];
+            }
+
+            public function handle($payload): string
+            {
+                return "done:{$payload}";
+            }
+        };
+
+        $dispatcher = new Dispatcher();
+        $callback = $dispatcher->makeListener([$listener, 'handle']);
+        $handler = $this->makeHandler($this->makeMessage('x'), $callback);
+
+        self::assertEquals('done:x', $handler->handle());
+        self::assertEquals('middleware', $multiMethodMiddleware->calledMethod);
+    }
+
     private function makeCallback($listenerClass, $wildcard = false): callable
     {
         return (new Dispatcher())->makeListener($listenerClass, $wildcard);

@@ -13,23 +13,26 @@ class ConnectionStub implements Connection
     public int $createdProducers = 0;
     public array $createdTopics = [];
     public array $createdQueues = [];
+    public ?Producer $producer = null;
+    public ?QueueConsumer $consumer = null;
     
     public function createProducer(): Producer
     {
         $this->createdProducers++;
-        return new ProducerStub();
+        return $this->producer ?? new ProducerStub();
     }
 
     public function makeConsumer(Destination $queue): QueueConsumer
     {
         $this->createdConsumers[] = $queue;
-        return new QueueConsumerStub();
+        return $this->consumer ?? new QueueConsumerStub();
     }
 
-    public function makeTopic(): Destination
+    public function makeTopic(?string $name = null): Destination
     {
-        $this->createdTopics[] = 'topic';
-        return new DestinationStub();
+        $topicName = $name ?? 'topic';
+        $this->createdTopics[] = $topicName;
+        return new DestinationStub($topicName);
     }
 
     public function makeQueue(string $queueName, array $events, Destination $topic): Destination
@@ -40,6 +43,11 @@ class ConnectionStub implements Connection
             'topic' => $topic
         ];
         
-        return new DestinationStub();
+        return new DestinationStub($queueName);
+    }
+
+    public function getDeduplicationStrategy(): \RabbitEvents\Foundation\Contracts\Deduplicator
+    {
+        return new \RabbitEvents\Foundation\Deduplication\NullDeduplicator();
     }
 }

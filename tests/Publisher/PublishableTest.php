@@ -97,6 +97,54 @@ class PublishableTest extends TestCase
 
         Listener::assertNotPublished();
     }
+
+    public function testAssertPublishedWithoutArguments(): void
+    {
+        Listener::fake();
+
+        Listener::publish(['id' => 123]);
+
+        Listener::assertPublished();
+    }
+
+    public function testAssertPublishedWithClosure(): void
+    {
+        Listener::fake();
+
+        Listener::publish(['id' => 456, 'status' => 'active']);
+
+        Listener::assertPublished(function ($event, $payload) {
+            return $payload['id'] === 456 && $payload['status'] === 'active';
+        });
+    }
+
+    public function testAssertPublishedTimes(): void
+    {
+        Listener::fake();
+
+        Listener::publish(['id' => 1]);
+        Listener::publish(['id' => 2]);
+
+        Listener::assertPublishedTimes(2);
+    }
+
+    public function testAssertNotPublishedWithClosure(): void
+    {
+        Listener::fake();
+
+        Listener::publish(['id' => 10]);
+
+        Listener::assertNotPublished(function ($event, $payload) {
+            return $payload['id'] === 999;
+        });
+    }
+
+    public function testAssertNothingPublished(): void
+    {
+        Listener::fake();
+
+        Listener::assertNothingPublished();
+    }
 }
 
 class Listener implements ShouldPublish

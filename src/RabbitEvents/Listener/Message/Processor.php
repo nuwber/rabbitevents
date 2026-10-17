@@ -6,23 +6,30 @@ namespace RabbitEvents\Listener\Message;
 
 use Illuminate\Events\Dispatcher as EventsDispatcher;
 use RabbitEvents\Listener\Dispatcher;
+use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\Facade;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Listener\Events\ListenerHandled;
 use RabbitEvents\Listener\Events\ListenerHandleFailed;
 use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 use RabbitEvents\Listener\Events\ListenerHandling;
+use RabbitEvents\Foundation\Contracts\Deduplicator;
+use RabbitEvents\Foundation\Deduplication\NullDeduplicator;
 use RabbitEvents\Listener\Exceptions\FailedException;
-
 use RabbitEvents\Listener\ListenerOptions;
 use Throwable;
 
 class Processor
 {
+    private Deduplicator $deduplicator;
+
     public function __construct(
         private HandlerFactory $handlerFactory,
         private EventsDispatcher $events,
-        private Dispatcher $dispatcher
+        private Dispatcher $dispatcher,
+        ?Deduplicator $deduplicator = null
     ) {
+        $this->deduplicator = $deduplicator ?? new NullDeduplicator();
     }
 
     /**
@@ -32,17 +39,63 @@ class Processor
      */
     public function process(Message $message, ListenerOptions $options): void
     {
-        foreach ($this->dispatcher->getListeners($message->event) as $listener) {
-            $response = $this->runHandler(
-                $this->handlerFactory->make($message, $listener, $this->getListenerClass($listener)),
-                $options
-            );
+        if ($this->deduplicator->isDuplicate($message->transportMessage())) {
+            return;
+        }
 
-            // If a boolean false is returned from a listener, we will stop propagating
-            // the event to any further listeners down in the chain, else we keep on
-            // looping through the listeners and run every one in our sequence.
-            if ($response === false) {
-                break;
+        $this->withContext($message, function () use ($message, $options) {
+            $succeededListeners = (array) $message->header('x-succeeded-listeners', []);
+
+            foreach ($this->dispatcher->getListeners($message->event) as $listener) {
+                $listenerClass = $this->getListenerClass($listener);
+
+                if ($listenerClass !== 'Closure' && in_array($listenerClass, $succeededListeners, true)) {
+                    continue;
+                }
+
+                $response = $this->runHandler(
+                    $this->handlerFactory->make($message, $listener, $listenerClass),
+                    $options
+                );
+
+                if ($listenerClass !== 'Closure') {
+                    $succeededListeners[] = $listenerClass;
+                    $message->setHeader('x-succeeded-listeners', array_values(array_unique($succeededListeners)));
+                }
+
+                if ($response === false) {
+                    break;
+                }
+            }
+        });
+
+        $this->deduplicator->markHandled($message->transportMessage());
+    }
+
+    protected function withContext(Message $message, callable $callback): mixed
+    {
+        if (!Facade::getFacadeApplication()) {
+            return $callback();
+        }
+
+        $previous = Context::all();
+        $previousHidden = Context::allHidden();
+
+        if ($context = $message->header('trace_context')) {
+            Context::add((array) $context);
+        }
+
+        try {
+            return $callback();
+        } finally {
+            Context::flush();
+
+            if (!empty($previous)) {
+                Context::add($previous);
+            }
+
+            if (!empty($previousHidden)) {
+                Context::addHidden($previousHidden);
             }
         }
     }
@@ -72,9 +125,11 @@ class Processor
         try {
             $this->raiseBeforeEvent($handler);
 
+            $startTime = hrtime(true);
             $response = $handler->handle();
+            $duration = (hrtime(true) - $startTime) / 1e6;
 
-            $this->raiseAfterEvent($handler);
+            $this->raiseAfterEvent($handler, $duration);
 
             return $response;
         } catch (Throwable $e) {
@@ -159,9 +214,9 @@ class Processor
     /**
      * Raise the after queue job event.
      */
-    protected function raiseAfterEvent(Handler $handler): void
+    protected function raiseAfterEvent(Handler $handler, ?float $duration = null): void
     {
-        $this->events->dispatch(new ListenerHandled($handler));
+        $this->events->dispatch(new ListenerHandled($handler, $duration));
     }
 
     /**

@@ -43,6 +43,11 @@ class AmqpTransportMessage implements TransportMessage
         return $this->message->getRoutingKey();
     }
 
+    public function setRoutingKey(?string $routingKey): void
+    {
+        $this->message->setRoutingKey($routingKey);
+    }
+
     public function getTimestamp(): ?int
     {
         return $this->message->getTimestamp();
@@ -51,6 +56,38 @@ class AmqpTransportMessage implements TransportMessage
     public function setTimestamp(int $timestamp): void
     {
         $this->message->setTimestamp($timestamp);
+    }
+
+    public function getMessageId(): ?string
+    {
+        return $this->message->getMessageId();
+    }
+
+    public function setMessageId(?string $messageId): void
+    {
+        $this->message->setMessageId($messageId);
+    }
+
+    public function getHeader(string $name, mixed $default = null): mixed
+    {
+        return $this->message->getProperty($name, $default);
+    }
+
+    public function getHeaders(): array
+    {
+        return $this->message->getProperties();
+    }
+
+    public function setHeader(string $name, mixed $value): void
+    {
+        $this->message->setProperty($name, $value);
+    }
+
+    public function setHeaders(array $headers): void
+    {
+        foreach ($headers as $name => $value) {
+            $this->message->setProperty((string) $name, $value);
+        }
     }
 
     public function __call(string $method, array $args)

@@ -40,7 +40,7 @@ if (!function_exists('publish')) {
             };
         }
 
-        Container::getInstance()
+        return Container::getInstance()
             ->make(Publisher::class)
             ->publish($event);
     }

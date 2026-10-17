@@ -177,7 +177,107 @@ class ProcessorTest extends TestCase
             ->andReturn($listeners);
     }
 
+    public function testProcessSkipsDuplicateMessage()
+    {
+        $deduplicator = m::mock(\RabbitEvents\Foundation\Contracts\Deduplicator::class);
+        $deduplicator->shouldReceive('isDuplicate')
+            ->with($this->message->transportMessage())
+            ->once()
+            ->andReturn(true);
+        $deduplicator->shouldNotReceive('markHandled');
 
+        $processor = new Processor(
+            $handlerFactory = new FakeHandlerFactory(),
+            $this->events,
+            $this->dispatcher,
+            $deduplicator
+        );
+
+        $processor->process($this->message, $this->options());
+
+        self::assertCount(0, $handlerFactory->handlers);
+        $this->events->shouldNotHaveReceived('dispatch');
+    }
+
+    public function testListenerHandledEventContainsDuration()
+    {
+        $this->mockListeners([
+            static fn() => true,
+        ]);
+
+        $processor = new Processor(new FakeHandlerFactory(), $this->events, $this->dispatcher);
+        $processor->process($this->message, $this->options());
+
+        $this->events->shouldHaveReceived()->dispatch(m::on(function ($event) {
+            return $event instanceof ListenerHandled && is_float($event->duration) && $event->duration >= 0;
+        }))->once();
+    }
+
+    public function testContextHydrationAndFlush(): void
+    {
+        if (!class_exists(\Illuminate\Support\Facades\Context::class)) {
+            self::markTestSkipped('Context facade not available');
+        }
+
+        $app = new \Illuminate\Container\Container();
+        $contextMock = m::mock();
+        $contextMock->shouldReceive('all')->andReturn(['worker_key' => 'worker_val']);
+        $contextMock->shouldReceive('allHidden')->andReturn(['hidden_key' => 'hidden_val']);
+        $contextMock->shouldReceive('add')->with(['trace_id' => '12345'])->once();
+        $contextMock->shouldReceive('flush')->once();
+        $contextMock->shouldReceive('add')->with(['worker_key' => 'worker_val'])->once();
+        $contextMock->shouldReceive('addHidden')->with(['hidden_key' => 'hidden_val'])->once();
+        $app->instance(\Illuminate\Log\Context\Repository::class, $contextMock);
+        \Illuminate\Support\Facades\Facade::setFacadeApplication($app);
+
+        try {
+            $transportMessage = m::mock(\RabbitEvents\Foundation\Contracts\TransportMessage::class);
+            $transportMessage->shouldReceive('getHeader')->with('trace_context', null)->andReturn([
+                'trace_id' => '12345',
+            ]);
+            $transportMessage->shouldReceive('getHeader')->with('x-succeeded-listeners', [])->andReturn([]);
+            $transportMessage->shouldReceive('getMessageId')->andReturn('msg-ctx');
+
+            $message = (new Message('test.event', new Payload([])))->setTransportMessage($transportMessage);
+
+            $this->mockListeners([
+                static fn() => true,
+            ]);
+
+            $processor = new Processor(new FakeHandlerFactory(), $this->events, $this->dispatcher);
+            $processor->process($message, $this->options());
+        } finally {
+            \Illuminate\Support\Facades\Facade::clearResolvedInstances();
+            \Illuminate\Support\Facades\Facade::setFacadeApplication(null);
+        }
+    }
+
+    public function testProcessSkipsAlreadySucceededListenersAndRecordsNewOnes(): void
+    {
+        $listener1 = new class {
+            public function __invoke() { return true; }
+        };
+        $listener2 = new class {
+            public function __invoke() { return true; }
+        };
+
+        $class1 = get_class($listener1);
+        $class2 = get_class($listener2);
+
+        $this->message->setHeader('x-succeeded-listeners', [$class1]);
+
+        $this->mockListeners([$listener1, $listener2]);
+
+        $handlerFactory = new FakeHandlerFactory();
+        $processor = new Processor($handlerFactory, $this->events, $this->dispatcher);
+
+        $processor->process($this->message, $this->options());
+
+        // Only listener2 should have been executed
+        self::assertCount(1, $handlerFactory->handlers);
+        self::assertTrue($handlerFactory->handlers[0]->fired);
+        self::assertEquals([$class1, $class2], $this->message->header('x-succeeded-listeners'));
+    }
 }
 
 class FakeHandlerFactory extends HandlerFactory

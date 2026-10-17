@@ -5,12 +5,20 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener;
 
 use Closure;
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Container\Container as ContainerContract;
+use Illuminate\Events\Dispatcher as BaseDispatcher;
+use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Illuminate\Events\Dispatcher as BaseDispatcher;
 
 class Dispatcher extends BaseDispatcher
 {
+    public function __construct(?ContainerContract $container = null)
+    {
+        parent::__construct($container ?? new Container());
+    }
+
     /**
      * @return array
      */
@@ -112,22 +120,94 @@ class Dispatcher extends BaseDispatcher
                 $payload = [$payload];
             }
 
-            foreach ($throughMiddleware as $middleware) {
-                $result = $wildcard
-                    ? ($middleware)($event, ...array_values($payload))
-                    : ($middleware)(...$payload);
-
-                if (false === $result) {
-                    return null;
-                }
+            if (empty($throughMiddleware)) {
+                return parent::makeListener($listener, $wildcard)($event, $payload);
             }
 
-            return parent::makeListener($listener, $wildcard)($event, $payload);
+            $pipes = array_map(
+                fn ($middleware) => $this->wrapMiddlewareIntoPipelineStage($middleware, $event, $wildcard),
+                $throughMiddleware
+            );
+
+            return (new Pipeline($this->container))
+                ->send($payload)
+                ->through($pipes)
+                ->then(function ($payload) use ($listener, $wildcard, $event) {
+                    return parent::makeListener($listener, $wildcard)($event, $payload);
+                });
         };
+    }
+
+    protected static array $middlewareExpectsNextCache = [];
+
+    protected function wrapMiddlewareIntoPipelineStage(callable $middleware, string $event, bool $wildcard): Closure
+    {
+        $expectsNext = $this->middlewareExpectsNext($middleware);
+
+        return function ($passable, $next) use ($middleware, $event, $wildcard, $expectsNext) {
+            if ($expectsNext) {
+                return $wildcard
+                    ? ($middleware)($event, $passable, $next)
+                    : ($middleware)($passable, $next);
+            }
+
+            $result = $wildcard
+                ? ($middleware)($event, ...array_values($passable))
+                : ($middleware)(...$passable);
+
+            if (false === $result) {
+                return null;
+            }
+
+            return $next($passable);
+        };
+    }
+
+    protected function middlewareExpectsNext(callable $middleware): bool
+    {
+        $key = is_array($middleware)
+            ? (is_object($middleware[0]) ? get_class($middleware[0]) : $middleware[0]) . '@' . $middleware[1]
+            : ($middleware instanceof \Closure ? spl_object_hash($middleware) : (string) $middleware);
+
+        if (isset(static::$middlewareExpectsNextCache[$key])) {
+            return static::$middlewareExpectsNextCache[$key];
+        }
+
+        $reflector = is_array($middleware)
+            ? new \ReflectionMethod($middleware[0], $middleware[1])
+            : new \ReflectionFunction(\Closure::fromCallable($middleware));
+
+        $parameters = $reflector->getParameters();
+        $lastParam = !empty($parameters) ? end($parameters) : null;
+
+        $expectsNext = false;
+        if ($lastParam) {
+            if ($lastParam->getName() === 'next') {
+                $expectsNext = true;
+            } elseif ($lastParam->hasType()) {
+                $type = $lastParam->getType();
+                $types = $type instanceof \ReflectionUnionType ? $type->getTypes() : [$type];
+                foreach ($types as $namedType) {
+                    if ($namedType instanceof \ReflectionNamedType) {
+                        $typeName = ltrim($namedType->getName(), '\\');
+                        if (in_array($typeName, ['Closure', 'callable'], true)) {
+                            $expectsNext = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return static::$middlewareExpectsNextCache[$key] = $expectsNext;
     }
 
     protected function makeListenerInstance($listener)
     {
+        if (is_array($listener)) {
+            return is_object($listener[0]) ? $listener[0] : $this->makeListenerInstance($listener[0]);
+        }
+
         if (is_string($listener)) {
             [$class,] = Str::parseCallback($listener);
 
@@ -135,7 +215,7 @@ class Dispatcher extends BaseDispatcher
         }
 
         if (is_object($listener)) {
-            return is_callable($listener) ? $listener : null;
+            return $listener;
         }
 
         return null;
@@ -160,7 +240,7 @@ class Dispatcher extends BaseDispatcher
         }
 
         if (method_exists($instance, 'middleware')) {
-            $result[] = $this->createMiddlewareCallable($instance);
+            $result[] = [$instance, 'middleware'];
         }
 
         return $result;
@@ -170,6 +250,10 @@ class Dispatcher extends BaseDispatcher
     {
         if (is_object($mixed) && method_exists($mixed, 'middleware')) {
             return [$mixed, 'middleware'];
+        }
+
+        if (is_object($mixed) && method_exists($mixed, 'handle')) {
+            return [$mixed, 'handle'];
         }
 
         if (is_callable($mixed)) {

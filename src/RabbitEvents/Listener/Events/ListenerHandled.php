@@ -8,7 +8,9 @@ use RabbitEvents\Listener\Message\Handler;
 
 class ListenerHandled
 {
-    public function __construct(public readonly Handler $handler)
-    {
+    public function __construct(
+        public readonly Handler $handler,
+        public readonly ?float $duration = null
+    ) {
     }
 }

@@ -8,7 +8,7 @@ use RabbitEvents\Foundation\Contracts\ContentType;
 use RabbitEvents\Foundation\Contracts\Payload;
 use RabbitEvents\Foundation\Serialization\JsonContentType;
 
-class JsonPayload implements Payload
+class JsonPayload implements Payload, \JsonSerializable
 {
     public function __construct(private array|\JsonSerializable $value)
     {
@@ -17,6 +17,13 @@ class JsonPayload implements Payload
     public function value(): mixed
     {
         return $this->value;
+    }
+
+    public function jsonSerialize(): mixed
+    {
+        return $this->value instanceof \JsonSerializable
+            ? $this->value->jsonSerialize()
+            : $this->value;
     }
 
     /**

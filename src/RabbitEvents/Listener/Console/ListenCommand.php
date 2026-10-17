@@ -7,6 +7,7 @@ namespace RabbitEvents\Listener\Console;
 use Illuminate\Console\Command;
 use RabbitEvents\Foundation\Connection\ConnectionManager;
 use RabbitEvents\Foundation\Context;
+use RabbitEvents\Listener\Support\Failer;
 use RabbitEvents\Listener\Support\Releaser;
 use RabbitEvents\Listener\Dispatcher;
 use RabbitEvents\Listener\Events\ListenerHandled;
@@ -101,8 +102,10 @@ class ListenCommand extends Command
             $context = $this->laravel[ConnectionManager::class]->context($options->connectionName);
         }
 
+        $queueName = $this->option('queue') ?: QueueName::resolve($options->service, $options->events);
+
         $queue = $context->makeQueue(
-            $this->option('queue') ?: QueueName::resolve($options->service, $options->events),
+            $queueName,
             $options->events,
             $context->makeTopic()
         );
@@ -112,8 +115,23 @@ class ListenCommand extends Command
             new Releaser($queue, $context->createProducer())
         );
 
+        $dlxEnabled = (bool) $this->laravel['config']->get("rabbitevents.connections.{$options->connectionName}.dlx.enabled", true);
+        if ($dlxEnabled) {
+            $dlxExchange = (string) $this->laravel['config']->get("rabbitevents.connections.{$options->connectionName}.dlx.exchange", 'rabbitevents.dlx');
+            $worker->setFailer(new Failer(
+                $context->makeTopic($dlxExchange),
+                $context->createProducer(),
+                $queueName
+            ));
+        }
+
         return $worker->work(
-            new Processor($handlerFactory, $this->laravel['events'], $this->laravel[Dispatcher::class]),
+            new Processor(
+                $handlerFactory,
+                $this->laravel['events'],
+                $this->laravel[Dispatcher::class],
+                $context->getDeduplicator()
+            ),
             $context->makeConsumer($queue),
             $options
         )->value;

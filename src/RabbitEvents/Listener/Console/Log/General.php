@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener\Console\Log;
 
 use Illuminate\Contracts\Container\Container;
+use RabbitEvents\Listener\Events\ListenerHandled;
 use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
 
 class General extends Writer
@@ -33,6 +34,7 @@ class General extends Writer
     protected function getPayload($event, string $status): array
     {
         $payload = [
+            'message_id' => $event->handler->message->id(),
             'handler' => [
                 'name' => $event->handler->getName(),
                 'attempts' => $event->handler->attempts(),
@@ -40,6 +42,10 @@ class General extends Writer
             ],
             'status' => $status,
         ];
+
+        if ($event instanceof ListenerHandled && $event->duration !== null) {
+            $payload['duration'] = $event->duration;
+        }
 
         if ($event instanceof ListenerHandlerExceptionOccurred) {
             $payload['exception'] = $event->exception;

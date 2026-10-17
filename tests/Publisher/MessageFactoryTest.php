@@ -43,6 +43,8 @@ class MessageFactoryTest extends TestCase
         self::assertEquals('some.event', $message->event);
         self::assertInstanceOf(Payload::class, $message->payload);
         self::assertEquals(Carbon::now()->getTimestamp(), $message->getTimestamp());
+        self::assertNotNull($message->id());
+        self::assertMatchesRegularExpression('/^[0-9a-f-]{36}$/', $message->id());
     }
 
     public function testMakeFromPayloadObject(): void
@@ -65,6 +67,53 @@ class MessageFactoryTest extends TestCase
 
         self::assertSame($payload, $message->payload);
         self::assertEquals(Carbon::now()->getTimestamp(), $message->getTimestamp());
+        self::assertNotNull($message->id());
+    }
+
+    public function testMakeSanitizesContextObjects(): void
+    {
+        if (!class_exists(\Illuminate\Support\Facades\Context::class)) {
+            self::markTestSkipped('Context facade not available');
+        }
+
+        $app = new \Illuminate\Container\Container();
+        $contextMock = \Mockery::mock();
+        $contextMock->shouldReceive('all')->andReturn([
+            'scalar' => 'val',
+            'obj' => (object) ['foo' => 'bar'],
+            'json_obj' => new class implements \JsonSerializable {
+                public function jsonSerialize(): mixed { return ['serialized' => 123]; }
+            },
+            'stringable' => new class {
+                public function __toString(): string { return 'str-obj'; }
+            },
+        ]);
+        $app->instance(\Illuminate\Log\Context\Repository::class, $contextMock);
+        \Illuminate\Support\Facades\Facade::setFacadeApplication($app);
+
+        try {
+            $payload = new JsonPayload([]);
+            $serializer = \Mockery::mock(\RabbitEvents\Foundation\Contracts\Serializer::class);
+            $serializer->shouldReceive('serialize')->andReturn($payload);
+            $serializer->shouldReceive('contentType')->andReturn(new \RabbitEvents\Foundation\Serialization\JsonContentType());
+
+            $registry = \Mockery::mock(\RabbitEvents\Foundation\Serialization\SerializerRegistry::class);
+            $registry->shouldReceive('resolve')->andReturn($serializer);
+
+            $factory = new MessageFactory($registry);
+            $message = $factory->make(new Event());
+
+            $traceContext = $message->header('trace_context');
+            self::assertEquals([
+                'scalar' => 'val',
+                'obj' => ['foo' => 'bar'],
+                'json_obj' => ['serialized' => 123],
+                'stringable' => 'str-obj',
+            ], $traceContext);
+        } finally {
+            \Illuminate\Support\Facades\Facade::clearResolvedInstances();
+            \Illuminate\Support\Facades\Facade::setFacadeApplication(null);
+        }
     }
 }
 

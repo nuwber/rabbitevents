@@ -7,6 +7,7 @@ namespace RabbitEvents\Tests\Listener\Console\Log;
 use Illuminate\Container\Container;
 use Mockery as m;
 use RabbitEvents\Foundation\Contracts\Transport;
+use RabbitEvents\Foundation\Contracts\TransportMessage;
 use RabbitEvents\Foundation\Message;
 use RabbitEvents\Listener\Console\Log\General;
 use RabbitEvents\Listener\Events\ListenerHandlerExceptionOccurred;
@@ -25,6 +26,7 @@ class GeneralTest extends TestCase
         $this->getWriter($logger)->log(new ListenerHandling($handler));
 
         $logger->shouldHaveReceived('log')->with('info', 'Handler "item.created:ListenerClass" Processing', [
+            'message_id' => 'test-msg-id',
             'handler' => [
                 'name' => 'item.created:ListenerClass',
                 'attempts' => 0,
@@ -43,6 +45,7 @@ class GeneralTest extends TestCase
         $this->getWriter($logger)->log(new ListenerHandlerExceptionOccurred($handler, $exception));
 
         $logger->shouldHaveReceived('log')->with('error', 'Handler "item.created:ListenerClass" Exception Occurred', [
+            'message_id' => 'test-msg-id',
             'handler' => [
                 'name' => 'item.created:ListenerClass',
                 'attempts' => 0,
@@ -66,8 +69,15 @@ class GeneralTest extends TestCase
 
     private function getHandler(): Handler
     {
+        $transportMessage = new \RabbitEvents\Tests\Foundation\Stubs\TransportMessageStub(
+            properties: ['message_id' => 'test-msg-id', 'x-attempts' => 0]
+        );
+
+        $message = (new Message('item.created', new Payload(['id' => 1])))
+            ->setTransportMessage($transportMessage);
+
         return new Handler(
-            new Message('item.created', new Payload(['id' => 1])),
+            $message,
             static fn($event, $payload) => $event,
             'ListenerClass',
             m::mock(Transport::class)

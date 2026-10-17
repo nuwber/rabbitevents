@@ -10,8 +10,10 @@ use RabbitEvents\Foundation\Message;
 
 class HandlerFactory
 {
-    public function __construct(private Container $container, private Transport $transport)
-    {
+    public function __construct(
+        private Container $container,
+        private Transport $transport
+    ) {
     }
 
     public function make(Message $message, callable $callback, string $listenerClass): Handler
@@ -25,6 +27,12 @@ class HandlerFactory
             $failedCallback = [$listener, 'failed'];
         }
 
-        return new Handler($message, $callback, $listenerClass, $this->transport, $failedCallback);
+        return new Handler(
+            $message,
+            $callback,
+            $listenerClass,
+            $this->transport,
+            $failedCallback
+        );
     }
 }

@@ -1,6 +1,6 @@
 # RabbitEvents Publisher
 
-The RabbitEvents Publisher component provides an API for publishing events across the application structure. More information is available in the [Nuwber's RabbitEvents documentation](https://github.com/nuwber/rabbitevents).
+The RabbitEvents Publisher component provides an API for publishing events across the application structure. More information is available in the [RabbitEvents documentation](https://github.com/rabbitevents/rabbitevents).
 
 The RabbitEvents Publisher is the part that informs all other microservices that a payment has succeeded.
 
@@ -9,6 +9,12 @@ The RabbitEvents Publisher is the part that informs all other microservices that
 1. [Installation via Composer](#installation)
 2. [Configuration](#configuration)
 3. [Publishing](#how-to-publish)
+   - [Using an Event class](#using-an-event-class)
+   - [Using the `publish` function](#using-the-publish-function)
+   - [Transactional Publishing (`afterCommit`)](#transactional-publishing-aftercommit)
+   - [Distributed Tracing & Context Propagation](#distributed-tracing--context-propagation)
+   - [Publish an Event object with the `publish` function](#publish-an-event-object-with-the-publish-function)
+   - [Publishing Protobuf Messages](#publishing-protobuf-messages)
 4. [Testing](#testing)
 
 ## Installation via Composer<a name="installation"></a>
@@ -27,7 +33,7 @@ php artisan rabbitevents:install
 
 ## Configuration <a name="configuration"></a>
 
-Details about the configuration are described in the library [documentation](https://github.com/nuwber/rabbitevents#configuration).
+Details about the configuration are described in the library [documentation](https://github.com/rabbitevents/rabbitevents#configuration).
 
 ## Publishing<a name="how-to-publish"></a>
 
@@ -90,14 +96,39 @@ Sometimes, it is easier to use the helper function `publish` with an event key a
 ```php
 <?php
 
-publish(
+$messageId = publish(
     'payment.succeeded',
     [
         'user' => $request->user()->toArray(),
         'payment' => $payment->toArray(),
     ]
 );
+// $messageId is a unique RFC 4122 v4 UUID string (e.g. "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d")
 ```
+
+The `publish` helper returns the message ID (`?string`), which you can use for logging, distributed tracing, or auditing.
+
+### Transactional Publishing (`afterCommit`)
+
+If an event is published within a database transaction, you usually want to guarantee that the message is sent only after the database transaction commits successfully:
+
+```php
+class PaymentSucceededRabbitEvent implements ShouldPublish
+{
+    use Publishable;
+
+    public bool $afterCommit = true;
+
+    // ...
+}
+```
+
+When `$afterCommit = true`, RabbitEvents automatically delays publishing until the active database transaction commits. If the transaction rolls back, the event is not published.
+
+### Distributed Tracing & Context Propagation
+
+RabbitEvents automatically captures and propagates Laravel's `Context` data (Laravel 11+) via AMQP headers (`trace_context`). Any contextual attributes (such as trace IDs, request IDs, or authenticated user info) set before publishing will be hydrated automatically on the listener side.
+
 
 ### Publish an Event object with the `publish` function
 
@@ -174,17 +205,24 @@ use \App\RabbitEvents\AnotherEvent;
 
 Event::fake();
 
-$payload = [
-    'key1' => 'value1',
-    'key2' => 'value2',
-];
+Event::publish(['key1' => 'value1', 'key2' => 'value2']);
 
-Event::publish($payload);
+// Assert event was published (without repeating the event name)
+Event::assertPublished();
 
-Event::assertPublished('something.happened', $payload);
+// Assert with closure
+Event::assertPublished(function ($event, $payload) {
+    return $payload['key1'] === 'value1';
+});
 
+// Assert published exact number of times
+Event::assertPublishedTimes(1);
+
+// Assert an event was not published
 AnotherEvent::assertNotPublished();
+
+// Assert nothing was published at all
+Event::assertNothingPublished();
 ```
 
-If the assertion does not pass, `Mockery\Exception\InvalidCountException` will be thrown.\
 Don't forget to call `\Mockery::close()` in `tearDown` or similar methods of your tests.

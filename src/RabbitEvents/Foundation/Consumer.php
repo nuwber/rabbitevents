@@ -67,6 +67,12 @@ class Consumer
 
     public function acknowledge(Message $message): void
     {
+        $message->markAsAcknowledged();
         $this->consumer->acknowledge($message->transportMessage());
+    }
+
+    public function reject(Message $message, bool $requeue = false): void
+    {
+        $this->consumer->reject($message->transportMessage(), $requeue);
     }
 }

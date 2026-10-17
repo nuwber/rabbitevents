@@ -74,12 +74,14 @@ class HandlerTest extends TestCase
 
         $handler = new Handler($message, static fn($event, $payload) => $event, FailingListener::class, $transport, [$listener, 'failed']);
 
-        $handler->fail($exception);
-
-        self::assertTrue($handler->hasFailed());
-        self::assertEquals($message->payload, $listener->payload);
-
-        $transport->shouldHaveReceived('send', m::type(Message::class));
+        try {
+            $handler->fail($exception);
+        } finally {
+            self::assertTrue($handler->hasFailed());
+            self::assertTrue($message->hasFailed());
+            self::assertEquals($message->payload->value(), $listener->payload);
+            $transport->shouldNotHaveReceived('send');
+        }
     }
 
     public function testFailClosure(): void
@@ -108,6 +110,27 @@ class HandlerTest extends TestCase
             ->send(m::type(Message::class));
 
         self::assertTrue($handler->isReleased());
+    }
+
+    public function testReleaseRegeneratesDeduplicationHeader(): void
+    {
+        $message = $this->getMessage();
+        $message->setHeader('x-deduplication-header', 'old-uuid');
+
+        $transport = m::spy(Transport::class);
+        $handler = new Handler(
+            $message,
+            static fn($event, $payload) => $event,
+            $this->listenerClass,
+            $transport
+        );
+
+        $handler->release(5);
+
+        $transport->shouldHaveReceived('send', function (Message $retryMessage) {
+            return $retryMessage->header('x-deduplication-header') !== 'old-uuid'
+                && !empty($retryMessage->header('x-deduplication-header'));
+        });
     }
 
     public function testGetAttempts()

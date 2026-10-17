@@ -39,6 +39,22 @@ class ConnectionTest extends TestCase
         self::assertInstanceOf(DelayStrategy::class, $this->connection->getDelayStrategy());
     }
 
+    public function testDeduplicationStrategySetter(): void
+    {
+        $strategy = \Mockery::mock(\RabbitEvents\Foundation\Contracts\Deduplicator::class);
+        $this->connection->setDeduplicationStrategy($strategy);
+
+        self::assertSame($strategy, $this->connection->getDeduplicationStrategy());
+    }
+
+    public function testGetDeduplicationStrategy(): void
+    {
+        self::assertInstanceOf(
+            \RabbitEvents\Foundation\Contracts\Deduplicator::class,
+            $this->connection->getDeduplicationStrategy()
+        );
+    }
+
     public function testGetConfig()
     {
         self::assertEquals('events', $this->connection->getConfig('exchange'));

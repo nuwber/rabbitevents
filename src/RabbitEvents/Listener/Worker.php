@@ -23,8 +23,19 @@ class Worker
      */
     public bool $shouldQuit = false;
 
-    public function __construct(private ExceptionHandler $exceptions, private EventsDispatcher $events)
+    protected ?\RabbitEvents\Foundation\Contracts\Transport $failer = null;
+
+    public function __construct(
+        private ExceptionHandler $exceptions,
+        private EventsDispatcher $events
+    ) {
+    }
+
+    public function setFailer(?\RabbitEvents\Foundation\Contracts\Transport $failer): self
     {
+        $this->failer = $failer;
+
+        return $this;
     }
 
     /**
@@ -48,7 +59,11 @@ class Worker
                     $this->resetTimeoutHandler();
                 }
 
-                $consumer->acknowledge($message);
+                if ($message->hasFailed()) {
+                    $this->failMessage($message, $consumer);
+                } else {
+                    $consumer->acknowledge($message);
+                }
             }
 
             $status = $this->stopIfNecessary($options);
@@ -81,7 +96,6 @@ class Worker
      * @param Message $message
      * @param ListenerOptions $options
      * @return void
-     * @throws Throwable
      */
     private function processMessage(Processor $processor, Message $message, ListenerOptions $options): void
     {
@@ -103,16 +117,26 @@ class Worker
         // process if it is running too long because it has frozen. This uses the async
         // signals supported in recent versions of PHP to accomplish it conveniently.
         pcntl_signal(SIGALRM, function () use ($message, $consumer) {
-            $this->events->dispatch(new MessageProcessingFailed($message, new TimeoutExceededException(
-                'Worker has timed out.'
-            )));
+            $e = new TimeoutExceededException('Worker has timed out.');
+            $this->events->dispatch(new MessageProcessingFailed($message, $e));
 
-            $consumer->acknowledge($message);
+            $message->markAsFailed($e);
+            $this->failMessage($message, $consumer);
 
             $this->kill(WorkerExitStatus::ERROR);
         });
 
         pcntl_alarm(max($options->timeout, 0));
+    }
+
+    protected function failMessage(Message $message, Consumer $consumer): void
+    {
+        if ($this->failer) {
+            $this->failer->send($message);
+            $consumer->acknowledge($message);
+        } else {
+            $consumer->reject($message, false);
+        }
     }
 
     protected function skipIfAlreadyExceedsMaxAttempts(Message $message, ListenerOptions $options): void
@@ -121,9 +145,12 @@ class Worker
             return;
         }
 
-        $this->events->dispatch(new MessageProcessingFailed($message, $e = new MaxAttemptsExceededException(
+        $e = new MaxAttemptsExceededException(
             'The Message handle tries has been attempted too many times.'
-        )));
+        );
+        $message->markAsFailed($e);
+
+        $this->events->dispatch(new MessageProcessingFailed($message, $e));
 
         throw $e;
     }
@@ -161,7 +188,7 @@ class Worker
             return WorkerExitStatus::MEMORY_LIMIT;
         }
 
-        return null; // Explicit return null
+        return null;
     }
 
     /**

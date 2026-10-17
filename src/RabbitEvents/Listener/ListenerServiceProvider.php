@@ -34,6 +34,10 @@ class ListenerServiceProvider extends BaseServiceProvider
             Console\EventsListCommand::class,
             Console\EventsCacheCommand::class,
             Console\EventsClearCommand::class,
+            Console\FailedCommand::class,
+            Console\RetryCommand::class,
+            Console\ForgetCommand::class,
+            Console\FlushFailedCommand::class,
         ]);
 
         foreach ($this->listens() as $event => $listeners) {

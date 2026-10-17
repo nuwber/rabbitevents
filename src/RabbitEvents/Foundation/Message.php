@@ -19,6 +19,10 @@ class Message
      */
     private ?TransportMessage $transportMessage = null;
 
+    private bool $failed = false;
+
+    private bool $acknowledged = false;
+
     public function __construct(
         public readonly string $event,
         public readonly Payload $payload,
@@ -63,6 +67,28 @@ class Message
         return $this->transportMessage()->$method(...$args);
     }
 
+    public function id(): ?string
+    {
+        return $this->transportMessage()->getMessageId();
+    }
+
+    public function header(string $name, mixed $default = null): mixed
+    {
+        return $this->transportMessage()->getHeader($name, $default);
+    }
+
+    public function headers(): array
+    {
+        return $this->transportMessage()->getHeaders();
+    }
+
+    public function setHeader(string $name, mixed $value): self
+    {
+        $this->transportMessage()->setHeader($name, $value);
+
+        return $this;
+    }
+
     public function attempts(): int
     {
         return $this->getProperty('x-attempts', 0);
@@ -84,5 +110,52 @@ class Message
         $this->transportMessage = $transportMessage;
 
         return $this;
+    }
+
+    private ?\Throwable $failureException = null;
+
+    private ?string $failedListener = null;
+
+    public function event(): string
+    {
+        return $this->event;
+    }
+
+    public function markAsFailed(?\Throwable $exception = null, ?string $failedListener = null): self
+    {
+        $this->failed = true;
+        $this->failureException = $exception;
+        if ($failedListener !== null) {
+            $this->failedListener = $failedListener;
+        }
+
+        return $this;
+    }
+
+    public function hasFailed(): bool
+    {
+        return $this->failed;
+    }
+
+    public function failureException(): ?\Throwable
+    {
+        return $this->failureException;
+    }
+
+    public function failedListener(): ?string
+    {
+        return $this->failedListener;
+    }
+
+    public function markAsAcknowledged(): self
+    {
+        $this->acknowledged = true;
+
+        return $this;
+    }
+
+    public function isAcknowledged(): bool
+    {
+        return $this->acknowledged;
     }
 }

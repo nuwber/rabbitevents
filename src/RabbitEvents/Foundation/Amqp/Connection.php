@@ -12,9 +12,12 @@ use Interop\Amqp\AmqpContext;
 use Interop\Queue\Context;
 use Interop\Amqp\Impl\AmqpBind;
 use RabbitEvents\Foundation\Contracts\Connection as ConnectionContract;
+use RabbitEvents\Foundation\Contracts\Deduplicator;
 use RabbitEvents\Foundation\Contracts\Destination;
 use RabbitEvents\Foundation\Contracts\Producer;
 use RabbitEvents\Foundation\Contracts\QueueConsumer;
+use RabbitEvents\Foundation\Deduplication\InMemoryDeduplicator;
+use RabbitEvents\Foundation\Deduplication\NullDeduplicator;
 
 class Connection implements ConnectionContract
 {
@@ -34,6 +37,8 @@ class Connection implements ConnectionContract
      * @var Context
      */
     private $context;
+
+    private ?Deduplicator $deduplicationStrategy = null;
 
     public function __construct(array $config)
     {
@@ -64,6 +69,13 @@ class Connection implements ConnectionContract
         return $this->context;
     }
 
+    public function recreateContext(): Context
+    {
+        $this->context = null;
+
+        return $this->createContext();
+    }
+
     public function createProducer(): Producer
     {
         return new AmqpProducerAdapter($this->createContext()->createProducer());
@@ -74,10 +86,10 @@ class Connection implements ConnectionContract
         return new AmqpConsumerAdapter($this->createContext()->createConsumer($queue->getOrigin()));
     }
 
-    public function makeTopic(): Destination
+    public function makeTopic(?string $name = null): Destination
     {
         $topic = (new DestinationTopicFactory($this->createContext(), $this))
-            ->makeAndDeclare($this->getConfig('exchange'));
+            ->makeAndDeclare($name ?? $this->getConfig('exchange'));
 
         return new AmqpDestinationAdapter($topic);
     }
@@ -116,6 +128,33 @@ class Connection implements ConnectionContract
         }
 
         return $this->delayStrategy;
+    }
+
+    public function setDeduplicationStrategy(Deduplicator $strategy): self
+    {
+        $this->deduplicationStrategy = $strategy;
+
+        return $this;
+    }
+
+    public function getDeduplicationStrategy(): Deduplicator
+    {
+        if (!$this->deduplicationStrategy) {
+            if (!$this->getConfig('deduplication.enabled', true)) {
+                return $this->deduplicationStrategy = new NullDeduplicator();
+            }
+
+            $class = $this->getConfig('deduplication.strategy', InMemoryDeduplicator::class);
+
+            if ($class === InMemoryDeduplicator::class) {
+                $cacheSize = (int) $this->getConfig('deduplication.cache_size', 10000);
+                $this->deduplicationStrategy = new InMemoryDeduplicator($cacheSize);
+            } else {
+                $this->deduplicationStrategy = new $class();
+            }
+        }
+
+        return $this->deduplicationStrategy;
     }
 
     public function getConfig($key = null, $default = null): mixed
