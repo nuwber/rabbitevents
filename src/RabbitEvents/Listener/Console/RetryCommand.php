@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener\Console;
 
 use Illuminate\Console\Command;
+use RabbitEvents\Foundation\Consumer;
 use RabbitEvents\Foundation\Context;
 use RabbitEvents\Foundation\Contracts\Destination;
+use RabbitEvents\Foundation\Contracts\Producer;
 use RabbitEvents\Foundation\Message;
+use RabbitEvents\Foundation\Support\Sender;
 
 class RetryCommand extends Command
 {
@@ -66,14 +69,14 @@ class RetryCommand extends Command
 
     protected function retryMessages(?string $targetId): int
     {
-        $context = $this->getContext();
-        $producer = $context->createProducer();
+        $producer = null;
         $retried = 0;
 
-        $this->eachFailedMessage(function ($message, $consumer) use ($targetId, $producer, $context, &$retried) {
+        $this->eachFailedMessage(function (Message $message, Consumer $consumer, Context $context) use ($targetId, &$producer, &$retried) {
             $msgId = $message->id();
 
             if (is_null($targetId) || $msgId === $targetId) {
+                $producer ??= $context->createProducer();
                 $targetQueue = $this->getTargetQueue($context, $message);
                 $this->republishMessage($message, $producer, $targetQueue);
                 $consumer->acknowledge($message);
@@ -99,13 +102,13 @@ class RetryCommand extends Command
         return $context->makeQueue($queueName, [], $context->makeTopic());
     }
 
-    protected function republishMessage($message, $producer, $destination): void
+    protected function republishMessage(Message $message, Producer $producer, Destination $destination): void
     {
         $routingKey = $this->extractEvent($message);
-        $transportMessage = $message->transportMessage();
-        $transportMessage->setRoutingKey($routingKey);
-        $transportMessage->setProperty('x-attempts', 0);
+        $message->setRoutingKey($routingKey);
+        $message->setProperty('event', $routingKey);
+        $message->setProperty('x-attempts', 0);
 
-        $producer->send($destination, $transportMessage);
+        (new Sender($destination, $producer))->send($message);
     }
 }

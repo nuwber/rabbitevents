@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace RabbitEvents\Foundation;
 
-use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use RabbitEvents\Foundation\Connection\ConnectionFactory;
 use RabbitEvents\Foundation\Connection\ConnectionManager;
@@ -52,19 +51,6 @@ class RabbitEventsServiceProvider extends ServiceProvider
     {
         $this->registerCommands();
         $this->registerPublishing();
-    }
-
-    /**
-     * @return array
-     * @throws \RuntimeException
-     */
-    protected function resolveConfig(): array
-    {
-        $config = $this->app['config']['rabbitevents'];
-
-        $defaultConnection = Arr::get($config, 'default');
-
-        return Arr::get($config, "connections.$defaultConnection", []);
     }
 
     /**

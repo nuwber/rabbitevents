@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace RabbitEvents\Listener\Console;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 
 class FailedCommand extends Command
 {

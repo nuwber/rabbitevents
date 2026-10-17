@@ -41,4 +41,23 @@ class FailerTest extends TestCase
         self::assertNotEmpty($message->header('x-exception-trace'));
         self::assertEquals('App\\Listeners\\ChargeOrder', $message->header('x-listener'));
     }
+
+    public function testSendPreservesOriginalEventWhenRoutingKeyWasMutatedToQueueName(): void
+    {
+        $destination = new DestinationStub('rabbitevents.dlx');
+        $producer = new ProducerStub();
+        $failer = new Failer($destination, $producer, 'billing:order.created');
+
+        // Simulate message after Releaser or RetryCommand where AMQP routingKey was mutated to the queue name
+        $message = new Message('order.created', new Payload(['order_id' => 10]));
+        $transportMessage = new TransportMessageStub();
+        $transportMessage->setRoutingKey('billing:order.created');
+        $message->setTransportMessage($transportMessage);
+
+        $message->markAsFailed(new \RuntimeException('Failed on attempt 2'));
+
+        $failer->send($message);
+
+        self::assertEquals('order.created', $message->header('x-original-routing-key'));
+    }
 }

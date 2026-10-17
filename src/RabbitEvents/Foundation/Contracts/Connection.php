@@ -14,5 +14,5 @@ interface Connection
 
     public function makeQueue(string $queueName, array $events, Destination $topic): Destination;
 
-    public function getDeduplicationStrategy(): Deduplicator;
+    public function getDeduplicationStrategy(): ?Deduplicator;
 }

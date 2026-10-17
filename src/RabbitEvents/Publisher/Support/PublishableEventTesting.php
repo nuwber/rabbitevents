@@ -65,29 +65,9 @@ trait PublishableEventTesting
 
     public static function assertNotPublished(callable|string|null $callback = null): void
     {
-        if (is_callable($callback)) {
-            Container::getInstance()->make(Publisher::class)
-                ->shouldNotHaveReceived()
-                ->publish(\Mockery::on(static function (ShouldPublish $object) use ($callback) {
-                    return $object instanceof static && (bool) $callback($object, $object->toPublish());
-                }));
-
-            return;
-        }
-
-        if (is_string($callback)) {
-            Container::getInstance()->make(Publisher::class)
-                ->shouldNotHaveReceived()
-                ->publish(\Mockery::on(static function (ShouldPublish $object) use ($callback) {
-                    return $object instanceof static && $object->publishEventKey() === $callback;
-                }));
-
-            return;
-        }
-
         Container::getInstance()->make(Publisher::class)
             ->shouldNotHaveReceived()
-            ->publish(\Mockery::type(static::class));
+            ->publish(static::createPublishMatcher($callback));
     }
 
     public static function assertNothingPublished(): void

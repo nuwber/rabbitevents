@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace RabbitEvents\Foundation\Amqp;
 
 use Interop\Amqp\AmqpContext;
-use Interop\Amqp\AmqpDestination;
 use Interop\Amqp\AmqpQueue;
 use Interop\Amqp\AmqpTopic;
 use Interop\Amqp\Impl\AmqpBind;

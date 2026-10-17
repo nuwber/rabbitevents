@@ -27,12 +27,12 @@
   ],
   "require": {
     "php": "^8.2",
-    "ext-bcmath": "*",
     "ext-json": "*",
-    "illuminate/support": "10 - 13",
-    "illuminate/console": "10 - 13",
-    "illuminate/container": "10 - 13",
-    "enqueue/amqp-lib": "^0.10"
+    "enqueue/amqp-lib": "^0.10",
+    "illuminate/console": "^11.0|^12.0|^13.0",
+    "illuminate/container": "^11.0|^12.0|^13.0",
+    "illuminate/log": "^11.0|^12.0|^13.0",
+    "illuminate/support": "^11.0|^12.0|^13.0"
   },
   "autoload": {
     "psr-4": {

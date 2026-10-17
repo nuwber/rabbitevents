@@ -53,13 +53,19 @@ trait InteractsWithFailedQueue
         return $context->makeConsumer($destination);
     }
 
-    protected function eachFailedMessage(callable $callback, int $timeout = 500): void
+    protected function eachFailedMessage(callable $callback, int $timeout = 500, int $maxScan = 10000): void
     {
         $context = $this->getContext();
         $consumer = $this->getConsumer($context, $this->getFailedQueueName());
         $unhandled = [];
+        $scanned = 0;
 
-        while ($message = $consumer->nextMessage($timeout)) {
+        if ($this->hasOption('limit') && (int) $this->option('limit') > 0) {
+            $maxScan = max($maxScan, (int) $this->option('limit'));
+        }
+
+        while ($scanned < $maxScan && ($message = $consumer->nextMessage($timeout))) {
+            $scanned++;
             $continue = $callback($message, $consumer, $context);
 
             if (!$message->isAcknowledged()) {

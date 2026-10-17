@@ -179,7 +179,7 @@ class ConnectionManager implements Connection
         return $this->connection()->makeQueue($queueName, $events, $topic);
     }
 
-    public function getDeduplicationStrategy(): \RabbitEvents\Foundation\Contracts\Deduplicator
+    public function getDeduplicationStrategy(): ?\RabbitEvents\Foundation\Contracts\Deduplicator
     {
         return $this->connection()->getDeduplicationStrategy();
     }

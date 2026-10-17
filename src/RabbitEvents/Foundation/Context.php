@@ -41,6 +41,7 @@ class Context
 
     public function getDeduplicator(): Contracts\Deduplicator
     {
-        return $this->connection->getDeduplicationStrategy();
+        return $this->connection->getDeduplicationStrategy()
+            ?? new Deduplication\NullDeduplicator();
     }
 }

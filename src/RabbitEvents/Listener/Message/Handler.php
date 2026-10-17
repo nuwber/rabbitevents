@@ -99,6 +99,7 @@ class Handler
         }
 
         $retryMessage = Message::createFromTransportMessage($this->message->transportMessage());
+        $retryMessage->transportMessage()->setProperty('event', $this->message->event);
 
         if ($retryMessage->header('x-deduplication-header')) {
             $retryMessage->setHeader('x-deduplication-header', (string) Str::uuid());

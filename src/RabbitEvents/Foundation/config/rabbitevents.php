@@ -37,7 +37,6 @@ return [
             ],
             'dlx' => [
                 'enabled' => env('RABBITEVENTS_DLX_ENABLED', true),
-                'driver' => env('RABBITEVENTS_DLX_DRIVER', 'application'),
                 'exchange' => env('RABBITEVENTS_DLX_EXCHANGE', 'rabbitevents.dlx'),
             ],
             'ssl' => [

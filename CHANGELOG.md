@@ -55,7 +55,7 @@ All notable changes to this project will be documented in this file.
     - Captured synchronous message ID when publishing events configured with `afterCommit` outside of active database transactions.
     - Added explicit `illuminate/log` dependency in `composer.json`.
 - **Worker & Processor**: Integrated deduplication checks and trace context lifecycle into message processing loop.
-- **CI & Quality**: Replaced external Codecov service with native GitHub Actions test reporting (`$GITHUB_STEP_SUMMARY`) and SVG coverage badge.
+- **CI & Quality**: Replaced external Codecov service with native GitHub Actions test and coverage reporting (`$GITHUB_STEP_SUMMARY`).
 
 ### Removed
 - Obsolete `bin/splitsh-lite` binaries.
